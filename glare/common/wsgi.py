@@ -80,7 +80,7 @@ socket_opts = [
 ]
 
 eventlet_opts = [
-    cfg.IntOpt('workers',
+    cfg.IntOpt('workers', default=0,
                help=_('The number of child process workers that will be '
                       'created to service requests. The default will be '
                       'equal to the number of CPUs available.')),
