@@ -39,5 +39,5 @@ _artifacts_opts = [
 
 
 def list_artifacts_opts():
-    """Return a list of oslo_config options available in Glance artifacts"""
+    """Return a list of oslo_config options available in Glare"""
     return [(g, copy.deepcopy(o)) for g, o in _artifacts_opts]
