@@ -19,6 +19,7 @@ import json
 import jsonpatch
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_utils import encodeutils
 import six
 from six.moves import http_client
 import six.moves.urllib.parse as urlparse
@@ -430,7 +431,12 @@ class ResponseSerializer(api_versioning.VersionedResource,
     def list(self, response, af_list):
         params = dict(response.request.params)
         params.pop('marker', None)
-        query = urlparse.urlencode(params)
+
+        encode_params = {}
+        for key, value in six.iteritems(params):
+            encode_params[key] = encodeutils.safe_encode(value)
+        query = urlparse.urlencode(encode_params)
+
         type_name = af_list['type_name']
         body = {
             type_name: af_list['artifacts'],

@@ -25,16 +25,19 @@ from glare.objects import validators
 LOG = logging.getLogger(__name__)
 
 Field = attribute.Attribute.init
-DictField = attribute.DictAttribute.init
-ListField = attribute.ListAttribute.init
+Dict = attribute.DictAttribute.init
+List = attribute.ListAttribute.init
+Blob = attribute.BlobAttribute.init
+BlobDict = attribute.BlobDictAttribute.init
 
 
 class SampleArtifact(base_artifact.BaseArtifact):
     VERSION = '1.0'
 
     fields = {
-        'blob': Field(glare_fields.BlobField, required_on_activate=False,
-                      mutable=True, filter_ops=[]),
+        'blob': Blob(required_on_activate=False, mutable=True, filter_ops=[]),
+        'small_blob': Blob(max_blob_size=10, required_on_activate=False,
+                           mutable=True, filter_ops=[]),
         'dependency1': Field(glare_fields.Dependency,
                              required_on_activate=False,
                              filter_ops=[]),
@@ -57,7 +60,6 @@ class SampleArtifact(base_artifact.BaseArtifact):
                       sortable=True,
                       required_on_activate=False,
                       filter_ops=attribute.FILTERS),
-
         'float1': Field(fields.FloatField,
                         sortable=True,
                         required_on_activate=False,
@@ -70,25 +72,19 @@ class SampleArtifact(base_artifact.BaseArtifact):
                       sortable=True,
                       required_on_activate=False,
                       filter_ops=attribute.FILTERS),
-        'list_of_str': ListField(fields.String,
-                                 default=[],
-                                 required_on_activate=False,
-                                 filter_ops=(attribute.FILTER_EQ,)),
-        'list_of_int': ListField(fields.Integer,
-                                 default=[],
-                                 required_on_activate=False,
-                                 filter_ops=(attribute.FILTER_EQ,)),
-        'dict_of_str': DictField(fields.String,
-                                 default={},
-                                 required_on_activate=False,
-                                 filter_ops=(attribute.FILTER_EQ,)),
-        'dict_of_int': DictField(fields.Integer,
-                                 default={},
-                                 required_on_activate=False,
-                                 filter_ops=(attribute.FILTER_EQ,)),
-        'dict_of_blobs': DictField(glare_fields.BlobFieldType,
-                                   default={},
-                                   required_on_activate=False),
+        'list_of_str': List(fields.String,
+                            required_on_activate=False,
+                            filter_ops=(attribute.FILTER_EQ,)),
+        'list_of_int': List(fields.Integer,
+                            required_on_activate=False,
+                            filter_ops=(attribute.FILTER_EQ,)),
+        'dict_of_str': Dict(fields.String,
+                            required_on_activate=False,
+                            filter_ops=(attribute.FILTER_EQ,)),
+        'dict_of_int': Dict(fields.Integer,
+                            required_on_activate=False,
+                            filter_ops=(attribute.FILTER_EQ,)),
+        'dict_of_blobs': BlobDict(required_on_activate=False),
         'string_mutable': Field(fields.StringField,
                                 required_on_activate=False,
                                 mutable=True,
@@ -102,20 +98,19 @@ class SampleArtifact(base_artifact.BaseArtifact):
                                    validators=[
                                        validators.MaxStrLen(10)
                                    ]),
-        'list_validators': ListField(fields.String,
-                                     default=[],
-                                     required_on_activate=False,
-                                     filter_ops=[],
-                                     max_size=3,
-                                     validators=[validators.Unique()]),
-        'dict_validators': DictField(fields.String,
-                                     default=None,
-                                     required_on_activate=False,
-                                     filter_ops=[],
-                                     validators=[
-                                         validators.AllowedDictKeys([
-                                             'abc', 'def', 'ghi', 'jkl'])],
-                                     max_size=3),
+        'list_validators': List(fields.String,
+                                required_on_activate=False,
+                                filter_ops=[],
+                                max_size=3,
+                                validators=[validators.Unique()]),
+        'dict_validators': Dict(fields.String,
+                                required_on_activate=False,
+                                default=None,
+                                filter_ops=[],
+                                validators=[
+                                    validators.AllowedDictKeys([
+                                        'abc', 'def', 'ghi', 'jkl'])],
+                                max_size=3),
         'system_attribute': Field(fields.StringField,
                                   system=True, sortable=True,
                                   default="default")

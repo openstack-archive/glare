@@ -55,7 +55,13 @@ class Attribute(object):
         self.required_on_activate = required_on_activate
         self.system = system
         self.sortable = sortable
-        self.filter_ops = filter_ops or [FILTER_EQ, FILTER_NEQ, FILTER_IN]
+        if field_class is not glare_fields.BlobField:
+            self.filter_ops = filter_ops or [FILTER_EQ, FILTER_NEQ, FILTER_IN]
+        else:
+            if filter_ops:
+                raise exc.IncorrectArtifactType(
+                    "Cannot specify filters for blobs")
+            self.filter_ops = []
         self.field_attrs = ['mutable', 'required_on_activate', 'system',
                             'sortable', 'filter_ops']
 
@@ -97,6 +103,7 @@ class Attribute(object):
             return coerce_wrapper
 
         field.coerce = wrapper(field.coerce)
+        field.validators = vals
         return field
 
     @classmethod
@@ -107,7 +114,7 @@ class Attribute(object):
 
 class CompoundAttribute(Attribute):
     def __init__(self, field_class, element_type, element_validators=None,
-                 max_size=255, **kwargs):
+                 **kwargs):
         super(CompoundAttribute, self).__init__(field_class, **kwargs)
         if self.sortable:
             raise exc.IncorrectArtifactType("'sortable' must be False for "
@@ -120,7 +127,6 @@ class CompoundAttribute(Attribute):
         self.vo_attrs.append('element_type')
         self.field_attrs.append('element_type')
 
-        self.validators.append(val_lib.MaxSize(max_size))
         self.element_validators = element_validators or []
 
     def get_element_validators(self):
@@ -137,7 +143,7 @@ class CompoundAttribute(Attribute):
 
 
 class ListAttribute(CompoundAttribute):
-    def __init__(self, element_type, **kwargs):
+    def __init__(self, element_type, max_size=255, **kwargs):
         if 'default' not in kwargs:
             kwargs['default'] = []
         if element_type is glare_fields.BlobField:
@@ -145,6 +151,7 @@ class ListAttribute(CompoundAttribute):
                                             "to be specified in artifact.")
         super(ListAttribute, self).__init__(glare_fields.List, element_type,
                                             **kwargs)
+        self.validators.append(val_lib.MaxListSize(max_size))
 
     def get_default_validators(self):
         default_vals = []
@@ -155,11 +162,14 @@ class ListAttribute(CompoundAttribute):
 
 
 class DictAttribute(CompoundAttribute):
-    def __init__(self, element_type, **kwargs):
+    def __init__(self, element_type, max_size=255, **kwargs):
         if 'default' not in kwargs:
             kwargs['default'] = {}
         super(DictAttribute, self).__init__(glare_fields.Dict, element_type,
                                             **kwargs)
+        self.validators.append(val_lib.MaxDictSize(max_size))
+        if element_type is glare_fields.BlobFieldType:
+            self.filter_ops = []
 
     def get_default_validators(self):
         default_vals = []

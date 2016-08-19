@@ -133,8 +133,9 @@ class TestArtifact(functional.FunctionalTest):
         return self._check_artifact_method("post", url, data, status=status,
                                            headers=headers)
 
-    def get(self, url, status=200):
-        return self._check_artifact_method("get", url, status=status)
+    def get(self, url, status=200, headers=None):
+        return self._check_artifact_method("get", url, status=status,
+                                           headers=headers)
 
     def delete(self, url, status=204):
         response = requests.delete(self._url(url), headers=self._headers())
@@ -1294,7 +1295,7 @@ class TestArtifact(functional.FunctionalTest):
         self.patch(url, upd_mutable)
 
     def test_artifact_delete(self):
-                # try ro delete not existing artifact
+        # try ro delete not existing artifact
         url = '/sample_artifact/111111'
         self.delete(url=url, status=404)
 
@@ -1404,6 +1405,13 @@ class TestArtifact(functional.FunctionalTest):
         self.put(url=url + '/blob_non_exist', data=data, status=400,
                  headers=headers)
 
+        # upload too big value
+        big_data = "this is the smallest big data"
+        self.put(url=url + '/small_blob', data=big_data, status=413,
+                 headers=headers)
+        # upload correct blob value
+        self.put(url=url + '/small_blob', data=big_data[:2], headers=headers)
+
         # Upload artifact via different user
         self.set_user('user2')
         self.put(url=url + '/blob', data=data, status=404,
@@ -1443,7 +1451,7 @@ class TestArtifact(functional.FunctionalTest):
     def test_download_blob(self):
         data = 'data'
         art = self.create_artifact(data={'name': 'test_af',
-                                   'version': '0.0.1'})
+                                         'version': '0.0.1'})
         url = '/sample_artifact/%s' % art['id']
 
         # download not uploaded blob
@@ -1546,31 +1554,6 @@ class TestArtifact(functional.FunctionalTest):
         pass
 
     def test_schemas(self):
-        blob_schema = {
-            'type': ['object', 'null'],
-            'properties': {
-                'size': {'type': ['number', 'null']},
-                'checksum': {'type': ['string', 'null']},
-                'external': {'type': 'boolean'},
-                'status': {'type': 'string',
-                           'enum': ['saving', 'active', 'pending_delete']
-                           },
-                'content_type': {'type': 'string'}
-            },
-            'required': ['size', 'checksum', 'external', 'status',
-                         'content_type'],
-        }
-
-        icon_schema = blob_schema.copy()
-        icon_schema.update({u'required_on_activate': False,
-                            u'filter_ops': [u'eq', u'neq', u'in']})
-
-        blob_attr_schema = blob_schema.copy()
-        blob_attr_schema.update({
-            u'mutable': True,
-            u'required_on_activate': False,
-            u'filter_ops': [u'eq', u'neq', u'in']}),
-
         schema_sample_artifact = {
             u'sample_artifact': {
                 u'name': u'sample_artifact',
@@ -1588,7 +1571,8 @@ class TestArtifact(functional.FunctionalTest):
                                       u'sortable': True,
                                       u'type': [u'string',
                                                 u'null']},
-                    u'blob': {u'filter_ops': [],
+                    u'blob': {u'additionalProperties': False,
+                              u'filter_ops': [],
                               u'mutable': True,
                               u'properties': {u'checksum': {
                                   u'type': [u'string',
@@ -1659,6 +1643,7 @@ class TestArtifact(functional.FunctionalTest):
                                                u'null']},
                     u'dict_of_blobs': {
                         u'additionalProperties': {
+                            u'additionalProperties': False,
                             u'properties': {u'checksum': {
                                 u'type': [u'string',
                                           u'null']},
@@ -1708,16 +1693,20 @@ class TestArtifact(functional.FunctionalTest):
                         u'type': [u'object',
                                   u'null']},
                     u'dict_validators': {
-                        u'additionalProperties': {
-                            u'type': u'string'},
+                        u'additionalProperties': False,
                         u'filter_ops': [u'eq',
                                         u'neq',
                                         u'in'],
                         u'maxProperties': 3,
-                        u'properties': {u'abc': {},
-                                        u'def': {},
-                                        u'ghi': {},
-                                        u'jkl': {}},
+                        u'properties': {
+                            u'abc': {u'type': [u'string',
+                                               u'null']},
+                            u'def': {u'type': [u'string',
+                                               u'null']},
+                            u'ghi': {u'type': [u'string',
+                                               u'null']},
+                            u'jkl': {u'type': [u'string',
+                                               u'null']}},
                         u'required_on_activate': False,
                         u'type': [u'object',
                                   u'null']},
@@ -1743,7 +1732,8 @@ class TestArtifact(functional.FunctionalTest):
                                 u'sortable': True,
                                 u'type': [u'number',
                                           u'null']},
-                    u'icon': {u'filter_ops': [],
+                    u'icon': {u'additionalProperties': False,
+                              u'filter_ops': [],
                               u'properties': {u'checksum': {
                                   u'type': [u'string',
                                             u'null']},
@@ -1868,18 +1858,15 @@ class TestArtifact(functional.FunctionalTest):
                                u'sortable': True,
                                u'type': u'string'},
                     u'provided_by': {
-                        u'additionalProperties': {
-                            u'type': u'string'},
+                        u'additionalProperties': False,
                         u'filter_ops': [u'eq',
                                         u'neq',
                                         u'in'],
                         u'maxProperties': 255,
-                        u'properties': {u'company': {},
-                                        u'href': {},
-                                        u'name': {}},
-                        u'required': [u'name',
-                                      u'href',
-                                      u'company'],
+                        u'properties': {
+                            u'company': {u'type': u'string'},
+                            u'href': {u'type': u'string'},
+                            u'name': {u'type': u'string'}},
                         u'required_on_activate': False,
                         u'type': [u'object',
                                   u'null']},
@@ -1894,6 +1881,31 @@ class TestArtifact(functional.FunctionalTest):
                                  u'type': [u'array',
                                            u'null'],
                                  u'unique': True},
+                    u'small_blob': {
+                        u'additionalProperties': False,
+                        u'filter_ops': [],
+                        u'mutable': True,
+                        u'properties': {
+                            u'checksum': {u'type': [u'string',
+                                                    u'null']},
+                            u'content_type': {
+                                u'type': u'string'},
+                            u'external': {
+                                u'type': u'boolean'},
+                            u'size': {u'type': [u'number',
+                                                u'null']},
+                            u'status': {u'enum': [u'saving',
+                                                  u'active',
+                                                  u'pending_delete'],
+                                        u'type': u'string'}},
+                        u'required': [u'size',
+                                      u'checksum',
+                                      u'external',
+                                      u'status',
+                                      u'content_type'],
+                        u'required_on_activate': False,
+                        u'type': [u'object',
+                                  u'null']},
                     u'status': {u'default': u'queued',
                                 u'enum': [u'queued',
                                           u'active',
@@ -2386,3 +2398,20 @@ class TestArtifact(functional.FunctionalTest):
                  'value': 'val2'}]
         url = '/sample_artifact/%s' % art1['id']
         self.patch(url=url, data=data, status=400)
+
+    def test_support_unicode(self):
+        unicode_text = u'\u041f\u0420\u0418\u0412\u0415\u0422'
+        art1 = self.create_artifact(data={'name': unicode_text})
+        self.assertEqual(unicode_text, art1['name'])
+
+        mixed_text = u'la\u041f'
+        art2 = self.create_artifact(data={'name': mixed_text})
+        self.assertEqual(mixed_text, art2['name'])
+
+        headers = {'Content-Type': 'text/html; charset=UTF-8'}
+        url = u'/sample_artifact?name=\u041f\u0420\u0418\u0412\u0415\u0422'
+        response_url = u'/artifacts/sample_artifact?name=' \
+                       u'%D0%9F%D0%A0%D0%98%D0%92%D0%95%D0%A2'
+        result = self.get(url=url, headers=headers)
+        self.assertEqual(art1, result['sample_artifact'][0])
+        self.assertEqual(response_url, result['first'])

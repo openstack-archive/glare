@@ -123,19 +123,19 @@ class BaseArtifact(base.VersionedObject):
         'version': Field(glare_fields.VersionField, required_on_activate=False,
                          default=DEFAULT_ARTIFACT_VERSION,
                          filter_ops=attribute.FILTERS, nullable=False,
-                         sortable=True),
+                         sortable=True, validators=[validators.Version()]),
         'provided_by': DictField(fields.String,
                                  validators=[
                                      validators.AllowedDictKeys(
-                                         {"name", "href", "company"}),
+                                         ("name", "href", "company")),
                                      validators.RequiredDictKeys(
-                                         {"name", "href", "company"})
+                                         ("name", "href", "company"))
                                  ],
                                  default=None,
                                  required_on_activate=False),
         'supported_by': DictField(fields.String,
                                   validators=[
-                                      validators.RequiredDictKeys({"name"})
+                                      validators.RequiredDictKeys(("name",))
                                   ],
                                   default=None,
                                   required_on_activate=False),
@@ -216,7 +216,7 @@ class BaseArtifact(base.VersionedObject):
 
         To interact with database each artifact type must provide an api
         to execute db operations with artifacts.
-        :return: subtype of glare.db.api.BaseDBAPI
+        :return: subtype of glance.db.glare.api.BaseDBAPI
         """
         return artifact_api.ArtifactAPI(cls)
 
@@ -256,7 +256,7 @@ class BaseArtifact(base.VersionedObject):
             visibility = visibility or af.visibility
 
         if name:
-            scope_id = "%s:%s" % (str(name), str(
+            scope_id = "%s:%s" % (name, str(
                 version or cls.DEFAULT_ARTIFACT_VERSION))
             if visibility == 'public':
                 scope_id += ':%s' % str(context.tenant)
@@ -1055,18 +1055,37 @@ class BaseArtifact(base.VersionedObject):
             return 'boolean'
         elif isinstance(attr, glare_fields.List):
             return 'array'
-        elif isinstance(attr, glare_fields.Dict):
-            return 'object'
-        if isinstance(attr, glare_fields.BlobField):
+        elif isinstance(attr, (glare_fields.Dict, glare_fields.BlobField)):
             return 'object'
         return 'string'
 
     @classmethod
     def schema_attr(cls, attr, attr_name=''):
         attr_type = cls.schema_type(attr)
-        schema = {'type': (attr_type
-                           if not attr.nullable
-                           else [attr_type, 'null'])}
+        schema = {}
+
+        # generate schema for validators
+        for val in getattr(attr, 'validators', []):
+            schema.update(val.to_jsonschema())
+
+        schema['type'] = (attr_type
+                          if not attr.nullable else [attr_type, 'null'])
+        output_blob_schema = {
+            'type': ['object', 'null'],
+            'properties': {
+                'size': {'type': ['number', 'null']},
+                'checksum': {'type': ['string', 'null']},
+                'external': {'type': 'boolean'},
+                'status': {'type': 'string',
+                           'enum': list(
+                               glare_fields.BlobFieldType.BLOB_STATUS)},
+                'content_type': {'type': 'string'},
+            },
+            'required': ['size', 'checksum', 'external', 'status',
+                         'content_type'],
+            'additionalProperties': False
+        }
+
         if attr.system:
             schema['readOnly'] = True
 
@@ -1074,11 +1093,22 @@ class BaseArtifact(base.VersionedObject):
             element_type = (cls.schema_type(attr.element_type)
                             if hasattr(attr, 'element_type')
                             else 'string')
-            if element_type == 'object':
-                schema['additionalProperties'] = \
-                    cls.schema_attr(attr.element_type)
+
+            if attr.element_type is glare_fields.BlobFieldType:
+                schema['additionalProperties'] = output_blob_schema
             else:
-                schema['additionalProperties'] = {'type': element_type}
+                if schema.get('properties'):
+                    properties = {}
+                    required = schema.pop('required', [])
+                    for key in schema.pop('properties'):
+                        properties[key] = {
+                            'type': (element_type
+                                     if key in required
+                                     else [element_type, 'null'])}
+                    schema['properties'] = properties
+                    schema['additionalProperties'] = False
+                else:
+                    schema['additionalProperties'] = {'type': element_type}
 
         if attr_type == 'array':
             schema['items'] = {
@@ -1087,20 +1117,6 @@ class BaseArtifact(base.VersionedObject):
                          else 'string')}
 
         if isinstance(attr, glare_fields.BlobField):
-            output_blob_schema = {
-                'type': ['object', 'null'],
-                'properties': {
-                    'size': {'type': ['number', 'null']},
-                    'checksum': {'type': ['string', 'null']},
-                    'external': {'type': 'boolean'},
-                    'status': {'type': 'string',
-                               'enum': list(
-                                   glare_fields.BlobFieldType.BLOB_STATUS)},
-                    'content_type': {'type': 'string'},
-                },
-                'required': ['size', 'checksum', 'external', 'status',
-                             'content_type']
-            }
             schema.update(output_blob_schema)
 
         if isinstance(attr, fields.DateTimeField):
@@ -1110,27 +1126,28 @@ class BaseArtifact(base.VersionedObject):
             schema['enum'] = list(
                 glare_fields.ArtifactStatusField.ARTIFACT_STATUS)
 
-        if attr_name == 'version':
-            schema['pattern'] = \
-                ('/^([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]'
-                 '+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/')
+        if attr.mutable:
+            schema['mutable'] = True
+        if attr.sortable:
+            schema['sortable'] = True
+        if not attr.required_on_activate:
+            schema['required_on_activate'] = False
+        if attr._default is not None:
+            schema['default'] = attr._default
 
-        if attr_name == 'id':
-            schema['pattern'] = \
-                ('^([0-9a-fA-F]){8}-([0-9a-fA-F]){4}-([0-9a-fA-F]){4}'
-                 '-([0-9a-fA-F]){4}-([0-9a-fA-F]){12}$')
+        schema['filter_ops'] = attr.filter_ops
 
         return schema
 
     @classmethod
     def gen_schemas(cls):
         schemas_prop = {}
-        for attr_name, attr in cls.fields.items():
+        for attr_name, attr in six.iteritems(cls.fields):
             schemas_prop[attr_name] = cls.schema_attr(attr,
                                                       attr_name=attr_name)
         schemas = {'properties': schemas_prop,
                    'name': cls.get_type_name(),
-                   'title': 'Artifact type \"%s\" of version %s' %
+                   'title': 'Artifact type %s of version %s' %
                             (cls.get_type_name(), cls.VERSION),
                    'type': 'object',
                    'required': ['name']}

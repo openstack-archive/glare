@@ -14,7 +14,6 @@
 #    under the License.
 
 import six
-import uuid
 
 from oslo_log import log as logging
 from oslo_utils import encodeutils
@@ -50,6 +49,9 @@ class Validator(object):
                         "val": str(self.__class__),
                         "allowed": str(self.get_allowed_types())})
 
+    def to_jsonschema(self):
+        return {}
+
     def __call__(self, value):
         try:
             self.validate(value)
@@ -66,7 +68,23 @@ class UUID(Validator):
         return fields.StringField,
 
     def validate(self, value):
-        uuid.UUID(value)
+        pass
+
+    def to_jsonschema(self):
+        return {'pattern': ('^([0-9a-fA-F]){8}-([0-9a-fA-F]){4}-([0-9a-fA-F])'
+                            '{4}-([0-9a-fA-F]){4}-([0-9a-fA-F]){12}$')}
+
+
+class Version(Validator):
+    def get_allowed_types(self):
+        return glare_fields.VersionField
+
+    def validate(self, value):
+        pass
+
+    def to_jsonschema(self):
+        return {'pattern': ('/^([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]'
+                            '+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/')}
 
 
 class SizeValidator(Validator):
@@ -86,6 +104,9 @@ class MaxStrLen(SizeValidator):
                   "Current size: %(cur)s") % {'size': self.size,
                                               'cur': l})
 
+    def to_jsonschema(self):
+        return {'maxLength': self.size}
+
 
 class MinStrLen(SizeValidator):
     def get_allowed_types(self):
@@ -98,6 +119,9 @@ class MinStrLen(SizeValidator):
                 _("String length must be more than  %(size)s. "
                   "Current size: %(cur)s") % {'size': self.size,
                                               'cur': l})
+
+    def to_jsonschema(self):
+        return {'minLength': self.size}
 
 
 class ForbiddenChars(Validator):
@@ -117,8 +141,6 @@ class ForbiddenChars(Validator):
 
 
 class MaxSize(SizeValidator):
-    def get_allowed_types(self):
-        return glare_fields.Dict, glare_fields.List
 
     def validate(self, value):
         l = len(value)
@@ -128,6 +150,53 @@ class MaxSize(SizeValidator):
                   "%(size)s. Current size: %(cur)s") %
                 {'size': self.size, 'cur': l})
 
+    def to_jsonschema(self):
+        return {'maxItems': self.size}
+
+
+class MaxDictSize(MaxSize):
+
+    def get_allowed_types(self):
+        return glare_fields.Dict
+
+    def to_jsonschema(self):
+        return {'maxProperties': self.size}
+
+
+class MaxListSize(MaxSize):
+
+    def get_allowed_types(self):
+        return glare_fields.List
+
+    def to_jsonschema(self):
+        return {'maxItems': self.size}
+
+
+class MaxNumberSize(SizeValidator):
+    def validate(self, value):
+        if value > self.size:
+            raise ValueError("Number is too big: %s. Max allowed number is "
+                             "%s" % (value, self.size))
+
+    def get_allowed_types(self):
+        return fields.IntegerField, fields.FloatField
+
+    def to_jsonschema(self):
+        return {'maximum': self.size}
+
+
+class MinNumberSize(SizeValidator):
+    def validate(self, value):
+        if value > self.size:
+            raise ValueError("Number is too small: %s. Min allowed number is "
+                             "%s" % (value, self.size))
+
+    def get_allowed_types(self):
+        return fields.IntegerField, fields.FloatField
+
+    def to_jsonschema(self):
+        return {'minumum': self.size}
+
 
 class Unique(Validator):
     def get_allowed_types(self):
@@ -136,6 +205,9 @@ class Unique(Validator):
     def validate(self, value):
         if len(value) != len(set(value)):
             raise ValueError(_("List items %s must be unique.") % value)
+
+    def to_jsonschema(self):
+        return {'unique': True}
 
 
 class AllowedListValues(Validator):
@@ -154,6 +226,9 @@ class AllowedListValues(Validator):
                     {"item": item,
                      "allowed": self.allowed_items})
 
+    def to_jsonschema(self):
+        return {'enum': self.allowed_items}
+
 
 class AllowedDictKeys(Validator):
     def __init__(self, allowed_keys):
@@ -170,6 +245,11 @@ class AllowedDictKeys(Validator):
                                  {"item": item,
                                   "allowed": ', '.join(self.allowed_items)})
 
+    def to_jsonschema(self):
+        return {
+            'properties': {prop: {} for prop in self.allowed_items},
+        }
+
 
 class RequiredDictKeys(Validator):
     def __init__(self, required_keys):
@@ -185,6 +265,9 @@ class RequiredDictKeys(Validator):
                                    "Required key values: %(required)s") %
                                  {"item": item,
                                   "required": ', '.join(self.required_items)})
+
+    def to_jsonschema(self):
+        return {'required': list(self.required_items)}
 
 
 class MaxDictKeyLen(SizeValidator):
