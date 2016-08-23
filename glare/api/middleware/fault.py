@@ -22,9 +22,11 @@ import traceback
 
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_middleware import base as base_middleware
 from oslo_utils import reflection
 import six
-import webob
+import webob.dec
+import webob.exc
 
 from glare.common import exception
 from glare.common import wsgi
@@ -48,7 +50,7 @@ class Fault(object):
         return resp
 
 
-class GlareFaultWrapperFilter(wsgi.Middleware):
+class GlareFaultWrapperFilter(base_middleware.ConfigurableMiddleware):
     """Replace error body with something the client can parse."""
     error_map = {
         'BadRequest': webob.exc.HTTPBadRequest,
@@ -122,7 +124,8 @@ class GlareFaultWrapperFilter(wsgi.Middleware):
 
         return error
 
-    def process_request(self, req):
+    @webob.dec.wsgify
+    def __call__(self, req):
         try:
             return req.get_response(self.application)
         except Exception as exc:

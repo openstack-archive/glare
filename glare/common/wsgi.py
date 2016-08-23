@@ -105,17 +105,6 @@ eventlet_opts = [
                       'wait forever.')),
 ]
 
-wsgi_opts = [
-    cfg.StrOpt('secure_proxy_ssl_header',
-               deprecated_for_removal=True,
-               deprecated_reason=_('Use the http_proxy_to_wsgi middleware '
-                                   'instead.'),
-               help=_('The HTTP header used to determine the scheme for the '
-                      'original request, even if it was removed by an SSL '
-                      'terminating proxy. Typical value is '
-                      '"HTTP_X_FORWARDED_PROTO".')),
-]
-
 
 LOG = logging.getLogger(__name__)
 
@@ -123,7 +112,6 @@ CONF = cfg.CONF
 CONF.register_opts(bind_opts)
 CONF.register_opts(socket_opts)
 CONF.register_opts(eventlet_opts)
-CONF.register_opts(wsgi_opts)
 profiler_opts.set_defaults(CONF)
 
 ASYNC_EVENTLET_THREAD_POOL_LIST = []
@@ -546,88 +534,6 @@ class Server(object):
             self.sock.listen(CONF.backlog)
 
 
-class Middleware(object):
-    """
-    Base WSGI middleware wrapper. These classes require an application to be
-    initialized that will be called next.  By default the middleware will
-    simply call its wrapped app, or you can override __call__ to customize its
-    behavior.
-    """
-
-    def __init__(self, application):
-        self.application = application
-
-    @classmethod
-    def factory(cls, global_conf, **local_conf):
-        def filter(app):
-            return cls(app)
-        return filter
-
-    def process_request(self, req):
-        """
-        Called on each request.
-
-        If this returns None, the next application down the stack will be
-        executed. If it returns a response then that response will be returned
-        and execution will stop here.
-
-        """
-        return None
-
-    def process_response(self, response):
-        """Do whatever you'd like to the response."""
-        return response
-
-    @webob.dec.wsgify
-    def __call__(self, req):
-        response = self.process_request(req)
-        if response:
-            return response
-        response = req.get_response(self.application)
-        response.request = req
-        try:
-            return self.process_response(response)
-        except webob.exc.HTTPException as e:
-            return e
-
-
-class Debug(Middleware):
-    """
-    Helper class that can be inserted into any WSGI application chain
-    to get information about the request and response.
-    """
-
-    @webob.dec.wsgify
-    def __call__(self, req):
-        print(("*" * 40) + " REQUEST ENVIRON")
-        for key, value in req.environ.items():
-            print(key, "=", value)
-        print('')
-        resp = req.get_response(self.application)
-
-        print(("*" * 40) + " RESPONSE HEADERS")
-        for (key, value) in six.iteritems(resp.headers):
-            print(key, "=", value)
-        print('')
-
-        resp.app_iter = self.print_generator(resp.app_iter)
-
-        return resp
-
-    @staticmethod
-    def print_generator(app_iter):
-        """
-        Iterator that prints the contents of a wrapper string iterator
-        when iterated.
-        """
-        print(("*" * 40) + " BODY")
-        for part in app_iter:
-            sys.stdout.write(part)
-            sys.stdout.flush()
-            yield part
-        print()
-
-
 class APIMapper(routes.Mapper):
     """
     Handle route matching when url is '' because routes.Mapper returns
@@ -717,13 +623,6 @@ class Router(object):
 
 class Request(webob.Request):
     """Add some OpenStack API-specific logic to the base webob.Request."""
-
-    def __init__(self, environ, *args, **kwargs):
-        if CONF.secure_proxy_ssl_header:
-            scheme = environ.get(CONF.secure_proxy_ssl_header)
-            if scheme:
-                environ['wsgi.url_scheme'] = scheme
-        super(Request, self).__init__(environ, *args, **kwargs)
 
     def best_match_content_type(self):
         """Determine the requested response content-type."""

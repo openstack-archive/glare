@@ -22,11 +22,12 @@ return
 import microversion_parse
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_middleware import base as base_middleware
+
 
 from glare.api.v1 import api_version_request as api_version
 from glare.api import versions as artifacts_versions
 from glare.common import exception
-from glare.common import wsgi
 
 CONF = cfg.CONF
 
@@ -48,23 +49,22 @@ def get_version_from_accept(accept_header, vnd_mime_type):
             return None
 
 
-class GlareVersionNegotiationFilter(wsgi.Middleware):
+class GlareVersionNegotiationFilter(base_middleware.ConfigurableMiddleware):
     """Middleware that defines API version in request and redirects it
     to correct Router.
     """
 
     SERVICE_TYPE = 'artifact'
+    MIME_TYPE = 'application/vnd.openstack.artifacts-'
 
-    def __init__(self, app):
-        super(GlareVersionNegotiationFilter, self).__init__(app)
-        self.vnd_mime_type = 'application/vnd.openstack.artifacts-'
-
-    def process_request(self, req):
+    @staticmethod
+    def process_request(req):
         """Process api request:
         1. Define if this is request for available versions or not
         2. If it is not version request check extract version
         3. Validate available version and add version info to request
         """
+
         args = {'method': req.method, 'path': req.path, 'accept': req.accept}
         LOG.debug("Determining version of request: %(method)s %(path)s "
                   "Accept: %(accept)s", args)
@@ -76,7 +76,8 @@ class GlareVersionNegotiationFilter(wsgi.Middleware):
                 req, is_multi=is_multi)
 
         # determine api version from request
-        req_version = get_version_from_accept(req.accept, self.vnd_mime_type)
+        req_version = get_version_from_accept(
+            req.accept, GlareVersionNegotiationFilter.MIME_TYPE)
         if req_version is None:
             # determine api version for v0.1 from url
             if req.path_info_peek() == 'v0.1':
@@ -85,15 +86,17 @@ class GlareVersionNegotiationFilter(wsgi.Middleware):
                 # determine api version from microversion header
                 LOG.debug("Determine version from microversion header.")
                 req_version = microversion_parse.get_version(
-                    req.headers, service_type=self.SERVICE_TYPE)
+                    req.headers,
+                    service_type=GlareVersionNegotiationFilter.SERVICE_TYPE)
 
         # validate versions and add version info to request
         if req_version == 'v0.1':
             req.environ['api.version'] = 0.1
         else:
             # validate microversions header
-            req.api_version_request = self._get_api_version_request(
-                req_version)
+            req.api_version_request = \
+                GlareVersionNegotiationFilter._get_api_version_request(
+                    req_version)
             req_version = req.api_version_request.get_string()
 
         LOG.debug("Matched version: %s", req_version)
@@ -121,13 +124,13 @@ class GlareVersionNegotiationFilter(wsgi.Middleware):
                 max_ver=cur_ver.max_version().get_string())
         return cur_ver
 
-    def process_response(self, response):
+    @staticmethod
+    def process_response(response, request=None):
         if hasattr(response, 'headers'):
-            request = response.request
             if hasattr(request, 'api_version_request'):
                 api_header_name = microversion_parse.STANDARD_HEADER
                 response.headers[api_header_name] = (
-                    self.SERVICE_TYPE + ' ' +
+                    GlareVersionNegotiationFilter.SERVICE_TYPE + ' ' +
                     request.api_version_request.get_string())
                 response.headers.add('Vary', api_header_name)
 

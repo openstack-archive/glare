@@ -26,15 +26,15 @@ import fixtures
 from oslo_config import cfg
 from oslo_config import fixture as cfg_fixture
 from oslo_log import log
+from oslo_middleware import base as base_middleware
 import six
 from six.moves import BaseHTTPServer
 import testtools
 import webob
 
+from glare.api.middleware import context
 from glare.common import config
 from glare.common import utils
-from glare.common import wsgi
-from glare import context
 
 CONF = cfg.CONF
 try:
@@ -441,13 +441,10 @@ def start_http_server(image_id, image_data):
         return pid, port
 
 
-class FakeAuthMiddleware(wsgi.Middleware):
+class FakeAuthMiddleware(base_middleware.ConfigurableMiddleware):
 
-    def __init__(self, app, is_admin=False):
-        super(FakeAuthMiddleware, self).__init__(app)
-        self.is_admin = is_admin
-
-    def process_request(self, req):
+    @staticmethod
+    def process_request(req):
         auth_token = req.headers.get('X-Auth-Token')
         user = None
         tenant = None
@@ -465,7 +462,7 @@ class FakeAuthMiddleware(wsgi.Middleware):
             'user': user,
             'tenant': tenant,
             'roles': roles,
-            'is_admin': self.is_admin,
+            'is_admin': False,
             'auth_token': auth_token,
         }
 

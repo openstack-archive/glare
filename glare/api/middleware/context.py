@@ -18,11 +18,11 @@ import webob
 from oslo_config import cfg
 from oslo_context import context
 from oslo_log import log as logging
+from oslo_middleware import base as base_middleware
 from oslo_middleware import request_id
 from oslo_serialization import jsonutils
 
 from glare.common import policy
-from glare.common import wsgi
 from glare.i18n import _
 
 context_opts = [
@@ -60,10 +60,6 @@ class RequestContext(context.RequestContext):
         })
         return d
 
-    @classmethod
-    def from_dict(cls, values):
-        return cls(**values)
-
     def to_policy_values(self):
         values = super(RequestContext, self).to_policy_values()
         values['is_admin'] = self.is_admin
@@ -71,12 +67,10 @@ class RequestContext(context.RequestContext):
         return values
 
 
-class ContextMiddleware(wsgi.Middleware):
+class ContextMiddleware(base_middleware.ConfigurableMiddleware):
 
-    def __init__(self, app):
-        super(ContextMiddleware, self).__init__(app)
-
-    def process_request(self, req):
+    @staticmethod
+    def process_request(req):
         """Convert authentication information into a request context
 
         Generate a RequestContext object from the available
@@ -90,9 +84,9 @@ class ContextMiddleware(wsgi.Middleware):
                                             is disallowed
         """
         if req.headers.get('X-Identity-Status') == 'Confirmed':
-            req.context = self._get_authenticated_context(req)
+            req.context = ContextMiddleware._get_authenticated_context(req)
         elif CONF.allow_anonymous_access:
-            req.context = self._get_anonymous_context()
+            req.context = ContextMiddleware._get_anonymous_context()
         else:
             raise webob.exc.HTTPUnauthorized()
 
@@ -119,10 +113,11 @@ class ContextMiddleware(wsgi.Middleware):
         return RequestContext.from_environ(req.environ, **kwargs)
 
 
-class UnauthenticatedContextMiddleware(wsgi.Middleware):
+class UnauthenticatedContextMiddleware(base_middleware.ConfigurableMiddleware):
     """Process requests and responses when auth is turned off at all."""
 
-    def process_request(self, req):
+    @staticmethod
+    def process_request(req):
         """Create a context without an authorized user.
 
         When glare deployed as public repo everybody is admin

@@ -21,14 +21,14 @@ import itertools
 
 from osprofiler import opts as profiler
 
-import glare.api.middleware.glare_context
+import glare.api.middleware.context
 import glare.api.versions
 import glare.common.config
 import glare.common.wsgi
 
 _artifacts_opts = [
     (None, list(itertools.chain(
-        glare.api.middleware.glare_context.context_opts,
+        glare.api.middleware.context.context_opts,
         glare.api.versions.versions_opts,
         glare.common.wsgi.bind_opts,
         glare.common.wsgi.eventlet_opts,

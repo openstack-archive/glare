@@ -350,12 +350,11 @@ paste.filter_factory =
    GlareVersionNegotiationFilter.factory
 
 [filter:context]
-paste.filter_factory =
- glare.api.middleware.glare_context:ContextMiddleware.factory
+paste.filter_factory = glare.api.middleware.context:ContextMiddleware.factory
 
 [filter:unauthenticated-context]
 paste.filter_factory =
- glare.api.middleware.glare_context:UnauthenticatedContextMiddleware.factory
+glare.api.middleware.context:UnauthenticatedContextMiddleware.factory
 
 [filter:fakeauth]
 paste.filter_factory = glare.tests.utils:FakeAuthMiddleware.factory
