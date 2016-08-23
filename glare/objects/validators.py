@@ -261,10 +261,12 @@ class RequiredDictKeys(Validator):
     def validate(self, value):
         for item in self.required_items:
             if item not in value:
-                raise ValueError(_("Key %(item)s is required in dict. "
-                                   "Required key values: %(required)s") %
+                raise ValueError(_("Key \"%(item)s\" is required in property "
+                                   "dictionary: %(value)s.") %
                                  {"item": item,
-                                  "required": ', '.join(self.required_items)})
+                                  "value": ''.join(
+                                      '{}:{}, '.format(key, val)
+                                      for key, val in six.iteritems(value))})
 
     def to_jsonschema(self):
         return {'required': list(self.required_items)}
