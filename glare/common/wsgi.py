@@ -794,7 +794,7 @@ class Resource(object):
         except Exception as e:
             LOG.exception(_LE("Caught error: %s"),
                           encodeutils.exception_to_unicode(e))
-            response = webob.exc.HTTPInternalServerError()
+            response = webob.exc.HTTPInternalServerError(explanation=str(e))
             return response
 
         try:

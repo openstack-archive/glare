@@ -263,23 +263,24 @@ class Engine(object):
     @classmethod
     @lock_engine.locked(['type_name', 'artifact_id'])
     def add_blob_location(cls, context, type_name,
-                          artifact_id, field_name, location):
+                          artifact_id, field_name, location, blob_meta):
         af = cls._get_artifact(context, type_name, artifact_id)
         action_name = 'artifact:set_location'
         policy.authorize(action_name, af.to_dict(), context)
-        modified_af = af.add_blob_location(context, af, field_name, location)
+        modified_af = af.add_blob_location(context, af, field_name, location,
+                                           blob_meta)
         Notifier.notify(context, action_name, modified_af)
         return modified_af.to_dict()
 
     @classmethod
     @lock_engine.locked(['type_name', 'artifact_id'])
     def add_blob_dict_location(cls, context, type_name, artifact_id,
-                               field_name, blob_key, location):
+                               field_name, blob_key, location, blob_meta):
         af = cls._get_artifact(context, type_name, artifact_id)
         action_name = 'artifact:set_location'
         policy.authorize(action_name, af.to_dict(), context)
         modified_af = af.add_blob_dict_location(context, af, field_name,
-                                                blob_key, location)
+                                                blob_key, location, blob_meta)
         Notifier.notify(context, action_name, modified_af)
         return modified_af.to_dict()
 

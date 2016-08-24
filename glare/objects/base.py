@@ -836,9 +836,14 @@ class BaseArtifact(base.VersionedObject):
         if blob is None or blob['status'] != BlobStatus.ACTIVE:
             msg = _("%s is not ready for download") % field_name
             raise exception.BadRequest(message=msg)
-        data = store_api.load_from_store(uri=blob['url'], context=context)
-        meta = {'size': blob['size'], 'checksum': blob['checksum'],
-                'content_type': blob['content_type']}
+        meta = {'checksum': blob.get('checksum'),
+                'external': blob.get('external')}
+        if blob['external']:
+            data = {'url': blob['url']}
+        else:
+            data = store_api.load_from_store(uri=blob['url'], context=context)
+            meta['size'] = blob.get('size')
+            meta['content_type'] = blob.get('content_type')
         return data, meta
 
     @classmethod
@@ -914,13 +919,18 @@ class BaseArtifact(base.VersionedObject):
                     "is not ready for download") % (blob_key, field_name)
             LOG.error(msg)
             raise exception.BadRequest(message=msg)
-        data = store_api.load_from_store(uri=blob['url'], context=context)
-        meta = {'size': blob['size'], 'checksum': blob['checksum'],
-                'content_type': blob['content_type']}
+        meta = {'checksum': blob.get('checksum'),
+                'external': blob.get('external')}
+        if blob['external']:
+            data = {'url': blob['url']}
+        else:
+            data = store_api.load_from_store(uri=blob['url'], context=context)
+            meta['size'] = blob.get('size')
+            meta['content_type'] = blob.get('content_type')
         return data, meta
 
     @classmethod
-    def add_blob_location(cls, context, af, field_name, location):
+    def add_blob_location(cls, context, af, field_name, location, blob_meta):
         """Upload binary object as artifact property
 
         :param context: user context
@@ -933,69 +943,59 @@ class BaseArtifact(base.VersionedObject):
         LOG.debug("Parameters validation for artifact %(artifact)s location "
                   "passed for blob %(blob)s. Start location check for artifact"
                   ".", {'artifact': af.id, 'blob': field_name})
-        blob = {'url': None, 'size': None, 'checksum': None,
-                'status': BlobStatus.SAVING, 'external': True,
-                'content_type': ""}
+
+        blob = {'url': location, 'size': None, 'checksum': None,
+                'status': BlobStatus.ACTIVE, 'external': True,
+                'content_type': None}
+
+        if blob_meta.get('checksum') is None:
+            msg = (_("Incorrect blob metadata %(meta)s. Checksum is required "
+                     "for external location in artifact blob %(field_name)."),
+                   {"meta": str(blob_meta), "field_name": field_name})
+            raise exception.BadRequest(msg)
+        else:
+            blob['checksum'] = blob_meta['checksum']
+
         setattr(af, field_name, blob)
-        blob = cls.db_api.update(
-            context, af.id, {field_name: getattr(af, field_name)})[field_name]
-        try:
-            # validate blob location and get size with checksum
-            size, checksum, content_type = store_api.get_location_info(
-                location, context, cls._get_max_blob_size(field_name))
-            blob['size'] = size
-            blob['status'] = BlobStatus.ACTIVE
-            blob['checksum'] = checksum
-            blob['content_type'] = content_type
-            setattr(af, field_name, blob)
-            updated_af = cls.db_api.update(
-                context, af.id, {field_name: getattr(af, field_name)})
-            LOG.info(
-                _LI("External location %(location)s validated successfully "
-                    "for artifact %(artifact)s blob %(blob)s"),
-                {'location': location, 'artifact': af.id,
-                 'blob': field_name})
-            return cls._init_artifact(context, updated_af)
-        except Exception:
-            with excutils.save_and_reraise_exception(logger=LOG):
-                cls.db_api.update(context, af.id, {field_name: None})
+        updated_af = cls.db_api.update(
+            context, af.id, {field_name: getattr(af, field_name)})
+        LOG.info(_LI("External location %(location)s has been created "
+                     "successfully for artifact %(artifact)s blob %(blob)s"),
+                 {'location': location, 'artifact': af.id,
+                  'blob': field_name})
+        return cls._init_artifact(context, updated_af)
 
     @classmethod
     def add_blob_dict_location(cls, context, af, field_name,
-                               blob_key, location):
+                               blob_key, location, blob_meta):
         cls._validate_upload_allowed(context, af, field_name, blob_key)
 
-        blob = {'url': None, 'size': None, 'checksum': None,
-                'status': BlobStatus.SAVING, 'external': True,
-                'content_type': ""}
+        blob = {'url': location, 'size': None, 'checksum': None,
+                'status': BlobStatus.ACTIVE, 'external': True,
+                'content_type': None}
+
+        if blob_meta.get('checksum') is None:
+            msg = (_("Incorrect blob metadata %(meta)s. Checksum is required "
+                     "for external location in artifact blob "
+                     "%(field_name)[%(blob_key)s]."),
+                   {"meta": str(blob_meta), "field_name": field_name,
+                    "blob_key": str(blob_key)})
+            raise exception.BadRequest(msg)
+        else:
+            blob['checksum'] = blob_meta['checksum']
+
         blob_dict_attr = getattr(af, field_name)
         blob_dict_attr[blob_key] = blob
-        blob_dict_attr = cls.db_api.update(
-            context, af.id, {field_name: blob_dict_attr})[field_name]
-        try:
-            # validate blob location and get size with checksum
-            size, checksum, content_type = store_api.get_location_info(
-                location, context, cls._get_max_blob_size(field_name))
+        updated_af = cls.db_api.update(
+            context, af.id, {field_name: blob_dict_attr})
 
-            blob = blob_dict_attr[blob_key]
-            blob['size'] = size
-            blob['status'] = BlobStatus.ACTIVE
-            blob['checksum'] = checksum
-            blob['content_type'] = content_type
-            blob_dict_attr[blob_key] = blob
-            updated_af = cls.db_api.update(
-                context, af.id, {field_name: blob_dict_attr})
-            LOG.info(
-                _LI("External location %(location)s validated successfully "
-                    "for artifact %(artifact)s blob dict %(blob)s with key "
-                    "%(key)s"),
-                {'location': location, 'artifact': af.id,
-                 'blob': field_name, 'key': blob_key})
-            return cls._init_artifact(context, updated_af)
-        except Exception:
-            with excutils.save_and_reraise_exception(logger=LOG):
-                del blob_dict_attr[blob_key]
-                cls.db_api.update(context, af.id, {field_name: blob_dict_attr})
+        LOG.info(
+            _LI("External location %(location)s has been created successfully "
+                "for artifact %(artifact)s blob dict %(blob)s with key "
+                "%(key)s"),
+            {'location': location, 'artifact': af.id,
+             'blob': field_name, 'key': blob_key})
+        return cls._init_artifact(context, updated_af)
 
     @classmethod
     def validate_activate(cls, context, af, values=None):

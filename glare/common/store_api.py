@@ -11,19 +11,13 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-
-import hashlib
-import urllib
-
 from glance_store import backend
 from glance_store import exceptions as store_exc
 from oslo_config import cfg
 from oslo_log import log as logging
-import six.moves.urllib.parse as urlparse
 
 from glare.common import exception
 from glare.common import utils
-from glare.i18n import _
 
 CONF = cfg.CONF
 
@@ -102,53 +96,3 @@ def delete_blob(uri, context):
 @utils.error_handler(error_map)
 def get_blob_size(uri, context):
     return backend.get_size_from_backend(uri, context)
-
-
-@utils.error_handler(error_map)
-def get_location_info(url, context, max_size, calc_checksum=True):
-    """Validate location and get information about external blob
-
-    :param url: blob url
-    :param context: user context
-    :param calc_checksum: define if checksum must be calculated
-    :return: blob size and checksum
-    """
-    # validate uri
-    scheme = urlparse.urlparse(url).scheme
-    if scheme not in ('http', 'https'):
-        msg = _("Location %s is invalid.") % url
-        raise exception.BadRequest(message=msg)
-
-    res = urllib.urlopen(url)
-    http_message = res.info()
-    content_type = getattr(http_message, 'type') or 'application/octet-stream'
-
-    # calculate blob checksum to ensure that location blob won't be changed
-    # in future
-    # TODO(kairat) need to support external location signatures
-    checksum = None
-    size = 0
-    if calc_checksum:
-        checksum = hashlib.md5()
-        blob_data = load_from_store(url, context)
-        for buf in blob_data:
-            checksum.update(buf)
-            size += len(buf)
-            if size > max_size:
-                msg = _("External blob size %(size)d exceeds maximum allowed "
-                        "size %(max)d."), {'size': size, 'max': max_size}
-                raise exception.BadRequest(message=msg)
-        checksum = checksum.hexdigest()
-    else:
-        # request blob size
-        size = get_blob_size(url, context=context)
-        if size < 0 or size > max_size:
-            msg = _("Invalid blob size %d.") % size
-            raise exception.BadRequest(message=msg)
-
-    LOG.debug("Checksum %(checksum)s and size %(size)s calculated "
-              "successfully for location %(location)s",
-              {'checksum': str(checksum), 'size': str(size),
-               'location': url})
-
-    return size, checksum, content_type
