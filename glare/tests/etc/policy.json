@@ -1,17 +1,1 @@
-{
-    "context_is_admin":  "role:admin",
-    "default": "",
-
-    "artifact_create":"",
-    "artifact_update":"",
-    "artifact_get":"",
-    "artifact_list":"",
-    "artifact_delete":"",
-    "artifact_activate":"",
-    "artifact_reactivate":"",
-    "artifact_deactivate":"",
-    "artifact_upload":"",
-    "artifact_download":"",
-    "artifact_set_location":"",
-    "artifact_publish":""
-}
+{}
