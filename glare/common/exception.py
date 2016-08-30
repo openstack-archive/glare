@@ -153,3 +153,7 @@ class SIGHUPInterrupt(GlareException):
 
 class WorkerCreationFailure(GlareException):
     message = _("Server worker creation failed: %(reason)s.")
+
+
+class DBNotAllowed(GlareException):
+    msg_fmt = _('This operation is not allowed with current DB')
