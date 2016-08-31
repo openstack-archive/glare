@@ -96,7 +96,7 @@ class Attribute(object):
                         for check_func in vals:
                             check_func(val)
                     return val
-                except (KeyError, ValueError) as e:
+                except (KeyError, ValueError, TypeError) as e:
                     msg = "Type: %s. Field: %s. Exception: %s" % (
                         obj.get_type_name(), attr, str(e))
                     raise exc.BadRequest(message=msg)
