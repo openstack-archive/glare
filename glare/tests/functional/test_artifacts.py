@@ -1587,13 +1587,13 @@ class TestArtifact(functional.FunctionalTest):
         patch = [{"op": "replace",
                   "path": "/int1",
                   "value": []}]
-        self.patch(url=url, data=patch, status=500)
+        self.patch(url=url, data=patch, status=400)
 
         # empty dict to int
         patch = [{"op": "replace",
                   "path": "/int1",
                   "value": {}}]
-        self.patch(url=url, data=patch, status=500)
+        self.patch(url=url, data=patch, status=400)
 
         # bool to int
         patch = [{"op": "replace",
@@ -1627,13 +1627,13 @@ class TestArtifact(functional.FunctionalTest):
         patch = [{"op": "replace",
                   "path": "/float1",
                   "value": []}]
-        self.patch(url=url, data=patch, status=500)
+        self.patch(url=url, data=patch, status=400)
 
         # str(int) to float
         patch = [{"op": "replace",
                   "path": "/float1",
                   "value": {}}]
-        self.patch(url=url, data=patch, status=500)
+        self.patch(url=url, data=patch, status=400)
 
         # str(bool) to float
         patch = [{"op": "replace",
