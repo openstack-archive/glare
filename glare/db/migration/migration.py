@@ -38,8 +38,8 @@ def version(engine=None):
 
 def upgrade(revision, config=None):
     """Used for upgrading database.
-    :param version: Desired database version
-    :type version: string
+    :param revision: Desired database version
+    :type revision: string
     """
     revision = revision or 'head'
     config = config or get_alembic_config()
@@ -49,8 +49,8 @@ def upgrade(revision, config=None):
 
 def downgrade(revision, config=None):
     """Used for downgrading database.
-    :param version: Desired database version7
-    :type version: string
+    :param revision: Desired database version7
+    :type revision: string
     """
     revision = revision or 'base'
     config = config or get_alembic_config()

@@ -14,7 +14,7 @@
 #    under the License.
 
 """
-Routines for configuring Glance
+Routines for configuring Glare
 """
 
 import logging
@@ -23,7 +23,6 @@ import logging.handlers
 import os
 
 from oslo_config import cfg
-from oslo_middleware import cors
 from oslo_policy import policy
 from paste import deploy
 
@@ -112,8 +111,8 @@ def load_paste_app(app_name, flavor=None, conf_file=None):
     if not conf_file:
         conf_file = _get_deployment_config_file()
 
+    logger = logging.getLogger(__name__)
     try:
-        logger = logging.getLogger(__name__)
         logger.debug("Loading %(app_name)s from %(conf_file)s",
                      {'conf_file': conf_file, 'app_name': app_name})
 
@@ -132,37 +131,3 @@ def load_paste_app(app_name, flavor=None, conf_file=None):
                                     'e': e})
         logger.error(msg)
         raise RuntimeError(msg)
-
-
-def set_config_defaults():
-    """This method updates all configuration default values."""
-    set_cors_middleware_defaults()
-
-
-def set_cors_middleware_defaults():
-    """Update default configuration options for oslo.middleware."""
-    # CORS Defaults
-    # TODO(krotscheck): Update with https://review.openstack.org/#/c/285368/
-    cfg.set_defaults(cors.CORS_OPTS,
-                     allow_headers=['Content-MD5',
-                                    'X-Image-Meta-Checksum',
-                                    'X-Storage-Token',
-                                    'Accept-Encoding',
-                                    'X-Auth-Token',
-                                    'X-Identity-Status',
-                                    'X-Roles',
-                                    'X-Service-Catalog',
-                                    'X-User-Id',
-                                    'X-Tenant-Id',
-                                    'X-OpenStack-Request-ID'],
-                     expose_headers=['X-Image-Meta-Checksum',
-                                     'X-Auth-Token',
-                                     'X-Subject-Token',
-                                     'X-Service-Token',
-                                     'X-OpenStack-Request-ID'],
-                     allow_methods=['GET',
-                                    'PUT',
-                                    'POST',
-                                    'DELETE',
-                                    'PATCH']
-                     )

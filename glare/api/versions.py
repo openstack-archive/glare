@@ -25,9 +25,9 @@ from glare.i18n import _
 versions_opts = [
     cfg.StrOpt('public_endpoint',
                help=_("""
-Public url endpoint to use for Glance/Glare versions response.
+Public url endpoint to use for Glare versions response.
 
-This is the public url endpoint that will appear in the Glance/Glare
+This is the public url endpoint that will appear in the Glare
 "versions" response. If no value is specified, the endpoint that is
 displayed in the version's response is that of the host running the
 API service. Change the endpoint to represent the proxy URL if the
