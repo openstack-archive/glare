@@ -1551,7 +1551,291 @@ class TestArtifact(functional.FunctionalTest):
                          {'abc': 'l', 'def': 'x', 'ghi': 'z'})
 
     def test_artifact_field_updates(self):
-        pass
+        data = {'name': 'test_af',
+                'version': '0.0.1'}
+        art = self.create_artifact(data=data)
+        url = '/sample_artifact/%s' % art['id']
+
+        # INT
+        # float to int
+        patch = [{"op": "replace",
+                  "path": "/int1",
+                  "value": 1.1}]
+        art = self.patch(url=url, data=patch)
+        self.assertEqual(1, art['int1'])
+
+        # str(int) to int
+        patch = [{"op": "replace",
+                  "path": "/int1",
+                  "value": '2'}]
+        art = self.patch(url=url, data=patch)
+        self.assertEqual(2, art['int1'])
+
+        # str(float) to int
+        patch = [{"op": "replace",
+                  "path": "/int1",
+                  "value": '3.0'}]
+        self.patch(url=url, data=patch, status=400)
+
+        # str(int) to int
+        patch = [{"op": "replace",
+                  "path": "/int1",
+                  "value": ''}]
+        self.patch(url=url, data=patch, status=400)
+
+        # empty list to int
+        patch = [{"op": "replace",
+                  "path": "/int1",
+                  "value": []}]
+        self.patch(url=url, data=patch, status=500)
+
+        # empty dict to int
+        patch = [{"op": "replace",
+                  "path": "/int1",
+                  "value": {}}]
+        self.patch(url=url, data=patch, status=500)
+
+        # bool to int
+        patch = [{"op": "replace",
+                  "path": "/int1",
+                  "value": True}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual(1, art['int1'])
+
+        patch = [{"op": "replace",
+                  "path": "/int1",
+                  "value": False}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual(0, art['int1'])
+
+        # FLOAT
+        # int to float
+        patch = [{"op": "replace",
+                  "path": "/float1",
+                  "value": 1}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual(1.0, art['float1'])
+
+        # str(int) to float
+        patch = [{"op": "replace",
+                  "path": "/float1",
+                  "value": '2'}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual(2.0, art['float1'])
+
+        # str(int) to float
+        patch = [{"op": "replace",
+                  "path": "/float1",
+                  "value": []}]
+        self.patch(url=url, data=patch, status=500)
+
+        # str(int) to float
+        patch = [{"op": "replace",
+                  "path": "/float1",
+                  "value": {}}]
+        self.patch(url=url, data=patch, status=500)
+
+        # str(bool) to float
+        patch = [{"op": "replace",
+                  "path": "/float1",
+                  "value": 'True'}]
+        self.patch(url=url, data=patch, status=400)
+
+        # bool to float
+        patch = [{"op": "replace",
+                  "path": "/float1",
+                  "value": True}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual(1.0, art['float1'])
+
+        # str(float) to float
+        patch = [{"op": "replace",
+                  "path": "/float1",
+                  "value": '3.0'}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual(3.0, art['float1'])
+
+        # STRING
+        # str to str
+        patch = [{"op": "replace",
+                  "path": "/str1",
+                  "value": '3.0'}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual('3.0', art['str1'])
+
+        # int to str
+        patch = [{"op": "replace",
+                  "path": "/str1",
+                  "value": 1}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual('1', art['str1'])
+
+        # float to str
+        patch = [{"op": "replace",
+                  "path": "/str1",
+                  "value": 1.0}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual('1.0', art['str1'])
+
+        # bool to str
+        patch = [{"op": "replace",
+                  "path": "/str1",
+                  "value": True}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual('True', art['str1'])
+
+        # empty list to str
+        patch = [{"op": "replace",
+                  "path": "/str1",
+                  "value": []}]
+        self.patch(url=url, data=patch, status=400)
+
+        patch = [{"op": "replace",
+                  "path": "/str1",
+                  "value": {}}]
+        self.patch(url=url, data=patch, status=400)
+
+        # BOOL
+        # int to bool
+        patch = [{"op": "replace",
+                  "path": "/bool1",
+                  "value": 1}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual(True, art['bool1'])
+
+        patch = [{"op": "replace",
+                  "path": "/bool1",
+                  "value": 0}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual(False, art['bool1'])
+
+        # float to bool
+        patch = [{"op": "replace",
+                  "path": "/bool1",
+                  "value": 2.1}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual(False, art['bool1'])
+
+        patch = [{"op": "replace",
+                  "path": "/bool1",
+                  "value": 1.1}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual(False, art['bool1'])
+
+        # string to bool
+        patch = [{"op": "replace",
+                  "path": "/bool1",
+                  "value": '1'}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual(True, art['bool1'])
+
+        patch = [{"op": "replace",
+                  "path": "/bool1",
+                  "value": ''}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual(False, art['bool1'])
+        # [] to bool
+        patch = [{"op": "replace",
+                  "path": "/bool1",
+                  "value": []}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual(False, art['bool1'])
+
+        patch = [{"op": "replace",
+                  "path": "/bool1",
+                  "value": [1]}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual(False, art['bool1'])
+        # {} to bool
+        patch = [{"op": "replace",
+                  "path": "/bool1",
+                  "value": {}}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual(False, art['bool1'])
+
+        patch = [{"op": "replace",
+                  "path": "/bool1",
+                  "value": {'1', 1}}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual(False, art['bool1'])
+
+        # LIST OF STR AND INT
+        # {} to list of str
+        patch = [{"op": "replace",
+                  "path": "/list_of_str",
+                  "value": {}}]
+        self.patch(url=url, data=patch, status=400)
+
+        # [] to list of str
+        patch = [{"op": "replace",
+                  "path": "/list_of_str",
+                  "value": []}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual([], art['list_of_str'])
+
+        # list of int to list of str
+        patch = [{"op": "replace",
+                  "path": "/list_of_str",
+                  "value": [1, 2, 3]}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual(['1', '2', '3'], art['list_of_str'])
+
+        # list of bool to list of str
+        patch = [{"op": "replace",
+                  "path": "/list_of_str",
+                  "value": [True, False, True]}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual(['True', 'False', 'True'], art['list_of_str'])
+
+        # str to list of str
+        patch = [{"op": "replace",
+                  "path": "/list_of_str",
+                  "value": '123'}]
+        self.patch(url=url, data=patch, status=400)
+
+        # int to list of str
+        patch = [{"op": "replace",
+                  "path": "/list_of_str",
+                  "value": 11}]
+        self.patch(url=url, data=patch, status=400)
+
+        # bool to list of str
+        patch = [{"op": "replace",
+                  "path": "/list_of_str",
+                  "value": True}]
+        self.patch(url=url, data=patch, status=400)
+
+        # Dict OF INT
+        # [] to dict of int
+        patch = [{"op": "replace",
+                  "path": "/dict_of_int",
+                  "value": []}]
+        self.patch(url=url, data=patch, status=400)
+
+        # {} to dict of int
+        patch = [{"op": "replace",
+                  "path": "/dict_of_int",
+                  "value": {}}]
+        art = self.patch(url=url, data=patch, status=200)
+        self.assertEqual({}, art['dict_of_int'])
+
+        # int to dict of int
+        patch = [{"op": "replace",
+                  "path": "/dict_of_int",
+                  "value": 1}]
+        self.patch(url=url, data=patch, status=400)
+
+        # bool to dict of int
+        patch = [{"op": "replace",
+                  "path": "/dict_of_int",
+                  "value": True}]
+        self.patch(url=url, data=patch, status=400)
+
+        # string to dict of int
+        patch = [{"op": "replace",
+                  "path": "/dict_of_int",
+                  "value": 'aaa'}]
+        self.patch(url=url, data=patch, status=400)
 
     def test_schemas(self):
         schema_sample_artifact = {
