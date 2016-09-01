@@ -118,7 +118,10 @@ class RequestDeserializer(api_versioning.VersionedResource,
                 sort.append((key, direction or 'desc'))
             query_params['sort'] = sort
 
-        query_params['filters'] = params
+        # step 4 - parse filter parameters
+        filters = [(fname, fval) for fname, fval in six.iteritems(params)]
+
+        query_params['filters'] = filters
         return query_params
 
     @supported_versions(min_ver='1.0')
