@@ -789,7 +789,7 @@ class Resource(object):
         except UnicodeDecodeError:
             msg = _("Error decoding your request. Either the URL or the "
                     "request body contained characters that could not be "
-                    "decoded by Glance")
+                    "decoded by Glare")
             raise webob.exc.HTTPBadRequest(explanation=msg)
         except Exception as e:
             LOG.exception(_LE("Caught error: %s"),

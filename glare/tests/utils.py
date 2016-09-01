@@ -28,7 +28,6 @@ from oslo_config import fixture as cfg_fixture
 from oslo_log import log
 from oslo_middleware import base as base_middleware
 import six
-from six.moves import BaseHTTPServer
 import testtools
 import webob
 
@@ -79,14 +78,6 @@ class BaseTestCase(testtools.TestCase):
         shutil.copy(src_file_name, dst_dir)
         dst_file_name = os.path.join(dst_dir, file_name)
         return dst_file_name
-
-    def set_property_protection_rules(self, rules):
-        with open(self.property_file, 'w') as f:
-            for rule_key in rules.keys():
-                f.write('[%s]\n' % rule_key)
-                for operation in rules[rule_key].keys():
-                    roles_str = ','.join(rules[rule_key][operation])
-                    f.write('%s = %s\n' % (operation, roles_str))
 
     def config(self, **kw):
         """
@@ -380,65 +371,6 @@ def xattr_writes_supported(path):
             os.unlink(fake_filepath)
 
     return result
-
-
-def minimal_headers(name, public=True):
-    headers = {
-        'Content-Type': 'application/octet-stream',
-        'X-Image-Meta-Name': name,
-        'X-Image-Meta-disk_format': 'raw',
-        'X-Image-Meta-container_format': 'ovf',
-    }
-    if public:
-        headers['X-Image-Meta-Is-Public'] = 'True'
-    return headers
-
-
-def minimal_add_command(port, name, suffix='', public=True):
-    visibility = 'is_public=True' if public else ''
-    return ("bin/glare --port=%d add %s"
-            " disk_format=raw container_format=ovf"
-            " name=%s %s" % (port, visibility, name, suffix))
-
-
-def start_http_server(image_id, image_data):
-    def _get_http_handler_class(fixture):
-        class StaticHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
-            def do_GET(self):
-                self.send_response(200)
-                self.send_header('Content-Length', str(len(fixture)))
-                self.end_headers()
-                self.wfile.write(fixture)
-                return
-
-            def do_HEAD(self):
-                # reserve non_existing_image_path for the cases where we expect
-                # 404 from the server
-                if 'non_existing_image_path' in self.path:
-                    self.send_response(404)
-                else:
-                    self.send_response(200)
-                self.send_header('Content-Length', str(len(fixture)))
-                self.end_headers()
-                return
-
-            def log_message(self, *args, **kwargs):
-                # Override this method to prevent debug output from going
-                # to stderr during testing
-                return
-
-        return StaticHTTPRequestHandler
-
-    server_address = ('127.0.0.1', 0)
-    handler_class = _get_http_handler_class(image_data)
-    httpd = BaseHTTPServer.HTTPServer(server_address, handler_class)
-    port = httpd.socket.getsockname()[1]
-
-    pid = os.fork()
-    if pid == 0:
-        httpd.serve_forever()
-    else:
-        return pid, port
 
 
 class FakeAuthMiddleware(base_middleware.ConfigurableMiddleware):

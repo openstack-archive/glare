@@ -216,7 +216,7 @@ class BaseArtifact(base.VersionedObject):
 
         To interact with database each artifact type must provide an api
         to execute db operations with artifacts.
-        :return: subtype of glance.db.glare.api.BaseDBAPI
+        :return: subtype of glare.db.api.BaseDBAPI
         """
         return artifact_api.ArtifactAPI(cls)
 
@@ -586,7 +586,7 @@ class BaseArtifact(base.VersionedObject):
         :param af: definition of artifact targeted to delete
         """
         if af.visibility == 'public' and not context.is_admin:
-            msg = _("Only admins are allowed to delete public images")
+            msg = _("Only admins are allowed to delete public artifacts")
             raise exception.Forbidden(msg)
         # marking all blobs as pending delete
         blobs = {}
@@ -829,7 +829,7 @@ class BaseArtifact(base.VersionedObject):
             msg = _("%s is not a blob") % field_name
             raise exception.BadRequest(msg)
         if af.status == cls.STATUS.DEACTIVATED and not context.is_admin:
-            msg = _("Only admin is allowed to download image data "
+            msg = _("Only admin is allowed to download artifact data "
                     "when it's deactivated")
             raise exception.Forbidden(message=msg)
         blob = getattr(af, field_name)
@@ -900,7 +900,7 @@ class BaseArtifact(base.VersionedObject):
             raise exception.BadRequest(msg)
 
         if af.status == cls.STATUS.DEACTIVATED and not context.is_admin:
-            msg = _("Only admin is allowed to download image data "
+            msg = _("Only admin is allowed to download artifact data "
                     "when it's deactivated")
             raise exception.Forbidden(message=msg)
         try:

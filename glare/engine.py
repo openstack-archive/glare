@@ -31,8 +31,7 @@ LOG = logging.getLogger(__name__)
 
 class Engine(object):
     """Engine is responsible for executing different helper operations when
-    processing incoming requests from Glare API. For Glance developers it is
-    like Domain Model layers unified into 1 Layer.
+    processing incoming requests from Glare API.
     Engine receives incoming data and does the following:
     - check basic policy permissions
     - requests artifact definition from registry

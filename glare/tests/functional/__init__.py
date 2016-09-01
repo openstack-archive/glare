@@ -203,8 +203,8 @@ class Server(object):
             conf_filepath = os.path.join(conf_dir, 'glare.conf')
 
             with open(conf_filepath, 'w') as conf_file:
-                conf_file.write('[DEFAULT]\n')
-                conf_file.write('sql_connection = %s' % self.sql_connection)
+                conf_file.write('[database]\n')
+                conf_file.write('connection = %s' % self.sql_connection)
                 conf_file.flush()
 
             glare_db_env = 'GLARE_DB_TEST_SQLITE_FILE'
@@ -274,13 +274,10 @@ class GlareServer(Server):
         self.default_store = kwargs.get("default_store", "file")
         self.key_file = ""
         self.cert_file = ""
-        self.metadata_encryption_key = "012345678901234567890123456789ab"
-        self.image_dir = os.path.join(self.test_dir, "images")
+        self.blob_dir = os.path.join(self.test_dir, "artifacts")
         self.pid_file = pid_file or os.path.join(self.test_dir, "glare.pid")
         self.log_file = os.path.join(self.test_dir, "glare.log")
-        self.image_size_cap = 1099511627776
         self.delayed_delete = delayed_delete
-        self.owner_is_tenant = True
         self.workers = 0
         self.policy_file = policy_file
         self.policy_default_rule = 'default'
@@ -290,11 +287,7 @@ class GlareServer(Server):
         default_sql_connection = 'sqlite:////%s/tests.sqlite' % self.test_dir
         self.sql_connection = os.environ.get('GLARE_TEST_SQL_CONNECTION',
                                              default_sql_connection)
-        self.user_storage_quota = '0'
         self.lock_path = self.test_dir
-
-        self.location_strategy = 'location_order'
-        self.store_type_location_strategy_preference = ""
 
         self.send_identity_headers = False
         self.enabled_artifact_types = ''
@@ -307,25 +300,23 @@ bind_host = 127.0.0.1
 bind_port = %(bind_port)s
 key_file = %(key_file)s
 cert_file = %(cert_file)s
-metadata_encryption_key = %(metadata_encryption_key)s
 log_file = %(log_file)s
 delayed_delete = %(delayed_delete)s
 workers = %(workers)s
-sql_connection = %(sql_connection)s
 lock_path = %(lock_path)s
 [oslo_policy]
 policy_file = %(policy_file)s
 policy_default_rule = %(policy_default_rule)s
 [paste_deploy]
 flavor = %(deployment_flavor)s
-[store_type_location_strategy]
-store_type_preference = %(store_type_location_strategy_preference)s
 [glance_store]
-filesystem_store_datadir=%(image_dir)s
+filesystem_store_datadir=%(blob_dir)s
 default_store = %(default_store)s
 [glare]
 enabled_artifact_types = %(enabled_artifact_types)s
 custom_artifact_types_modules = %(custom_artifact_types_modules)s
+[database]
+connection = %(sql_connection)s
 """
         self.paste_conf_base = """[pipeline:glare-api]
 pipeline = faultwrapper versionnegotiation unauthenticated-context glarev1api

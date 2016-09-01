@@ -114,17 +114,17 @@ MAX_COOP_READER_BUFFER_SIZE = 134217728  # 128M seems like a sane buffer limit
 
 class CooperativeReader(object):
     """
-    An eventlet thread friendly class for reading in image data.
+    An eventlet thread friendly class for reading in blob data.
 
     When accessing data either through the iterator or the read method
     we perform a sleep to allow a co-operative yield. When there is more than
-    one image being uploaded/downloaded this prevents eventlet thread
+    one blob being uploaded/downloaded this prevents eventlet thread
     starvation, ie allows all threads to be scheduled periodically rather than
     having the same thread be continuously active.
     """
     def __init__(self, fd):
         """
-        :param fd: Underlying image file object
+        :param fd: Underlying blob file object
         """
         self.fd = fd
         self.iterator = None
@@ -177,7 +177,7 @@ class CooperativeReader(object):
                     # This check is here to prevent potential OOM issues if
                     # this code is called with unreasonably high values of read
                     # size. Currently it is only called from the HTTP clients
-                    # of Glance backend stores, which use httplib for data
+                    # of Glare backend stores, which use httplib for data
                     # streaming, which has readsize hardcoded to 8K, so this
                     # check should never fire. Regardless it still worths to
                     # make the check, as the code may be reused somewhere else.
@@ -202,12 +202,12 @@ class CooperativeReader(object):
 
 class LimitingReader(object):
     """
-    Reader designed to fail when reading image data past the configured
+    Reader designed to fail when reading blob data past the configured
     allowable amount.
     """
     def __init__(self, data, limit):
         """
-        :param data: Underlying image data object
+        :param data: Underlying blob data object
         :param limit: maximum number of bytes the reader should allow
         """
         self.data = data
@@ -228,27 +228,6 @@ class LimitingReader(object):
         if self.bytes_read > self.limit:
             raise exception.RequestEntityTooLarge()
         return result
-
-
-def create_mashup_dict(image_meta):
-    """
-    Returns a dictionary-like mashup of the image core properties
-    and the image custom properties from given image metadata.
-
-    :param image_meta: metadata of image with core and custom properties
-    """
-
-    d = {}
-    for key, value in six.iteritems(image_meta):
-        if isinstance(value, dict):
-            for subkey, subvalue in six.iteritems(
-                    create_mashup_dict(value)):
-                if subkey not in image_meta:
-                    d[subkey] = subvalue
-        else:
-            d[key] = value
-
-    return d
 
 
 def safe_mkdirs(path):
