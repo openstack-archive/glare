@@ -165,9 +165,8 @@ class Server(object):
 
         self.stop_kill = not expect_exit
         if self.pid_file:
-            pf = open(self.pid_file, 'w')
-            pf.write('%d\n' % self.process_pid)
-            pf.close()
+            with open(self.pid_file, 'w') as pf:
+                pf.write('%d\n' % self.process_pid)
         if not expect_exit:
             rc = 0
             try:
@@ -255,9 +254,9 @@ class Server(object):
         log = logging.getLogger(name)
         if not self.log_file or not os.path.exists(self.log_file):
             return
-        fptr = open(self.log_file, 'r')
-        for line in fptr:
-            log.info(line.strip())
+        with open(self.log_file, 'r') as fptr:
+            for line in fptr:
+                log.info(line.strip())
 
 
 class GlareServer(Server):
@@ -398,9 +397,8 @@ class FunctionalTest(test_utils.BaseTestCase):
         self.glare_server.dump_log('glare_server')
 
     def set_policy_rules(self, rules):
-        fap = open(self.policy_file, 'w')
-        fap.write(jsonutils.dumps(rules))
-        fap.close()
+        with open(self.policy_file, 'w') as fap:
+            fap.write(jsonutils.dumps(rules))
 
     def _reset_database(self, conn_string):
         conn_pieces = urlparse.urlparse(conn_string)
@@ -543,10 +541,11 @@ class FunctionalTest(test_utils.BaseTestCase):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect(("127.0.0.1", port))
-            s.close()
             return True
         except socket.error:
             return False
+        finally:
+            s.close()
 
     def wait_for_servers(self, servers, expect_launch=True, timeout=30):
         """
