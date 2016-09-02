@@ -24,7 +24,6 @@ from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 import six
 import six.moves.urllib.request as urlrequest
-from webob.multidict import MultiDict
 
 from glare.common import exception
 from glare.common import store_api
@@ -300,14 +299,14 @@ class BaseArtifact(base.VersionedObject):
     @classmethod
     def _validate_versioning(cls, context, name, version, is_public=False):
         if version is not None and name not in (None, ""):
-            filters = {'name': name, 'version': version,
-                       'status': 'neq:deleted'}
+            filters = [('name', name), ('version', version),
+                       ('status', 'neq:deleted')]
             if is_public is False:
-                filters.update({'owner': context.tenant,
-                                'visibility': 'private'})
+                filters.extend([('owner', context.tenant),
+                                ('visibility', 'private')])
             else:
-                filters.update({'visibility': 'public'})
-            if len(cls.list(context, MultiDict(filters))) > 0:
+                filters.extend([('visibility', 'public')])
+            if len(cls.list(context, filters)) > 0:
                 msg = _("Artifact with this name and version is already "
                         "exists for this owner.")
                 raise exception.Conflict(msg)
@@ -510,10 +509,12 @@ class BaseArtifact(base.VersionedObject):
 
     @classmethod
     def _parse_filter_values(cls, filters):
-        # we use next format for filters:
+        # input format for filters is list of tuples:
+        # (filter_name, filter_value)
+        # output format for filters is list of tuples:
         # (field_name, key_name, op, field_type, value)
         new_filters = []
-        for filter_name, filter_value in six.iteritems(filters):
+        for filter_name, filter_value in filters:
             key_name = None
             if filter_name in ('tags-any', 'tags'):
                 if ':' in filter_value:
