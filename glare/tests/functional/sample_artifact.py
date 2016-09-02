@@ -17,10 +17,10 @@
 from oslo_log import log as logging
 from oslo_versionedobjects import fields
 
-from glare.objects import attribute
 from glare.objects import base as base_artifact
-from glare.objects import fields as glare_fields
-from glare.objects import validators
+from glare.objects.meta import attribute
+from glare.objects.meta import fields as glare_fields
+from glare.objects.meta import validators
 
 LOG = logging.getLogger(__name__)
 

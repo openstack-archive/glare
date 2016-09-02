@@ -31,10 +31,10 @@ from glare.common import utils
 from glare.db import artifact_api
 from glare import locking
 from glare.i18n import _, _LI
-from glare.objects import attribute
-from glare.objects import fields as glare_fields
-from glare.objects.fields import BlobFieldType as BlobStatus
-from glare.objects import validators
+from glare.objects.meta import attribute
+from glare.objects.meta import fields as glare_fields
+from glare.objects.meta.fields import BlobFieldType as BlobStatus
+from glare.objects.meta import validators
 
 artifact_opts = [
     cfg.BoolOpt('delayed_blob_delete', default=False,
@@ -84,45 +84,62 @@ class BaseArtifact(base.VersionedObject):
     fields = {
         'id': Field(fields.StringField, system=True,
                     validators=[validators.UUID()], nullable=False,
-                    sortable=True),
+                    sortable=True, description="Artifact UUID."),
         'name': Field(fields.StringField, required_on_activate=False,
-                      nullable=False, sortable=True),
+                      nullable=False, sortable=True,
+                      description="Artifact Name."),
         'owner': Field(fields.StringField, system=True,
                        required_on_activate=False, nullable=False,
-                       sortable=True),
+                       sortable=True, description="ID of user/tenant who "
+                                                  "uploaded artifact."),
         'status': Field(glare_fields.ArtifactStatusField,
                         default=glare_fields.ArtifactStatusField.QUEUED,
-                        nullable=False, sortable=True),
+                        nullable=False, sortable=True,
+                        description="Artifact status."),
         'created_at': Field(fields.DateTimeField, system=True,
                             filter_ops=attribute.FILTERS,
-                            nullable=False, sortable=True),
+                            nullable=False, sortable=True,
+                            description="Datetime when artifact has "
+                                        "been created."),
         'updated_at': Field(fields.DateTimeField, system=True,
                             filter_ops=attribute.FILTERS,
-                            nullable=False, sortable=True),
+                            nullable=False, sortable=True,
+                            description="Datetime when artifact has "
+                                        "been updated last time."),
         'activated_at': Field(fields.DateTimeField, system=True,
                               filter_ops=attribute.FILTERS,
-                              required_on_activate=False, sortable=True),
+                              required_on_activate=False, sortable=True,
+                              description="Datetime when artifact has became "
+                                          "active."),
         'description': Field(fields.StringField, mutable=True,
                              required_on_activate=False, default="",
                              validators=[validators.MaxStrLen(4096)],
-                             filter_ops=[]),
+                             filter_ops=[],
+                             description="Artifact description."),
         'tags': ListField(fields.String, mutable=True,
                           required_on_activate=False,
                           # tags are filtered without any operators
                           filter_ops=[],
                           element_validators=[validators.ForbiddenChars(
-                              [',', '/'])]),
+                              [',', '/'])],
+                          description="List of tags added to Artifact."),
         'metadata': DictField(fields.String, required_on_activate=False,
                               element_validators=[validators.MinStrLen(1)],
                               filter_ops=(attribute.FILTER_EQ,
-                                          attribute.FILTER_NEQ)),
+                                          attribute.FILTER_NEQ),
+                              description="Key-value dict with useful "
+                                          "information about an artifact."),
         'visibility': Field(fields.StringField, default='private',
                             nullable=False, filter_ops=(attribute.FILTER_EQ,),
-                            sortable=True),
+                            sortable=True,
+                            description="Artifact visibility that defines "
+                                        "if artifact can be available to "
+                                        "other users."),
         'version': Field(glare_fields.VersionField, required_on_activate=False,
                          default=DEFAULT_ARTIFACT_VERSION,
                          filter_ops=attribute.FILTERS, nullable=False,
-                         sortable=True, validators=[validators.Version()]),
+                         sortable=True, validators=[validators.Version()],
+                         description="Artifact version(semver)."),
         'provided_by': DictField(fields.String,
                                  validators=[
                                      validators.AllowedDictKeys(
@@ -131,21 +148,31 @@ class BaseArtifact(base.VersionedObject):
                                          ("name", "href", "company"))
                                  ],
                                  default=None,
-                                 required_on_activate=False),
+                                 required_on_activate=False,
+                                 description="Info about artifact authors."),
         'supported_by': DictField(fields.String,
                                   validators=[
                                       validators.RequiredDictKeys(("name",))
                                   ],
                                   default=None,
-                                  required_on_activate=False),
+                                  required_on_activate=False,
+                                  description="Info about persons who "
+                                              "responsible for artifact "
+                                              "support"),
         'release': ListField(fields.String,
                              validators=[validators.Unique()],
-                             required_on_activate=False),
-        'icon': Blob(required_on_activate=False),
+                             required_on_activate=False,
+                             description="Target Openstack release "
+                                         "for artifact. It is usually the same"
+                                         " when artifact was uploaded."),
+        'icon': Blob(required_on_activate=False,
+                     description="Artifact icon."),
         'license': Field(fields.StringField,
-                         required_on_activate=False),
+                         required_on_activate=False,
+                         description="Artifact license type."),
         'license_url': Field(fields.StringField,
-                             required_on_activate=False),
+                             required_on_activate=False,
+                             description="URL to artifact license."),
     }
 
     @classmethod

@@ -20,7 +20,7 @@ from oslo_utils import encodeutils
 from oslo_versionedobjects import fields
 
 from glare.i18n import _
-from glare.objects import fields as glare_fields
+from glare.objects.meta import fields as glare_fields
 
 LOG = logging.getLogger(__name__)
 

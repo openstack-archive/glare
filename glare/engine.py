@@ -24,7 +24,7 @@ from glare.db import artifact_api
 from glare.i18n import _
 from glare import locking
 from glare.notification import Notifier
-from glare.objects import registry as glare_registry
+from glare.objects.meta import registry as glare_registry
 
 LOG = logging.getLogger(__name__)
 
