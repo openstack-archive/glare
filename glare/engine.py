@@ -238,10 +238,19 @@ class Engine(object):
 
     @classmethod
     def list(cls, context, type_name, filters, marker=None, limit=None,
-             sort=None):
-        """Return list of artifacts requested by user
+             sort=None, latest=False):
+        """Return list of artifacts requested by user.
 
-        :param filters: list of requested filters
+        :param context: user context
+        :param type_name: Artifact type name
+        :param filters: filters that need to be applied to artifact
+        :param marker: the artifact that considered as begin of the list
+        so all artifacts before marker (including marker itself) will not be
+        added to artifact list
+        :param limit: maximum number of items in list
+        :param sort: sorting options
+        :param latest: flag that indicates, that only artifacts with highest
+        versions should be returned in output
         :return: list of artifacts
         """
         policy.authorize("artifact:list", {}, context)
@@ -249,7 +258,7 @@ class Engine(object):
         # return list to the user
         af_list = [af.to_dict()
                    for af in artifact_type.list(context, filters, marker,
-                                                limit, sort)]
+                                                limit, sort, latest)]
         return af_list
 
     @classmethod

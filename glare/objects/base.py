@@ -553,7 +553,7 @@ class BaseArtifact(base.VersionedObject):
 
     @classmethod
     def list(cls, context, filters=None, marker=None, limit=None,
-             sort=None):
+             sort=None, latest=False):
         """List all available Artifacts in Glare repo
 
         :param context: user context
@@ -577,7 +577,7 @@ class BaseArtifact(base.VersionedObject):
 
         return [cls._init_artifact(context, af)
                 for af in cls.db_api.list(
-                context, filters, marker, limit, sort)]
+                context, filters, marker, limit, sort, latest)]
 
     @classmethod
     def delete(cls, context, af):

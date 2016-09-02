@@ -2699,3 +2699,43 @@ class TestArtifact(functional.FunctionalTest):
         result = self.get(url=url, headers=headers)
         self.assertEqual(art1, result['sample_artifact'][0])
         self.assertEqual(response_url, result['first'])
+
+    def test_latest_filter(self):
+        # Create artifacts with versions
+        group1_versions = ['1.0', '20.0', '2.0.0', '2.0.1-beta', '2.0.1']
+        group2_versions = ['1', '1000.0.1-beta', '99.0',
+                           '1000.0.1-alpha', '1000.0.1']
+
+        for i in range(5):
+            self.create_artifact(
+                {'name': 'group1',
+                 'version': group1_versions[i],
+                 'tags': ['tag%s' % i],
+                 'int1': 2048,
+                 'float1': 123.456,
+                 'str1': 'bugaga',
+                 'bool1': True})
+            self.create_artifact(
+                {'name': 'group2',
+                 'version': group2_versions[i],
+                 'tags': ['tag%s' % i],
+                 'int1': 2048,
+                 'float1': 123.456,
+                 'str1': 'bugaga',
+                 'bool1': True})
+
+        url = '/sample_artifact?version=latest&sort=name:asc'
+        res = self.get(url=url, status=200)['sample_artifact']
+        self.assertEqual(2, len(res))
+        self.assertEqual('20.0.0', res[0]['version'])
+        self.assertEqual('1000.0.1', res[1]['version'])
+
+        url = '/sample_artifact?version=latest&name=group1'
+        res = self.get(url=url, status=200)['sample_artifact']
+        self.assertEqual(1, len(res))
+        self.assertEqual('20.0.0', res[0]['version'])
+
+        url = '/sample_artifact?version=latest&name=group2'
+        res = self.get(url=url, status=200)['sample_artifact']
+        self.assertEqual(1, len(res))
+        self.assertEqual('1000.0.1', res[0]['version'])

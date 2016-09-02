@@ -73,7 +73,7 @@ class SimpleAPI(api.BaseDBAPI):
         return DATA['artifacts'][artifact_id]
 
     @utils.error_handler(error_map)
-    def list(self, context, filters, marker, limit, sort):
+    def list(self, context, filters, marker, limit, sort, latest):
         global DATA
         afs = list(DATA['artifacts'].values())
         filters.append(('_type', None, 'eq', None, self.type))
