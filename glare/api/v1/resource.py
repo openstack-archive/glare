@@ -148,7 +148,11 @@ class RequestDeserializer(api_versioning.VersionedResource,
         content_type = self._get_content_type(req)
         if content_type == ('application/vnd+openstack.glare-custom-location'
                             '+json'):
-            data = self._get_request_body(req)['url']
+            data = self._get_request_body(req)
+            if 'url' not in data:
+                msg = _("url is required when specifying external location. "
+                        "Cannot find url in body: %s") % str(data)
+                raise exc.BadRequest(msg)
         else:
             data = req.body_file
         return {'data': data, 'content_type': content_type}
@@ -298,8 +302,9 @@ class ArtifactsController(api_versioning.VersionedResource):
         """
         if content_type == ('application/vnd+openstack.glare-custom-location'
                             '+json'):
+            url = data.pop('url')
             return self.engine.add_blob_location(
-                req.context, type_name, artifact_id, field_name, data)
+                req.context, type_name, artifact_id, field_name, url, data)
         else:
             return self.engine.upload_blob(req.context, type_name, artifact_id,
                                            field_name, data, content_type)
@@ -320,9 +325,10 @@ class ArtifactsController(api_versioning.VersionedResource):
         """
         if content_type == ('application/vnd+openstack.glare-custom-location'
                             '+json'):
+            url = data.pop('url')
             return self.engine.add_blob_dict_location(
                 req.context, type_name, artifact_id,
-                field_name, blob_key, str(data))
+                field_name, blob_key, url, data)
         else:
             return self.engine.upload_blob_dict(
                 req.context, type_name, artifact_id,
@@ -472,13 +478,30 @@ class ResponseSerializer(api_versioning.VersionedResource,
         response.headers['Content-Length'] = str(meta['size'])
         response.app_iter = iter(data)
 
+    @staticmethod
+    def _serialize_location(response, result):
+        data, meta = result['data'], result['meta']
+        response.headers['Content-MD5'] = meta['checksum']
+        response.location = data['url']
+        response.content_type = 'application/json'
+        response.status = http_client.MOVED_PERMANENTLY
+        response.content_length = 0
+
     @supported_versions(min_ver='1.0')
     def download_blob(self, response, result):
-        self._serialize_blob(response, result)
+        external = result['meta']['external']
+        if external:
+            self._serialize_location(response, result)
+        else:
+            self._serialize_blob(response, result)
 
     @supported_versions(min_ver='1.0')
     def download_blob_dict(self, response, result):
-        self._serialize_blob(response, result)
+        external = result['meta']['external']
+        if external:
+            self._serialize_location(response, result)
+        else:
+            self._serialize_blob(response, result)
 
     @supported_versions(min_ver='1.0')
     def delete_tags(self, response, result):

@@ -68,7 +68,7 @@ class BlobFieldType(fields.FieldType):
             'id': {'type': 'string'},
             'status': {'type': 'string',
                        'enum': list(BLOB_STATUS)},
-            'content_type': {'type': 'string'},
+            'content_type': {'type': ['string', 'null']},
         },
         'required': ['url', 'size', 'checksum', 'external', 'status',
                      'id', 'content_type']
@@ -90,8 +90,20 @@ class BlobFieldType(fields.FieldType):
 
     @staticmethod
     def to_primitive(obj, attr, value):
-        return {key: val for key, val in six.iteritems(value)
-                if key not in ('url', 'id')}
+        prim = {key: val for key, val in six.iteritems(value)
+                if key != 'id'}
+
+        if not value.get('external'):
+            url = '/v1/%(name)s/%(id)s/' % {
+                "name": obj.get_type_name(),
+                'id': obj.id
+            }
+            blob_path = attr.split('[')
+            url = url + blob_path[0]
+            if len(blob_path) > 1:
+                url = '/%s' % blob_path[1][:-1]
+            prim['url'] = url
+        return prim
 
 
 class BlobField(fields.AutoTypedField):
