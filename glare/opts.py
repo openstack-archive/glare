@@ -25,6 +25,8 @@ import glare.api.middleware.context
 import glare.api.versions
 import glare.common.config
 import glare.common.wsgi
+import glare.objects.base
+import glare.objects.meta.registry
 
 _artifacts_opts = [
     (None, list(itertools.chain(
@@ -32,7 +34,9 @@ _artifacts_opts = [
         glare.api.versions.versions_opts,
         glare.common.wsgi.bind_opts,
         glare.common.wsgi.eventlet_opts,
-        glare.common.wsgi.socket_opts))),
+        glare.common.wsgi.socket_opts,
+        glare.objects.base.artifact_opts,
+        glare.objects.meta.registry.registry_options))),
     profiler.list_opts()[0],
     ('paste_deploy', glare.common.config.paste_deploy_opts)
 ]
