@@ -148,7 +148,7 @@ def upgrade():
 
     op.create_table(
         'glare_artifact_locks',
-        sa.Column('id', sa.String(36), primary_key=True, nullable=False),
+        sa.Column('id', sa.String(255), primary_key=True, nullable=False),
         sa.PrimaryKeyConstraint('id'),
         mysql_engine=MYSQL_ENGINE,
         mysql_charset=MYSQL_CHARSET
