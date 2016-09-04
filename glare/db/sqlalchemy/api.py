@@ -331,6 +331,9 @@ def _do_artifacts_query(context, session):
         options(joinedload(models.Artifact.tags)).
         options(joinedload(models.Artifact.blobs)))
 
+    # Don't show deleted artifacts
+    query = query.filter(models.Artifact.status != 'deleted')
+
     # If admin, return everything.
     if context.is_admin:
         return query

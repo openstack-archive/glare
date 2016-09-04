@@ -460,9 +460,6 @@ class BaseArtifact(base.VersionedObject):
         :return: Artifact definition
         """
         af = cls.db_api.get(context, artifact_id)
-        if af['status'] == cls.STATUS.DELETED:
-            raise exception.ArtifactNotFound(
-                type_name=cls.get_type_name(), id=artifact_id)
         return cls._init_artifact(context, af)
 
     @classmethod
