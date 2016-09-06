@@ -75,6 +75,22 @@ class UUID(Validator):
                             '{4}-([0-9a-fA-F]){4}-([0-9a-fA-F]){12}$')}
 
 
+class AllowedValues(Validator):
+    def __init__(self, allowed_values):
+        self.allowed_values = allowed_values
+
+    def get_allowed_types(self):
+        return fields.StringField,
+
+    def validate(self, value):
+        if value not in self.allowed_values:
+            raise ValueError(_("Value must be one of the following: %s") %
+                             ', '.join(self.allowed_values))
+
+    def to_jsonschema(self):
+        return {'enum': self.allowed_values + [None]}
+
+
 class Version(Validator):
     def get_allowed_types(self):
         return glare_fields.VersionField

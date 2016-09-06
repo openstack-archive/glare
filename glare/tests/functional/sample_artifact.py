@@ -97,6 +97,8 @@ class SampleArtifact(base_artifact.BaseArtifact):
                                    required_on_activate=False,
                                    filter_ops=attribute.FILTERS,
                                    validators=[
+                                       validators.AllowedValues(
+                                           ['aa', 'bb', 'c' * 11]),
                                        validators.MaxStrLen(10)
                                    ]),
         'list_validators': List(fields.String,
