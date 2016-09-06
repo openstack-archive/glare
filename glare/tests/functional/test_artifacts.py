@@ -1352,6 +1352,9 @@ class TestArtifact(functional.FunctionalTest):
         self.patch(url=url, data=self.make_active)
         self.patch(url=url, data=self.make_deactivated)
         self.delete(url=url, status=204)
+        self.get(url=url, status=404)
+        self.assertEqual(0, len(self.get(
+            url='/sample_artifact')['sample_artifact']))
 
     def test_artifact_deactivate(self):
         # test artifact deactivate for non-active artifact
