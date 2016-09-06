@@ -35,7 +35,8 @@ class SampleArtifact(base_artifact.BaseArtifact):
     VERSION = '1.0'
 
     fields = {
-        'blob': Blob(required_on_activate=False, mutable=True, filter_ops=[]),
+        'blob': Blob(required_on_activate=False, mutable=True, filter_ops=[],
+                     description="I am Blob"),
         'small_blob': Blob(max_blob_size=10, required_on_activate=False,
                            mutable=True, filter_ops=[]),
         'dependency1': Field(glare_fields.Dependency,
