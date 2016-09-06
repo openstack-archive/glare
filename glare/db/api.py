@@ -58,7 +58,7 @@ class BaseDBAPI(object):
         """
         raise NotImplementedError()
 
-    def list(self, context, filters, marker, limit, sort):
+    def list(self, context, filters, marker, limit, sort, latest):
         """List artifacts from db
 
         :param context: user request context
@@ -67,6 +67,8 @@ class BaseDBAPI(object):
         artifact lookup
         :param limit: max number of items in list
         :param sort: sort conditions
+        :param latest: flag that indicates, that only artifacts with highest
+        versions should be returned in output
         :return: list of artifacts. Each artifact is represented as dict of
         values.
         """

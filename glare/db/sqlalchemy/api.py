@@ -26,6 +26,7 @@ from retrying import retry
 import six
 import sqlalchemy
 from sqlalchemy import and_
+from sqlalchemy import func
 from sqlalchemy import or_
 import sqlalchemy.orm as orm
 from sqlalchemy.orm import aliased
@@ -184,7 +185,7 @@ def get(context, artifact_id, session):
 
 
 def get_all(context, session, filters=None, marker=None, limit=None,
-            sort=None):
+            sort=None, latest=False):
     """List all visible artifacts
     :param filters: dict of filter keys and values.
     :param marker: artifact id after which to start page
@@ -193,17 +194,21 @@ def get_all(context, session, filters=None, marker=None, limit=None,
     which results should be sorted, dir is a direction: 'asc' or 'desc',
     and type is type of the attribute: 'bool', 'string', 'numeric' or 'int' or
     None if attribute is base.
+    :param latest: flag that indicates, that only artifacts with highest
+    versions should be returned in output
     """
-    artifacts = _get_all(context, session, filters, marker, limit, sort)
+    artifacts = _get_all(
+        context, session, filters, marker, limit, sort, latest)
     return [af.to_dict() for af in artifacts]
 
 
 def _get_all(context, session, filters=None, marker=None, limit=None,
-             sort=None):
+             sort=None, latest=False):
 
     filters = filters or {}
 
-    query = _do_artifacts_query(context, session)
+    query = _do_artifacts_query(context, session, latest)
+
     basic_conds, tag_conds, prop_conds = _do_query_filters(filters)
 
     if basic_conds:
@@ -323,13 +328,53 @@ def _do_paginate_query(query, marker=None, limit=None, sort=None):
     return query
 
 
-def _do_artifacts_query(context, session):
+def _do_artifacts_query(context, session, latest=False):
     """Build the query to get all artifacts based on the context"""
-    query = (
-        session.query(models.Artifact).
-        options(joinedload(models.Artifact.properties)).
-        options(joinedload(models.Artifact.tags)).
-        options(joinedload(models.Artifact.blobs)))
+
+    query = session.query(models.Artifact)
+
+    if latest:
+        # Subquery to fetch max version suffix for a group (name,
+        # version_prefix)
+        ver_suffix_subq = _apply_query_base_filters(
+            session.query(
+                models.Artifact.name,
+                models.Artifact.version_prefix,
+                func.max(models.Artifact.version_suffix).label(
+                    'max_suffix')).group_by(
+                models.Artifact.name, models.Artifact.version_prefix),
+            context).subquery()
+        # Subquery to fetch max version prefix for a name group
+        ver_prefix_subq = _apply_query_base_filters(
+            session.query(models.Artifact.name, func.max(
+                models.Artifact.version_prefix).label('max_prefix')).group_by(
+                models.Artifact.name),
+            context).subquery()
+        # Combine two subqueries together joining them with Artifact table
+        query = query.join(
+            ver_prefix_subq,
+            and_(models.Artifact.name == ver_prefix_subq.c.name,
+                 models.Artifact.version_prefix ==
+                 ver_prefix_subq.c.max_prefix)).join(
+            ver_suffix_subq,
+            and_(models.Artifact.name == ver_suffix_subq.c.name,
+                 models.Artifact.version_prefix ==
+                 ver_suffix_subq.c.version_prefix,
+                 models.Artifact.version_suffix ==
+                 ver_suffix_subq.c.max_suffix)
+        )
+
+    query = (query.options(joinedload(models.Artifact.properties)).
+             options(joinedload(models.Artifact.tags)).
+             options(joinedload(models.Artifact.blobs)))
+
+    return _apply_query_base_filters(query, context)
+
+
+def _apply_query_base_filters(query, context):
+
+    # Don't show deleted artifacts
+    query = query.filter(models.Artifact.status != 'deleted')
 
     # Don't show deleted artifacts
     query = query.filter(models.Artifact.status != 'deleted')

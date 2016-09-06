@@ -119,7 +119,12 @@ class RequestDeserializer(api_versioning.VersionedResource,
             query_params['sort'] = sort
 
         # step 4 - parse filter parameters
-        filters = [(fname, fval) for fname, fval in six.iteritems(params)]
+        filters = []
+        for fname, fval in six.iteritems(params):
+            if fname == 'version' and fval == 'latest':
+                query_params['latest'] = True
+            else:
+                filters.append((fname, fval))
 
         query_params['filters'] = filters
         return query_params
@@ -266,7 +271,7 @@ class ArtifactsController(api_versioning.VersionedResource):
     @supported_versions(min_ver='1.0')
     @log_request_progress
     def list(self, req, type_name, filters, marker=None, limit=None,
-             sort=None):
+             sort=None, latest=False):
         """List available artifacts
 
         :param req: User request
@@ -277,10 +282,12 @@ class ArtifactsController(api_versioning.VersionedResource):
         added to artifact list
         :param limit: maximum number of items in list
         :param sort: sorting options
+        :param latest: flag that indicates, that only artifacts with highest
+        versions should be returned in output
         :return: list of artifacts
         """
         artifacts = self.engine.list(req.context, type_name, filters, marker,
-                                     limit, sort)
+                                     limit, sort, latest)
         result = {'artifacts': artifacts,
                   'type_name': type_name}
         if len(artifacts) != 0 and len(artifacts) == limit:
