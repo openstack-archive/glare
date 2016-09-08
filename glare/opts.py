@@ -22,19 +22,23 @@ import itertools
 from osprofiler import opts as profiler
 
 import glare.api.middleware.context
+import glare.api.v1.resource
 import glare.api.versions
 import glare.common.config
 import glare.common.wsgi
+import glare.notification
 import glare.objects.base
 import glare.objects.meta.registry
 
 _artifacts_opts = [
     (None, list(itertools.chain(
         glare.api.middleware.context.context_opts,
+        glare.api.v1.resource.list_configs,
         glare.api.versions.versions_opts,
         glare.common.wsgi.bind_opts,
         glare.common.wsgi.eventlet_opts,
         glare.common.wsgi.socket_opts,
+        glare.notification.notifier_opts,
         glare.objects.base.artifact_opts,
         glare.objects.meta.registry.registry_options))),
     profiler.list_opts()[0],

@@ -17,18 +17,18 @@ from oslo_log import log as logging
 import oslo_messaging
 from oslo_messaging import serializer
 
-_ALIASES = {
-    'glare.openstack.common.rpc.impl_kombu': 'rabbit',
-    'glare.openstack.common.rpc.impl_qpid': 'qpid',
-    'glare.openstack.common.rpc.impl_zmq': 'zmq',
-}
-
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
+notifier_opts = [
+    cfg.StrOpt('glare_publisher_id', default="artifact.localhost",
+               help='Default publisher_id for outgoing '
+                    'Glare notifications.')]
+CONF.register_opts(notifier_opts)
+
 
 def get_transport():
-    return oslo_messaging.get_notification_transport(CONF, aliases=_ALIASES)
+    return oslo_messaging.get_notification_transport(CONF)
 
 
 class RequestSerializer(serializer.Serializer):
@@ -57,11 +57,6 @@ class Notifier(object):
     @classmethod
     def _get_notifier(cls):
         if cls.GLARE_NOTIFIER is None:
-            notifier_opts = [
-                cfg.StrOpt('glare_publisher_id', default="artifact",
-                           help='Default publisher_id for outgoing '
-                                'Glare notifications.')]
-            CONF.register_opts(notifier_opts)
             cls.GLARE_NOTIFIER = oslo_messaging.Notifier(
                 get_transport(),
                 publisher_id=CONF.glare_publisher_id,
