@@ -98,6 +98,13 @@ class SampleArtifact(base_artifact.BaseArtifact):
                                            ['aa', 'bb', 'c' * 11]),
                                        validators.MaxStrLen(10)
                                    ]),
+        'int_validators': Field(fields.IntegerField,
+                                required_on_activate=False,
+                                filter_ops=attribute.FILTERS,
+                                validators=[
+                                    validators.MinNumberSize(10),
+                                    validators.MaxNumberSize(20)
+                                ]),
         'list_validators': List(fields.String,
                                 required_on_activate=False,
                                 filter_ops=[],

@@ -1493,6 +1493,18 @@ class TestArtifact(functional.FunctionalTest):
         art = self.create_artifact(data=data)
         url = '/sample_artifact/%s' % art['id']
 
+        # min int_validators value is 10
+        patch = [{"op": "replace", "path": "/int_validators", "value": 9}]
+        self.patch(url=url, data=patch, status=400)
+
+        # max int_validators value is 20
+        patch = [{"op": "replace", "path": "/int_validators", "value": 21}]
+        self.patch(url=url, data=patch, status=400)
+
+        # number 15 is okay
+        patch = [{"op": "replace", "path": "/int_validators", "value": 15}]
+        self.patch(url=url, data=patch, status=200)
+
         # max string length is 255
         patch = [{"op": "replace", "path": "/str1", "value": 'd' * 256}]
         self.patch(url=url, data=patch, status=400)
@@ -2110,6 +2122,18 @@ class TestArtifact(functional.FunctionalTest):
                               u'sortable': True,
                               u'type': [u'integer',
                                         u'null']},
+                    u'int_validators': {u'filter_ops': [u'eq',
+                                                        u'neq',
+                                                        u'in',
+                                                        u'gt',
+                                                        u'gte',
+                                                        u'lt',
+                                                        u'lte'],
+                                        u'maximum': 20,
+                                        u'minumum': 10,
+                                        u'required_on_activate': False,
+                                        u'type': [u'integer',
+                                                  u'null']},
                     u'license': {
                         u'description': u'Artifact license type.',
                         u'filter_ops': [u'eq',

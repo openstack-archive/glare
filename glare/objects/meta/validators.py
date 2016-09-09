@@ -203,7 +203,7 @@ class MaxNumberSize(SizeValidator):
 
 class MinNumberSize(SizeValidator):
     def validate(self, value):
-        if value > self.size:
+        if value < self.size:
             raise ValueError("Number is too small: %s. Min allowed number is "
                              "%s" % (value, self.size))
 
