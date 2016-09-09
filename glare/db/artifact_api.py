@@ -14,14 +14,11 @@
 
 """Database API for all artifact types"""
 
-from oslo_log import log as logging
 import six
 
 from glare.db import api as base_api
 from glare.db.sqlalchemy import api
 from glare import locking
-
-LOG = logging.getLogger(__name__)
 
 
 class ArtifactAPI(base_api.BaseDBAPI):

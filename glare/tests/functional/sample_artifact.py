@@ -14,15 +14,12 @@
 
 """Sample artifact object for testing purposes"""
 
-from oslo_log import log as logging
 from oslo_versionedobjects import fields
 
 from glare.objects import base as base_artifact
 from glare.objects.meta import attribute
 from glare.objects.meta import fields as glare_fields
 from glare.objects.meta import validators
-
-LOG = logging.getLogger(__name__)
 
 Field = attribute.Attribute.init
 Dict = attribute.DictAttribute.init

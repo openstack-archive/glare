@@ -17,7 +17,6 @@ import webob
 
 from oslo_config import cfg
 from oslo_context import context
-from oslo_log import log as logging
 from oslo_middleware import base as base_middleware
 from oslo_middleware import request_id
 from oslo_serialization import jsonutils
@@ -34,9 +33,6 @@ context_opts = [
 
 CONF = cfg.CONF
 CONF.register_opts(context_opts)
-
-
-LOG = logging.getLogger(__name__)
 
 
 class RequestContext(context.RequestContext):

@@ -14,14 +14,11 @@
 from glance_store import backend
 from glance_store import exceptions as store_exc
 from oslo_config import cfg
-from oslo_log import log as logging
 
 from glare.common import exception
 from glare.common import utils
 
 CONF = cfg.CONF
-
-LOG = logging.getLogger(__name__)
 
 error_map = [{'catch': store_exc.NotFound,
               'raise': exception.NotFound},
