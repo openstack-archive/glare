@@ -33,7 +33,6 @@ from glare import locking
 from glare.i18n import _, _LI
 from glare.objects.meta import attribute
 from glare.objects.meta import fields as glare_fields
-from glare.objects.meta.fields import BlobFieldType as BlobStatus
 from glare.objects.meta import validators
 
 artifact_opts = [
@@ -619,25 +618,28 @@ class BaseArtifact(base.VersionedObject):
             if cls.is_blob(name):
                 b = getattr(af, name)
                 if b:
-                    if b['status'] == BlobStatus.PENDING_DELETE:
+                    if b['status'] == glare_fields.\
+                            BlobFieldType.PENDING_DELETE:
                         msg = _('Blob %(name)s is already deleting '
                                 'for artifact %(id)s') % {'name': name,
                                                           'id': af.id}
                         raise exception.Conflict(msg)
                     else:
-                        b['status'] = BlobStatus.PENDING_DELETE
+                        b['status'] = glare_fields.BlobFieldType.PENDING_DELETE
                         blobs[name] = b
             elif cls.is_blob_dict(name):
                 bd = getattr(af, name)
                 if bd:
                     for key, b in six.iteritems(bd):
-                        if b['status'] == BlobStatus.PENDING_DELETE:
+                        if b['status'] == glare_fields.\
+                                BlobFieldType.PENDING_DELETE:
                             msg = _('Blob %(name)s is already deleting '
                                     'for artifact %(id)s') % {'name': name,
                                                               'id': af.id}
                             raise exception.Conflict(msg)
                         else:
-                            b['status'] = BlobStatus.PENDING_DELETE
+                            b['status'] = glare_fields.\
+                                BlobFieldType.PENDING_DELETE
                     blobs[name] = bd
         if blobs:
             LOG.debug("Marked all blobs %(blobs) for artifact %(artifact)s "
@@ -818,7 +820,7 @@ class BaseArtifact(base.VersionedObject):
                   "Start blob uploading to backend.",
                   {'artifact': af.id, 'blob': field_name})
         blob = {'url': None, 'size': None, 'checksum': None,
-                'status': BlobStatus.SAVING, 'external': False,
+                'status': glare_fields.BlobFieldType.SAVING, 'external': False,
                 'content_type': content_type}
         setattr(af, field_name, blob)
         cls.db_api.update(
@@ -828,7 +830,8 @@ class BaseArtifact(base.VersionedObject):
         try:
             location_uri, size, checksum = store_api.save_blob_to_store(
                 blob_id, fd, context, cls._get_max_blob_size(field_name))
-            blob.update({'url': location_uri, 'status': BlobStatus.ACTIVE,
+            blob.update({'url': location_uri,
+                         'status': glare_fields.BlobFieldType.ACTIVE,
                          'size': size, 'checksum': checksum})
             setattr(af, field_name, blob)
             af_upd = cls.db_api.update(
@@ -858,7 +861,7 @@ class BaseArtifact(base.VersionedObject):
                     "when it's deactivated")
             raise exception.Forbidden(message=msg)
         blob = getattr(af, field_name)
-        if blob is None or blob['status'] != BlobStatus.ACTIVE:
+        if blob is None or blob['status'] != glare_fields.BlobFieldType.ACTIVE:
             msg = _("%s is not ready for download") % field_name
             raise exception.BadRequest(message=msg)
         meta = {'checksum': blob.get('checksum'),
@@ -892,7 +895,7 @@ class BaseArtifact(base.VersionedObject):
                   "Start blob uploading to backend.",
                   {'artifact': af.id, 'blob': field_name, 'key': blob_key})
         blob = {'url': None, 'size': None, 'checksum': None,
-                'status': BlobStatus.SAVING, 'external': False,
+                'status': glare_fields.BlobFieldType.SAVING, 'external': False,
                 'content_type': content_type}
         blob_dict_attr = getattr(af, field_name)
         blob_dict_attr[blob_key] = blob
@@ -902,7 +905,8 @@ class BaseArtifact(base.VersionedObject):
         try:
             location_uri, size, checksum = store_api.save_blob_to_store(
                 blob_id, fd, context, cls._get_max_blob_size(field_name))
-            blob.update({'url': location_uri, 'status': BlobStatus.ACTIVE,
+            blob.update({'url': location_uri,
+                         'status': glare_fields.BlobFieldType.ACTIVE,
                          'size': size, 'checksum': checksum})
             af_values = cls.db_api.update(
                 context, af.id, {field_name: blob_dict_attr})
@@ -939,7 +943,7 @@ class BaseArtifact(base.VersionedObject):
             msg = _("Blob with name %(blob_name)s is not found in blob "
                     "dictionary %(blob_dict)s") % (blob_key, field_name)
             raise exception.NotFound(message=msg)
-        if blob is None or blob['status'] != BlobStatus.ACTIVE:
+        if blob is None or blob['status'] != glare_fields.BlobFieldType.ACTIVE:
             msg = _("Blob %(blob_name)s from blob dictionary %(blob_dict)s "
                     "is not ready for download") % (blob_key, field_name)
             LOG.error(msg)
@@ -970,7 +974,7 @@ class BaseArtifact(base.VersionedObject):
                   ".", {'artifact': af.id, 'blob': field_name})
 
         blob = {'url': location, 'size': None, 'checksum': None,
-                'status': BlobStatus.ACTIVE, 'external': True,
+                'status': glare_fields.BlobFieldType.ACTIVE, 'external': True,
                 'content_type': None}
 
         if blob_meta.get('checksum') is None:
@@ -996,7 +1000,7 @@ class BaseArtifact(base.VersionedObject):
         cls._validate_upload_allowed(context, af, field_name, blob_key)
 
         blob = {'url': location, 'size': None, 'checksum': None,
-                'status': BlobStatus.ACTIVE, 'external': True,
+                'status': glare_fields.BlobFieldType.ACTIVE, 'external': True,
                 'content_type': None}
 
         if blob_meta.get('checksum') is None:
