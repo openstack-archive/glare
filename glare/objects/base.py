@@ -93,7 +93,7 @@ class BaseArtifact(base.VersionedObject):
                        sortable=True, description="ID of user/tenant who "
                                                   "uploaded artifact."),
         'status': Field(glare_fields.ArtifactStatusField,
-                        default=glare_fields.ArtifactStatusField.QUEUED,
+                        default=glare_fields.ArtifactStatusField.DRAFTED,
                         nullable=False, sortable=True,
                         description="Artifact status."),
         'created_at': Field(fields.DateTimeField, system=True,
@@ -369,9 +369,9 @@ class BaseArtifact(base.VersionedObject):
         :param field_names:
         :return:
         """
-        if af.status not in (cls.STATUS.ACTIVE, cls.STATUS.QUEUED):
+        if af.status not in (cls.STATUS.ACTIVE, cls.STATUS.DRAFTED):
             msg = _("Forbidden to change attributes "
-                    "if artifact not active or queued.")
+                    "if artifact not active or drafted.")
             raise exception.Forbidden(message=msg)
 
         for field_name in field_names:
@@ -681,7 +681,7 @@ class BaseArtifact(base.VersionedObject):
                 raise exception.BadRequest(msg)
 
         cls.validate_activate(context, af)
-        if af.status != cls.STATUS.QUEUED:
+        if af.status != cls.STATUS.DRAFTED:
             raise exception.InvalidStatusTransition(
                 orig=af.status, new=cls.STATUS.ACTIVE
             )

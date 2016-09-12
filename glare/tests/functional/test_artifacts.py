@@ -178,10 +178,10 @@ class TestArtifact(functional.FunctionalTest):
         self.assertIsNotNone(af['id'])
 
         # Get the artifact which should have a generated id and status
-        # 'queued'
+        # 'drafted'
         url = '/sample_artifact/%s' % af['id']
         af = self.get(url=url, status=200)
-        self.assertEqual('queued', af['status'])
+        self.assertEqual('drafted', af['status'])
         self.assertEqual('private', af['visibility'])
 
         # Artifact list should now have one entry
@@ -351,11 +351,12 @@ class TestArtifact(functional.FunctionalTest):
                                                      'string_required': '123'})
         self.assertIsNotNone(art['id'])
 
-        # Get the artifact which should have a generated id and status 'queued'
+        # Get the artifact which should have a generated id and status
+        # 'drafted'
         url = '/sample_artifact/%s' % art['id']
         art_1 = self.get(url=url, status=200)
         self.assertIsNotNone(art_1['id'])
-        self.assertEqual('queued', art_1['status'])
+        self.assertEqual('drafted', art_1['status'])
 
         # Upload data to blob dict
         headers = {'Content-Type': 'application/octet-stream'}
@@ -1246,7 +1247,7 @@ class TestArtifact(functional.FunctionalTest):
             data={"name": "test_af", "string_required": "test_str",
                   "version": "0.0.1"})
         dup_url = '/sample_artifact/%s' % duplicate_art['id']
-        # test that we cannot publish queued artifact
+        # test that we cannot publish drafted artifact
         self.patch(url=dup_url, data=self.make_public, status=400)
         # proceed with duplicate testing
         self.patch(url=dup_url, data=self.make_active)
@@ -2266,9 +2267,9 @@ class TestArtifact(functional.FunctionalTest):
                                     u'required_on_activate': False,
                                     u'type': [u'object',
                                               u'null']},
-                    u'status': {u'default': u'queued',
+                    u'status': {u'default': u'drafted',
                                 u'description': u'Artifact status.',
-                                u'enum': [u'queued',
+                                u'enum': [u'drafted',
                                           u'active',
                                           u'deactivated',
                                           u'deleted'],
