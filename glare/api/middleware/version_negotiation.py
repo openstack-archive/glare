@@ -20,7 +20,6 @@ return
 """
 
 import microversion_parse
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_middleware import base as base_middleware
 
@@ -28,8 +27,6 @@ from oslo_middleware import base as base_middleware
 from glare.api.v1 import api_version_request as api_version
 from glare.api import versions as artifacts_versions
 from glare.common import exception
-
-CONF = cfg.CONF
 
 LOG = logging.getLogger(__name__)
 
