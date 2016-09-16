@@ -26,6 +26,7 @@ from retrying import retry
 import six
 import sqlalchemy
 from sqlalchemy import and_
+import sqlalchemy.exc
 from sqlalchemy import func
 from sqlalchemy import or_
 import sqlalchemy.orm as orm
@@ -580,17 +581,16 @@ def _do_blobs(artifact, new_blobs):
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
 def create_lock(context, lock_key, session):
+    """Try to create lock record."""
     try:
-        session.query(models.ArtifactLock).filter_by(id=lock_key).one()
-    except orm.exc.NoResultFound:
         lock = models.ArtifactLock()
         lock.id = lock_key
         lock.save(session=session)
         return lock.id
-
-    msg = _("Cannot lock an item with key %s. "
-            "Lock already acquired by other request") % lock_key
-    raise exception.Conflict(msg)
+    except (sqlalchemy.exc.IntegrityError, db_exception.DBDuplicateEntry):
+        msg = _("Cannot lock an item with key %s. "
+                "Lock already acquired by other request") % lock_key
+        raise exception.Conflict(msg)
 
 
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
