@@ -201,11 +201,6 @@ class Server(object):
             utils.safe_mkdirs(conf_dir)
             conf_filepath = os.path.join(conf_dir, 'glare.conf')
 
-            with open(conf_filepath, 'w') as conf_file:
-                conf_file.write('[database]\n')
-                conf_file.write('connection = %s' % self.sql_connection)
-                conf_file.flush()
-
             glare_db_env = 'GLARE_DB_TEST_SQLITE_FILE'
             if glare_db_env in os.environ:
                 # use the empty db created and cached as a tempfile
@@ -268,8 +263,8 @@ class GlareServer(Server):
     def __init__(self, test_dir, port, policy_file, delayed_delete=False,
                  pid_file=None, sock=None, **kwargs):
         super(GlareServer, self).__init__(test_dir, port, sock=sock)
-        self.server_name = 'api'
-        self.server_module = 'glare.cmd.%s' % self.server_name
+        self.server_name = 'glare'
+        self.server_module = 'glare.cmd.api'
         self.default_store = kwargs.get("default_store", "file")
         self.key_file = ""
         self.cert_file = ""
