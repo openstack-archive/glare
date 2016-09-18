@@ -531,7 +531,6 @@ class BaseArtifact(base.VersionedObject):
         # (field_name, key_name, op, field_type, value)
         new_filters = []
         for filter_name, filter_value in filters:
-            key_name = None
             if filter_name in ('tags-any', 'tags'):
                 if ':' in filter_value:
                     msg = _("Tags are filtered without operator")
@@ -539,28 +538,37 @@ class BaseArtifact(base.VersionedObject):
                 new_filters.append(
                     (filter_name, None, None, None, filter_value))
                 continue
-            elif '.' in filter_name:
-                filter_name, key_name = filter_name.split('.', 1)
-                cls._validate_filter_name(filter_name)
-                op, val = utils.split_filter_op(filter_value)
-                cls._validate_filter_ops(filter_name, op)
-                field_type = cls.fields.get(filter_name).element_type
-            else:
-                cls._validate_filter_name(filter_name)
-                op, val = utils.split_filter_op(filter_value)
-                cls._validate_filter_ops(filter_name, op)
-                field_type = cls.fields.get(filter_name)
 
+            key_name = None
+            if '.' in filter_name:
+                filter_name, key_name = filter_name.split('.', 1)
+                if not isinstance(cls.fields.get(filter_name),
+                                  glare_fields.Dict):
+                    msg = _("Field %s is not Dict") % filter_name
+                    raise exception.BadRequest(msg)
+
+            cls._validate_filter_name(filter_name)
+            field_type = cls.fields.get(filter_name)
+
+            if isinstance(field_type, glare_fields.List) or isinstance(
+                    field_type, glare_fields.Dict) and key_name is not None:
+                field_type = field_type.element_type
             try:
-                if op == 'in':
-                    value = [field_type.coerce(cls(), filter_name, value)
-                             for value in
-                             utils.split_filter_value_for_quotes(val)]
+                if isinstance(field_type, glare_fields.Dict):
+                    new_filters.append((
+                        filter_name, filter_value, None, None, None))
                 else:
-                    value = field_type.coerce(cls(), filter_name, val)
-                new_filters.append(
-                    (filter_name, key_name, op,
-                     cls._get_field_type(field_type), value))
+                    op, val = utils.split_filter_op(filter_value)
+                    cls._validate_filter_ops(filter_name, op)
+                    if op == 'in':
+                        value = [field_type.coerce(cls(), filter_name, value)
+                                 for value in
+                                 utils.split_filter_value_for_quotes(val)]
+                    else:
+                        value = field_type.coerce(cls(), filter_name, val)
+                    new_filters.append(
+                        (filter_name, key_name, op,
+                         cls._get_field_type(field_type), value))
             except ValueError:
                 msg = _("Invalid filter value: %s") % str(val)
                 raise exception.BadRequest(msg)

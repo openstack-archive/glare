@@ -435,13 +435,14 @@ def _do_query_filters(filters):
             conds = [models.ArtifactProperty.name == field_name]
             if key_name is not None:
                 conds.extend([models.ArtifactProperty.key_name == key_name])
-            if op != 'in':
-                fn = op_mappings[op]
-                conds.extend([fn(getattr(models.ArtifactProperty,
-                                         field_type + '_value'), value)])
-            else:
-                conds.extend([getattr(models.ArtifactProperty,
-                                      field_type + '_value').in_(value)])
+            if value is not None:
+                if op != 'in':
+                    fn = op_mappings[op]
+                    conds.extend([fn(getattr(models.ArtifactProperty,
+                                             field_type + '_value'), value)])
+                else:
+                    conds.extend([getattr(models.ArtifactProperty,
+                                          field_type + '_value').in_(value)])
 
             prop_conds.append(conds)
 
