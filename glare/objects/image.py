@@ -54,7 +54,7 @@ class Image(base.BaseArtifact):
                                     description="URL where image is available "
                                                 "for users by accepting EULA "
                                                 "or some other form. It is "
-                                                "used when it is not possible"
+                                                "used when it is not possible "
                                                 "to upload image directly to "
                                                 "Glare. F.e. some Windows "
                                                 "cloud images requires EULA "
