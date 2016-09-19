@@ -74,7 +74,6 @@ class BaseArtifact(base.VersionedObject):
 
     STATUS = glare_fields.ArtifactStatusField
 
-    lock_engine = locking.LockEngine(artifact_api.ArtifactLockApi())
     Field = attribute.Attribute.init
     DictField = attribute.DictAttribute.init
     ListField = attribute.ListAttribute.init
@@ -252,40 +251,36 @@ class BaseArtifact(base.VersionedObject):
             cls._DB_API = cls.init_db_api()
         return cls._DB_API
 
+    lock_engine = locking.LockEngine(artifact_api.ArtifactLockApi())
+
     @classmethod
-    def _get_versioning_scope(cls, context, values, af=None):
-        """Return identifier that allows to track versioning in Glare.
+    def _lock_version(cls, context, values):
+        """Calculate version scope for new artifact
 
-        The method returns unique identifier for artifact version. So two
-        artifact with the same version and scope returns the same identifier.
-        It allows to specify lock for artifact version when creating or
-        updating artifact.
-
-        :param context: user context
-        :param af: actual artifact values(if present)
-        :param values: values proposed for artifact update
-        :return: versioning scope id or None if there is no scope for locking
+        :param values: af values
+        :return: string that identifies af version or None
         """
         name = values.get('name')
-        version = values.get('version')
-        visibility = values.get('visibility')
-
-        if (name, version, visibility) == (None, None, None):
-            # no versioning changes here == no lock scope
-            return None
-
-        if af:
-            if name is None:
-                name = af.name
-            version = version or af.version
-            visibility = visibility or af.visibility
-
+        version = values.get('version', cls.DEFAULT_ARTIFACT_VERSION)
+        scope_id = None
         if name:
-            scope_id = "%s:%s" % (name, str(
-                version or cls.DEFAULT_ARTIFACT_VERSION))
-            if visibility == 'public':
-                scope_id += ':%s' % str(context.tenant)
-            return scope_id
+            scope_id = "%s:%s" % (name, str(version))
+
+        return cls.lock_engine.acquire(context, scope_id)
+
+    @classmethod
+    def _lock_updated_version(cls, af, updates):
+        name = updates.get('name', af.name)
+        version = updates.get('version', af.version)
+        visibility = updates.get('visibility', af.visibility)
+        scope_id = None
+        if (name, version, visibility) != (af.name, af.version, af.visibility):
+            # no version change == no lock for version
+            scope_id = "%s:%s" % (name, str(version))
+            if visibility != 'public':
+                scope_id += ':%s' % str(af.obj_context.tenant)
+
+        return cls.lock_engine.acquire(af.obj_context, scope_id)
 
     @classmethod
     def create(cls, context, values):
@@ -299,8 +294,7 @@ class BaseArtifact(base.VersionedObject):
             msg = _("It's forbidden to anonymous users to create artifacts.")
             raise exception.Forbidden(msg)
         else:
-            with cls.lock_engine.acquire(
-                    context, cls._get_versioning_scope(context, values)):
+            with cls._lock_version(context, values):
                 ver = values.setdefault(
                     'version', cls.DEFAULT_ARTIFACT_VERSION)
                 cls._validate_versioning(context, values.get('name'), ver)
@@ -395,8 +389,7 @@ class BaseArtifact(base.VersionedObject):
         """
         # reset all changes of artifact to reuse them after update
         af.obj_reset_changes()
-        scope = cls._get_versioning_scope(context, values, af)
-        with cls.lock_engine.acquire(context, scope):
+        with cls._lock_updated_version(af, values):
             # validate version
             if 'name' in values or 'version' in values:
                 new_name = values.get('name') or af.name
@@ -757,8 +750,7 @@ class BaseArtifact(base.VersionedObject):
                     "for artifact publish.")
             raise exception.BadRequest(msg)
 
-        with cls.lock_engine.acquire(context, cls._get_versioning_scope(
-                context, values, af)):
+        with cls._lock_updated_version(af, values):
             if af.status != cls.STATUS.ACTIVE:
                 msg = _("Cannot publish non-active artifact")
                 raise exception.BadRequest(msg)
