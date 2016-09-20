@@ -1,0 +1,44 @@
+# Devstack settings
+
+enable_service glare
+
+# Set up default directories
+GLARE_PYTHONCLIENT_REPO=${GLARE_PYTHONCLIENT_REPO:-${GIT_BASE}/openstack/python-glareclient.git}
+GLARE_PYTHONCLIENT_BRANCH=${GLARE_PYTHONCLIENT_BRANCH:-master}
+GLARE_PYTHONCLIENT_DIR=$DEST/python-glareclient
+
+GLARE_DIR=$DEST/glare
+GLARE_REPO=${GLARE_REPO:-${GIT_BASE}/openstack/glare.git}
+GLARE_BRANCH=${GLARE_BRANCH:-master}
+
+# Glare virtual environment
+if [[ ${USE_VENV} = True ]]; then
+    PROJECT_VENV["glare"]=${GLARE_DIR}.venv
+    GLARE_BIN_DIR=${PROJECT_VENV["glare"]}/bin
+else
+    GLARE_BIN_DIR=$(get_python_exec_prefix)
+fi
+
+GLARE_ARTIFACTS_DIR=${GLARE_ARTIFACTS_DIR:=$DATA_DIR/glare/artifacts}
+GLARE_AUTH_CACHE_DIR=${GLARE_AUTH_CACHE_DIR:-/var/cache/glare}
+
+GLARE_CONF_DIR=${GLARE_CONF_DIR:-/etc/glare}
+GLARE_CONF_FILE=$GLARE_CONF_DIR/glare.conf
+GLARE_PASTE_INI=$GLARE_CONF_DIR/glare-paste.ini
+GLARE_POLICY_JSON=$GLARE_CONF_DIR/policy.json
+GLARE_SWIFT_STORE_CONF=$GLARE_CONF_DIR/glare-swift-store.conf
+
+if is_ssl_enabled_service "glare" || is_service_enabled tls-proxy; then
+    GLARE_SERVICE_PROTOCOL="https"
+fi
+
+# Glare connection info.  Note the port must be specified.
+GLARE_SERVICE_PORT=${GLARE_SERVICE_PORT:-9494}
+GLARE_SERVICE_HOST=${GLARE_SERVICE_HOST:-$SERVICE_HOST}
+GLARE_SERVICE_PROTOCOL=${GLARE_SERVICE_PROTOCOL:-$SERVICE_PROTOCOL}
+
+GLARE_DEBUG=${GLARE_DEBUG:-True}
+
+GLARE_ADMIN_USER=${GLARE_ADMIN_USER:-glare}
+
+GLARE_FLAVOR=${GLARE_FLAVOR:-keystone}
