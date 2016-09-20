@@ -76,25 +76,17 @@ class GlareVersionNegotiationFilter(base_middleware.ConfigurableMiddleware):
         req_version = get_version_from_accept(
             req.accept, GlareVersionNegotiationFilter.MIME_TYPE)
         if req_version is None:
-            # determine api version for v0.1 from url
-            if req.path_info_peek() == 'v0.1':
-                req_version = 'v0.1'
-            else:
-                # determine api version from microversion header
-                LOG.debug("Determine version from microversion header.")
-                req_version = microversion_parse.get_version(
-                    req.headers,
-                    service_type=GlareVersionNegotiationFilter.SERVICE_TYPE)
+            # determine api version from microversion header
+            LOG.debug("Determine version from microversion header.")
+            req_version = microversion_parse.get_version(
+                req.headers,
+                service_type=GlareVersionNegotiationFilter.SERVICE_TYPE)
 
-        # validate versions and add version info to request
-        if req_version == 'v0.1':
-            req.environ['api.version'] = 0.1
-        else:
-            # validate microversions header
-            req.api_version_request = \
-                GlareVersionNegotiationFilter._get_api_version_request(
-                    req_version)
-            req_version = req.api_version_request.get_string()
+        # validate microversions header
+        req.api_version_request = \
+            GlareVersionNegotiationFilter._get_api_version_request(
+                req_version)
+        req_version = req.api_version_request.get_string()
 
         LOG.debug("Matched version: %s", req_version)
         LOG.debug('new path %s', req.path_info)
