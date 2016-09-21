@@ -41,7 +41,10 @@ from six.moves import range
 import six.moves.urllib.parse as urlparse
 import testtools
 
+from glare.api.v1 import resource
+from glare.api.v1 import router
 from glare.common import utils
+from glare.common import wsgi
 from glare.db.sqlalchemy import api as db_api
 from glare import tests as glare_tests
 from glare.tests import utils as test_utils
@@ -323,7 +326,7 @@ pipeline = faultwrapper versionnegotiation context glarev1api
 
 [app:glarev1api]
 paste.app_factory =
- glare.tests.functional.test_artifacts:TestRouter.factory
+ glare.tests.functional:TestRouter.factory
 
 [filter:faultwrapper]
 paste.filter_factory =
@@ -631,3 +634,11 @@ class FunctionalTest(test_utils.BaseTestCase):
         for log in logs:
             if os.path.exists(log):
                 testtools.content.attach_file(self, log)
+
+
+class TestRouter(router.API):
+    def _get_artifacts_resource(self):
+        deserializer = resource.RequestDeserializer()
+        serializer = resource.ResponseSerializer()
+        controller = resource.ArtifactsController()
+        return wsgi.Resource(controller, deserializer, serializer)
