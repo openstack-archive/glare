@@ -94,7 +94,7 @@ class BlobFieldType(fields.FieldType):
                 if key != 'id'}
 
         if not value.get('external'):
-            url = '/v1/%(name)s/%(id)s/' % {
+            url = '/artifacts/%(name)s/%(id)s/' % {
                 "name": obj.get_type_name(),
                 'id': obj.id
             }
