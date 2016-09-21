@@ -63,15 +63,17 @@ class BlobFieldType(fields.FieldType):
             'url': {'type': ['string', 'null'], 'format': 'uri',
                     'max_length': 255},
             'size': {'type': ['number', 'null']},
-            'checksum': {'type': ['string', 'null']},
+            'md5': {'type': ['string', 'null']},
+            'sha1': {'type': ['string', 'null']},
+            'sha256': {'type': ['string', 'null']},
             'external': {'type': 'boolean'},
             'id': {'type': 'string'},
             'status': {'type': 'string',
                        'enum': list(BLOB_STATUS)},
             'content_type': {'type': ['string', 'null']},
         },
-        'required': ['url', 'size', 'checksum', 'external', 'status',
-                     'id', 'content_type']
+        'required': ['url', 'size', 'md5', 'sha1', 'sha256', 'external',
+                     'status', 'id', 'content_type']
     }
 
     @staticmethod

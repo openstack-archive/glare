@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import hashlib
 import uuid
 
 from oslo_serialization import jsonutils
@@ -833,7 +834,7 @@ class TestBlobs(TestArtifact):
         self.delete(url)
 
     def test_blob_download(self):
-        data = 'data'
+        data = 'some_arbitrary_testing_data'
         art = self.create_artifact(data={'name': 'test_af',
                                          'version': '0.0.1'})
         url = '/sample_artifact/%s' % art['id']
@@ -851,6 +852,12 @@ class TestBlobs(TestArtifact):
         art = self.put(url=url + '/blob', data=data, status=200,
                        headers=headers)
         self.assertEqual('active', art['blob']['status'])
+        md5 = hashlib.md5(data.encode('UTF-8')).hexdigest()
+        sha1 = hashlib.sha1(data.encode('UTF-8')).hexdigest()
+        sha256 = hashlib.sha256(data.encode('UTF-8')).hexdigest()
+        self.assertEqual(md5, art['blob']['md5'])
+        self.assertEqual(sha1, art['blob']['sha1'])
+        self.assertEqual(sha256, art['blob']['sha256'])
 
         blob_data = self.get(url=url + '/blob')
         self.assertEqual(data, blob_data)
@@ -880,7 +887,7 @@ class TestBlobs(TestArtifact):
         url = '/sample_artifact/%s' % art['id']
         body = jsonutils.dumps(
             {'url': 'https://www.apache.org/licenses/LICENSE-2.0.txt',
-             'checksum': "fake"})
+             'md5': "fake", 'sha1': "fake_sha", "sha256": "fake_sha256"})
         headers = {'Content-Type':
                    'application/vnd+openstack.glare-custom-location+json'}
         self.put(url=url + '/blob', data=body,
@@ -895,7 +902,9 @@ class TestBlobs(TestArtifact):
         # Get the artifact, blob property should have status 'active'
         art = self.get(url=url, status=200)
         self.assertEqual('active', art['blob']['status'])
-        self.assertIsNotNone(art['blob']['checksum'])
+        self.assertEqual('fake', art['blob']['md5'])
+        self.assertEqual('fake_sha', art['blob']['sha1'])
+        self.assertEqual('fake_sha256', art['blob']['sha256'])
         self.assertIsNone(art['blob']['size'])
         self.assertIsNone(art['blob']['content_type'])
         self.assertEqual('https://www.apache.org/licenses/LICENSE-2.0.txt',
@@ -910,7 +919,7 @@ class TestBlobs(TestArtifact):
         # Get the artifact, blob property should have status 'active'
         art = self.get(url=url, status=200)
         self.assertEqual('active', art['dict_of_blobs']['blob']['status'])
-        self.assertIsNotNone(art['dict_of_blobs']['blob']['checksum'])
+        self.assertIsNotNone(art['dict_of_blobs']['blob']['md5'])
         self.assertIsNone(art['dict_of_blobs']['blob']['size'])
         self.assertIsNone(art['dict_of_blobs']['blob']['content_type'])
         self.assertEqual('https://www.apache.org/licenses/LICENSE-2.0.txt',
@@ -1041,7 +1050,7 @@ class TestArtifactOps(TestArtifact):
         self.create_artifact(data={"name": "test_af", "version": "0.0.2",
                                    "blob": {
                                        'url': None, 'size': None,
-                                       'checksum': None, 'status': 'saving',
+                                       'md5': None, 'status': 'saving',
                                        'external': False}}, status=400)
         # check that anonymous user cannot create artifact
         self.set_user("anonymous")
@@ -1361,7 +1370,7 @@ class TestUpdate(TestArtifact):
             "op": "replace",
             "path": "/blob",
             "value": {"name": "test_af", "version": "0.0.2",
-                      "blob": {'url': None, 'size': None, 'checksum': None,
+                      "blob": {'url': None, 'size': None, 'md5': None,
                                'status': 'saving', 'external': False}}}]
         self.patch(url, blob_attr, 400)
         blob_attr[0]["path"] = "/dict_of_blobs/-"

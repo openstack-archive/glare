@@ -481,14 +481,18 @@ class ResponseSerializer(api_versioning.VersionedResource,
     def _serialize_blob(response, result):
         data, meta = result['data'], result['meta']
         response.headers['Content-Type'] = meta['content_type']
-        response.headers['Content-MD5'] = meta['checksum']
+        response.headers['Content-MD5'] = meta['md5']
+        response.headers['X-Openstack-Glare-Content-SHA1'] = meta['sha1']
+        response.headers['X-Openstack-Glare-Content-SHA256'] = meta['sha256']
         response.headers['Content-Length'] = str(meta['size'])
         response.app_iter = iter(data)
 
     @staticmethod
     def _serialize_location(response, result):
         data, meta = result['data'], result['meta']
-        response.headers['Content-MD5'] = meta['checksum']
+        response.headers['Content-MD5'] = meta['md5']
+        response.headers['X-Openstack-Glare-Content-SHA1'] = meta['sha1']
+        response.headers['X-Openstack-Glare-Content-SHA256'] = meta['sha256']
         response.location = data['url']
         response.content_type = 'application/json'
         response.status = http_client.MOVED_PERMANENTLY

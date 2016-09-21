@@ -534,7 +534,7 @@ def _do_properties(artifact, new_properties):
 
 
 def _update_blob_values(blob, values):
-    for elem in ('size', 'checksum', 'url', 'external', 'status',
+    for elem in ('size', 'md5', 'sha1', 'sha256', 'url', 'external', 'status',
                  'content_type'):
         setattr(blob, elem, values[elem])
     return blob

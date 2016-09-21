@@ -811,20 +811,21 @@ class BaseArtifact(base.VersionedObject):
                   "upload passed for blob %(blob)s. "
                   "Start blob uploading to backend.",
                   {'artifact': af.id, 'blob': field_name})
-        blob = {'url': None, 'size': None, 'checksum': None,
-                'status': glare_fields.BlobFieldType.SAVING, 'external': False,
-                'content_type': content_type}
+        blob = {'url': None, 'size': None, 'md5': None, 'sha1': None,
+                'sha256': None, 'status': glare_fields.BlobFieldType.SAVING,
+                'external': False, 'content_type': content_type}
         setattr(af, field_name, blob)
         cls.db_api.update(
             context, af.id, {field_name: getattr(af, field_name)})
         blob_id = getattr(af, field_name)['id']
 
         try:
-            location_uri, size, checksum = store_api.save_blob_to_store(
+            location_uri, size, checksums = store_api.save_blob_to_store(
                 blob_id, fd, context, cls._get_max_blob_size(field_name))
             blob.update({'url': location_uri,
                          'status': glare_fields.BlobFieldType.ACTIVE,
-                         'size': size, 'checksum': checksum})
+                         'size': size})
+            blob.update(checksums)
             setattr(af, field_name, blob)
             af_upd = cls.db_api.update(
                 context, af.id, {field_name: getattr(af, field_name)})
@@ -856,7 +857,9 @@ class BaseArtifact(base.VersionedObject):
         if blob is None or blob['status'] != glare_fields.BlobFieldType.ACTIVE:
             msg = _("%s is not ready for download") % field_name
             raise exception.BadRequest(message=msg)
-        meta = {'checksum': blob.get('checksum'),
+        meta = {'md5': blob.get('md5'),
+                'sha1': blob.get('sha1'),
+                'sha256': blob.get('sha256'),
                 'external': blob.get('external')}
         if blob['external']:
             data = {'url': blob['url']}
@@ -886,20 +889,21 @@ class BaseArtifact(base.VersionedObject):
                   "upload passed for blob dict  %(blob)s with key %(key)s. "
                   "Start blob uploading to backend.",
                   {'artifact': af.id, 'blob': field_name, 'key': blob_key})
-        blob = {'url': None, 'size': None, 'checksum': None,
-                'status': glare_fields.BlobFieldType.SAVING, 'external': False,
-                'content_type': content_type}
+        blob = {'url': None, 'size': None, 'md5': None, 'sha1': None,
+                'sha256': None, 'status': glare_fields.BlobFieldType.SAVING,
+                'external': False, 'content_type': content_type}
         blob_dict_attr = getattr(af, field_name)
         blob_dict_attr[blob_key] = blob
         cls.db_api.update(
             context, af.id, {field_name: blob_dict_attr})
         blob_id = getattr(af, field_name)[blob_key]['id']
         try:
-            location_uri, size, checksum = store_api.save_blob_to_store(
+            location_uri, size, checksums = store_api.save_blob_to_store(
                 blob_id, fd, context, cls._get_max_blob_size(field_name))
             blob.update({'url': location_uri,
                          'status': glare_fields.BlobFieldType.ACTIVE,
-                         'size': size, 'checksum': checksum})
+                         'size': size})
+            blob.update(checksums)
             af_values = cls.db_api.update(
                 context, af.id, {field_name: blob_dict_attr})
             LOG.info(_LI("Successfully finished blob upload for artifact "
@@ -940,8 +944,11 @@ class BaseArtifact(base.VersionedObject):
                     "is not ready for download") % (blob_key, field_name)
             LOG.error(msg)
             raise exception.BadRequest(message=msg)
-        meta = {'checksum': blob.get('checksum'),
+        meta = {'md5': blob.get('md5'),
+                'sha1': blob.get('sha1'),
+                'sha256': blob.get('sha256'),
                 'external': blob.get('external')}
+
         if blob['external']:
             data = {'url': blob['url']}
         else:
@@ -965,17 +972,20 @@ class BaseArtifact(base.VersionedObject):
                   "passed for blob %(blob)s. Start location check for artifact"
                   ".", {'artifact': af.id, 'blob': field_name})
 
-        blob = {'url': location, 'size': None, 'checksum': None,
-                'status': glare_fields.BlobFieldType.ACTIVE, 'external': True,
-                'content_type': None}
+        blob = {'url': location, 'size': None, 'md5': None, 'sha1': None,
+                'sha256': None, 'status': glare_fields.BlobFieldType.ACTIVE,
+                'external': True, 'content_type': None}
 
-        if blob_meta.get('checksum') is None:
-            msg = (_("Incorrect blob metadata %(meta)s. Checksum is required "
+        md5 = blob_meta.pop("md5", None)
+        if md5 is None:
+            msg = (_("Incorrect blob metadata %(meta)s. MD5 must be specified "
                      "for external location in artifact blob %(field_name)."),
                    {"meta": str(blob_meta), "field_name": field_name})
             raise exception.BadRequest(msg)
         else:
-            blob['checksum'] = blob_meta['checksum']
+            blob["md5"] = md5
+            blob["sha1"] = blob_meta.pop("sha1", None)
+            blob["sha256"] = blob_meta.pop("sha256", None)
 
         setattr(af, field_name, blob)
         updated_af = cls.db_api.update(
@@ -991,19 +1001,22 @@ class BaseArtifact(base.VersionedObject):
                                blob_key, location, blob_meta):
         cls._validate_upload_allowed(context, af, field_name, blob_key)
 
-        blob = {'url': location, 'size': None, 'checksum': None,
-                'status': glare_fields.BlobFieldType.ACTIVE, 'external': True,
-                'content_type': None}
+        blob = {'url': location, 'size': None, 'md5': None, 'sha1': None,
+                'sha256': None, 'status': glare_fields.BlobFieldType.ACTIVE,
+                'external': True, 'content_type': None}
 
-        if blob_meta.get('checksum') is None:
-            msg = (_("Incorrect blob metadata %(meta)s. Checksum is required "
+        md5 = blob_meta.pop("md5", None)
+        if md5 is None:
+            msg = (_("Incorrect blob metadata %(meta)s. MD5 must be specified "
                      "for external location in artifact blob "
                      "%(field_name)[%(blob_key)s]."),
                    {"meta": str(blob_meta), "field_name": field_name,
                     "blob_key": str(blob_key)})
             raise exception.BadRequest(msg)
         else:
-            blob['checksum'] = blob_meta['checksum']
+            blob["md5"] = md5
+            blob["sha1"] = blob_meta.pop("sha1", None)
+            blob["sha256"] = blob_meta.pop("sha256", None)
 
         blob_dict_attr = getattr(af, field_name)
         blob_dict_attr[blob_key] = blob
@@ -1095,14 +1108,16 @@ class BaseArtifact(base.VersionedObject):
             'type': ['object', 'null'],
             'properties': {
                 'size': {'type': ['number', 'null']},
-                'checksum': {'type': ['string', 'null']},
+                'md5': {'type': ['string', 'null']},
+                'sha1': {'type': ['string', 'null']},
+                'sha256': {'type': ['string', 'null']},
                 'external': {'type': 'boolean'},
                 'status': {'type': 'string',
                            'enum': list(
                                glare_fields.BlobFieldType.BLOB_STATUS)},
                 'content_type': {'type': 'string'},
             },
-            'required': ['size', 'checksum', 'external', 'status',
+            'required': ['size', 'md5', 'sha1', 'sha256', 'external', 'status',
                          'content_type'],
             'additionalProperties': False
         }
