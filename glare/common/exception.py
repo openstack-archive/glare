@@ -67,7 +67,7 @@ class VersionNotFoundForAPIMethod(GlareException):
 
 
 class ApiVersionsIntersect(GlareException):
-    message = _("Version of %(name) %(min_ver) %(max_ver) intersects "
+    message = _("Version of %(name)s %(min_ver)s %(max_ver)s intersects "
                 "with another versions.")
 
 
