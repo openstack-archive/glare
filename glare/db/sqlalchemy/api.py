@@ -203,14 +203,46 @@ def get_all(context, session, filters=None, marker=None, limit=None,
     return [af.to_dict() for af in artifacts]
 
 
-def _get_all(context, session, filters=None, marker=None, limit=None,
-             sort=None, latest=False):
+def _apply_latest_filter(context, session, query,
+                         basic_conds, tag_conds, prop_conds):
+    # Subquery to fetch max version suffix for a group (name,
+    # version_prefix)
+    ver_suffix_subq = _apply_query_base_filters(
+        session.query(
+            models.Artifact.name,
+            models.Artifact.version_prefix,
+            func.max(models.Artifact.version_suffix).label(
+                'max_suffix')).group_by(
+            models.Artifact.name, models.Artifact.version_prefix),
+        context)
+    ver_suffix_subq = _apply_user_filters(
+        ver_suffix_subq, basic_conds, tag_conds, prop_conds).subquery()
+    # Subquery to fetch max version prefix for a name group
+    ver_prefix_subq = _apply_query_base_filters(
+        session.query(models.Artifact.name, func.max(
+            models.Artifact.version_prefix).label('max_prefix')).group_by(
+            models.Artifact.name),
+        context)
+    ver_prefix_subq = _apply_user_filters(
+        ver_prefix_subq, basic_conds, tag_conds, prop_conds).subquery()
+    # Combine two subqueries together joining them with Artifact table
+    query = query.join(
+        ver_prefix_subq,
+        and_(models.Artifact.name == ver_prefix_subq.c.name,
+             models.Artifact.version_prefix ==
+             ver_prefix_subq.c.max_prefix)).join(
+        ver_suffix_subq,
+        and_(models.Artifact.name == ver_suffix_subq.c.name,
+             models.Artifact.version_prefix ==
+             ver_suffix_subq.c.version_prefix,
+             models.Artifact.version_suffix ==
+             ver_suffix_subq.c.max_suffix)
+    )
 
-    filters = filters or {}
+    return query
 
-    query = _do_artifacts_query(context, session, latest)
 
-    basic_conds, tag_conds, prop_conds = _do_query_filters(filters)
+def _apply_user_filters(query, basic_conds, tag_conds, prop_conds):
 
     if basic_conds:
         for basic_condition in basic_conds:
@@ -225,6 +257,24 @@ def _get_all(context, session, filters=None, marker=None, limit=None,
         for prop_condition in prop_conds:
             query = query.join(models.ArtifactProperty, aliased=True).filter(
                 and_(*prop_condition))
+
+    return query
+
+
+def _get_all(context, session, filters=None, marker=None, limit=None,
+             sort=None, latest=False):
+
+    filters = filters or {}
+
+    query = _do_artifacts_query(context, session)
+
+    basic_conds, tag_conds, prop_conds = _do_query_filters(filters)
+
+    query = _apply_user_filters(query, basic_conds, tag_conds, prop_conds)
+
+    if latest:
+        query = _apply_latest_filter(context, session, query,
+                                     basic_conds, tag_conds, prop_conds)
 
     marker_artifact = None
     if marker is not None:
@@ -334,37 +384,6 @@ def _do_artifacts_query(context, session, latest=False):
 
     query = session.query(models.Artifact)
 
-    if latest:
-        # Subquery to fetch max version suffix for a group (name,
-        # version_prefix)
-        ver_suffix_subq = _apply_query_base_filters(
-            session.query(
-                models.Artifact.name,
-                models.Artifact.version_prefix,
-                func.max(models.Artifact.version_suffix).label(
-                    'max_suffix')).group_by(
-                models.Artifact.name, models.Artifact.version_prefix),
-            context).subquery()
-        # Subquery to fetch max version prefix for a name group
-        ver_prefix_subq = _apply_query_base_filters(
-            session.query(models.Artifact.name, func.max(
-                models.Artifact.version_prefix).label('max_prefix')).group_by(
-                models.Artifact.name),
-            context).subquery()
-        # Combine two subqueries together joining them with Artifact table
-        query = query.join(
-            ver_prefix_subq,
-            and_(models.Artifact.name == ver_prefix_subq.c.name,
-                 models.Artifact.version_prefix ==
-                 ver_prefix_subq.c.max_prefix)).join(
-            ver_suffix_subq,
-            and_(models.Artifact.name == ver_suffix_subq.c.name,
-                 models.Artifact.version_prefix ==
-                 ver_suffix_subq.c.version_prefix,
-                 models.Artifact.version_suffix ==
-                 ver_suffix_subq.c.max_suffix)
-        )
-
     query = (query.options(joinedload(models.Artifact.properties)).
              options(joinedload(models.Artifact.tags)).
              options(joinedload(models.Artifact.blobs)))
@@ -373,10 +392,6 @@ def _do_artifacts_query(context, session, latest=False):
 
 
 def _apply_query_base_filters(query, context):
-
-    # Don't show deleted artifacts
-    query = query.filter(models.Artifact.status != 'deleted')
-
     # Don't show deleted artifacts
     query = query.filter(models.Artifact.status != 'deleted')
 
