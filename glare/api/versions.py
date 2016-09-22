@@ -83,8 +83,7 @@ class Controller(object):
 
         microv_max = api_version_request.APIVersionRequest.max_version()
         microv_min = api_version_request.APIVersionRequest.min_version()
-        version_objs = [build_version_object(0.1, 0.1, 'EXPERIMENTAL', 'v0.1'),
-                        build_version_object(microv_max.get_string(),
+        version_objs = [build_version_object(microv_max.get_string(),
                                              microv_min.get_string(),
                                              'EXPERIMENTAL')]
         return_status = (http_client.MULTIPLE_CHOICES if is_multi else
