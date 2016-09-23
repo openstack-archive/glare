@@ -742,17 +742,19 @@ class TestList(TestArtifact):
                 {'name': 'group1',
                  'version': group1_versions[i],
                  'tags': ['tag%s' % i],
-                 'int1': 2048,
+                 'int1': 2048 + i,
                  'float1': 123.456,
                  'str1': 'bugaga',
+                 "string_required": "test_str",
                  'bool1': True})
             self.create_artifact(
                 {'name': 'group2',
                  'version': group2_versions[i],
                  'tags': ['tag%s' % i],
-                 'int1': 2048,
+                 'int1': 2048 + i,
                  'float1': 123.456,
                  'str1': 'bugaga',
+                 "string_required": "test_str",
                  'bool1': True})
 
         url = '/sample_artifact?version=latest&sort=name:asc'
@@ -760,6 +762,20 @@ class TestList(TestArtifact):
         self.assertEqual(2, len(res))
         self.assertEqual('20.0.0', res[0]['version'])
         self.assertEqual('1000.0.1', res[1]['version'])
+
+        self.patch('/sample_artifact/' + res[0]['id'], self.make_active)
+
+        url = '/sample_artifact?version=latest&sort=name:asc&status=drafted'
+        res = self.get(url=url, status=200)['sample_artifact']
+        self.assertEqual(2, len(res))
+        self.assertEqual('2.0.1', res[0]['version'])
+        self.assertEqual('1000.0.1', res[1]['version'])
+
+        url = '/sample_artifact?version=latest&sort=name:asc&int1=2050'
+        res = self.get(url=url, status=200)['sample_artifact']
+        self.assertEqual(2, len(res))
+        self.assertEqual('2.0.0', res[0]['version'])
+        self.assertEqual('99.0.0', res[1]['version'])
 
         url = '/sample_artifact?version=latest&name=group1'
         res = self.get(url=url, status=200)['sample_artifact']
