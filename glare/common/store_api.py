@@ -60,13 +60,15 @@ def save_blob_to_store(blob_id, blob, context, max_size,
     :param blob: blob file iterator
     :param context: user context
     :param verifier:signature verified
-    :return: tuple of values: (location_uri, size, checksum, metadata)
+    :return: tuple of values: (location_uri, size, checksums, metadata)
     """
-    (location, size, checksum, metadata) = backend.add_to_backend(
-        CONF, blob_id,
-        utils.LimitingReader(utils.CooperativeReader(blob), max_size),
-        0, store_type, context, verifier)
-    return location, size, checksum
+    data = utils.LimitingReader(utils.CooperativeReader(blob), max_size)
+    (location, size, md5checksum, metadata) = backend.add_to_backend(
+        CONF, blob_id, data, 0, store_type, context, verifier)
+    checksums = {"md5": md5checksum,
+                 "sha1": data.sha1.hexdigest(),
+                 "sha256": data.sha256.hexdigest()}
+    return location, size, checksums
 
 
 @utils.error_handler(error_map)

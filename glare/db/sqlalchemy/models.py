@@ -81,7 +81,9 @@ def _parse_blob_value(blob):
         "url": blob.url,
         "status": blob.status,
         "external": blob.external,
-        "checksum": blob.checksum,
+        "md5": blob.md5,
+        "sha1": blob.sha1,
+        "sha256": blob.sha256,
         "size": blob.size,
         "content_type": blob.content_type
     }
@@ -222,7 +224,9 @@ class ArtifactBlob(BASE, ArtifactBase):
                          nullable=False)
     name = Column(String(255), nullable=False)
     size = Column(BigInteger().with_variant(Integer, "sqlite"))
-    checksum = Column(String(32))
+    md5 = Column(String(32))
+    sha1 = Column(String(40))
+    sha256 = Column(String(64))
     external = Column(Boolean)
     url = Column(Text)
     status = Column(String(32), nullable=False)
