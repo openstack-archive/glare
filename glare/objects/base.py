@@ -1193,6 +1193,7 @@ class BaseArtifact(base.VersionedObject):
                                                       attr_name=attr_name)
         schemas = {'properties': schemas_prop,
                    'name': cls.get_type_name(),
+                   'version': cls.VERSION,
                    'title': 'Artifact type %s of version %s' %
                             (cls.get_type_name(), cls.VERSION),
                    'type': 'object',

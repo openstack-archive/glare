@@ -542,6 +542,7 @@ fixtures = {
         }),
         u'required': [u'name'],
         u'title': u'Artifact type sample_artifact of version 1.0',
+        u'version': u'1.0',
         u'type': u'object'},
     u'tosca_templates': {
         u'name': u'tosca_templates',
@@ -579,6 +580,7 @@ fixtures = {
                                            u'null']},
         }),
         u'required': [u'name'],
+        u'version': u'1.0',
         u'title': u'Artifact type tosca_templates of version 1.0',
         u'type': u'object'},
     u'murano_packages': {
@@ -684,6 +686,7 @@ fixtures = {
                           u'null']}
         }),
         u'required': [u'name'],
+        u'version': u'1.0',
         u'title': u'Artifact type murano_packages of version 1.0',
         u'type': u'object'},
     u'images': {
@@ -850,6 +853,7 @@ fixtures = {
                 u'required_on_activate': False,
                 u'type': [u'string', u'null']}}),
         u'required': [u'name'],
+        u'version': u'1.0',
         u'title': u'Artifact type images of version 1.0',
         u'type': u'object'},
     u'heat_templates': {
@@ -938,6 +942,7 @@ fixtures = {
                           u'null']},
 
         }),
+        u'version': u'1.0',
         u'required': [u'name'],
         u'title': u'Artifact type heat_templates of version 1.0',
         u'type': u'object'},
@@ -969,6 +974,7 @@ fixtures = {
 
         }),
         u'required': [u'name'],
+        u'version': u'1.0',
         u'title': u'Artifact type heat_environments of version 1.0',
         u'type': u'object'}
 }
