@@ -211,7 +211,7 @@ class MinNumberSize(SizeValidator):
         return fields.IntegerField, fields.FloatField
 
     def to_jsonschema(self):
-        return {'minumum': self.size}
+        return {'minimum': self.size}
 
 
 class Unique(Validator):
