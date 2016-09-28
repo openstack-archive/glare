@@ -2164,6 +2164,103 @@ class TestUpdate(TestArtifact):
         url = '/sample_artifact/%s' % art1['id']
         self.patch(url=url, data=data, status=400)
 
+    def test_update_remove_properties(self):
+        data = {
+            "name": "test_big_create",
+            "version": "1.0.0",
+            "bool1": True,
+            "int1": 2323,
+            "float1": 0.1,
+            "str1": "test",
+            "list_of_str": ["test1", "test2"],
+            "list_of_int": [0, 1, 2],
+            "dict_of_str": {"test": "test"},
+            "dict_of_int": {"test": 0},
+            "string_mutable": "test",
+            "string_required": "test",
+        }
+        art1 = self.create_artifact(data=data)
+
+        # remove the whole list of strings
+        data = [{'op': 'replace',
+                 'path': '/list_of_str',
+                 'value': None}]
+        url = '/sample_artifact/%s' % art1['id']
+        result = self.patch(url=url, data=data)
+        self.assertEqual([], result['list_of_str'])
+
+        # remove the whole list of ints
+        data = [{'op': 'replace',
+                 'path': '/list_of_int',
+                 'value': None}]
+        url = '/sample_artifact/%s' % art1['id']
+        result = self.patch(url=url, data=data)
+        self.assertEqual([], result['list_of_int'])
+
+        # remove the whole dict of strings
+        data = [{'op': 'replace',
+                 'path': '/dict_of_str',
+                 'value': None}]
+        url = '/sample_artifact/%s' % art1['id']
+        result = self.patch(url=url, data=data)
+        self.assertEqual({}, result['dict_of_str'])
+
+        # remove the whole dict of ints
+        data = [{'op': 'replace',
+                 'path': '/dict_of_int',
+                 'value': None}]
+        url = '/sample_artifact/%s' % art1['id']
+        result = self.patch(url=url, data=data)
+        self.assertEqual({}, result['dict_of_int'])
+
+        # remove bool1
+        data = [{'op': 'replace',
+                 'path': '/bool1',
+                 'value': None}]
+        url = '/sample_artifact/%s' % art1['id']
+        result = self.patch(url=url, data=data)
+        self.assertEqual(False, result['bool1'])
+
+        # remove int1
+        data = [{'op': 'replace',
+                 'path': '/int1',
+                 'value': None}]
+        url = '/sample_artifact/%s' % art1['id']
+        result = self.patch(url=url, data=data)
+        self.assertIsNone(result['int1'])
+
+        # remove float1
+        data = [{'op': 'replace',
+                 'path': '/float1',
+                 'value': None}]
+        url = '/sample_artifact/%s' % art1['id']
+        result = self.patch(url=url, data=data)
+        self.assertIsNone(result['float1'])
+
+        # cannot remove id
+        data = [{'op': 'replace',
+                 'path': '/id',
+                 'value': None}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=403)
+
+        # cannot remove name
+        data = [{'op': 'replace',
+                 'path': '/name',
+                 'value': None}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=409)
+
+        headers = {'Content-Type': 'application/octet-stream'}
+        self.put(url=url + '/blob', data="d" * 1000, headers=headers)
+
+        # cannot remove id
+        data = [{'op': 'replace',
+                 'path': '/blob',
+                 'value': None}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
 
 class TestDependencies(TestArtifact):
     def test_manage_dependencies(self):
