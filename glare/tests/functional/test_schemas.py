@@ -418,7 +418,7 @@ fixtures = {
                                                 u'lt',
                                                 u'lte'],
                                 u'maximum': 20,
-                                u'minumum': 10,
+                                u'minimum': 10,
                                 u'required_on_activate': False,
                                 u'type': [u'integer',
                                           u'null']},
@@ -809,7 +809,7 @@ fixtures = {
                 u'filter_ops': [u'eq',
                                 u'neq',
                                 u'in'],
-                u'minumum': 0,
+                u'minimum': 0,
                 u'required_on_activate': False,
                 u'type': [u'integer', u'null']},
             u'min_ram': {
@@ -817,7 +817,7 @@ fixtures = {
                 u'filter_ops': [u'eq',
                                 u'neq',
                                 u'in'],
-                u'minumum': 0,
+                u'minimum': 0,
                 u'required_on_activate': False,
                 u'type': [u'integer', u'null']},
             u'os_distro': {
