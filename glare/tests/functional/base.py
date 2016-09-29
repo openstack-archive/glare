@@ -27,7 +27,7 @@ def sort_results(lst, target='name'):
 class TestArtifact(functional.FunctionalTest):
     enabled_types = (u'sample_artifact', u'images', u'heat_templates',
                      u'heat_environments', u'tosca_templates',
-                     u'murano_packages')
+                     u'murano_packages', u'all')
 
     users = {
         'user1': {

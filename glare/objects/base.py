@@ -1087,23 +1087,9 @@ class BaseArtifact(base.VersionedObject):
                 res[key] = val
         return res
 
-    @staticmethod
-    def schema_type(attr):
-        if isinstance(attr, fields.IntegerField):
-            return 'integer'
-        elif isinstance(attr, fields.FloatField):
-            return 'number'
-        elif isinstance(attr, fields.BooleanField):
-            return 'boolean'
-        elif isinstance(attr, glare_fields.List):
-            return 'array'
-        elif isinstance(attr, (glare_fields.Dict, glare_fields.BlobField)):
-            return 'object'
-        return 'string'
-
     @classmethod
     def schema_attr(cls, attr, attr_name=''):
-        attr_type = cls.schema_type(attr)
+        attr_type = utils.get_schema_type(attr)
         schema = {}
 
         # generate schema for validators
@@ -1112,6 +1098,7 @@ class BaseArtifact(base.VersionedObject):
 
         schema['type'] = (attr_type
                           if not attr.nullable else [attr_type, 'null'])
+        schema['glareType'] = utils.get_glare_type(attr)
         output_blob_schema = {
             'type': ['object', 'null'],
             'properties': {
@@ -1134,7 +1121,7 @@ class BaseArtifact(base.VersionedObject):
             schema['readOnly'] = True
 
         if isinstance(attr, glare_fields.Dict):
-            element_type = (cls.schema_type(attr.element_type)
+            element_type = (utils.get_schema_type(attr.element_type)
                             if hasattr(attr, 'element_type')
                             else 'string')
 
@@ -1156,7 +1143,7 @@ class BaseArtifact(base.VersionedObject):
 
         if attr_type == 'array':
             schema['items'] = {
-                'type': (cls.schema_type(attr.element_type)
+                'type': (utils.get_schema_type(attr.element_type)
                          if hasattr(attr, 'element_type')
                          else 'string')}
 

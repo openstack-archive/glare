@@ -29,7 +29,7 @@ BlobDict = attribute.BlobDictAttribute.init
 class HeatTemplate(base.BaseArtifact):
 
     fields = {
-        'environments': Dict(glare_fields.Link,
+        'environments': Dict(glare_fields.LinkFieldType,
                              mutable=True,
                              description="References to Heat Environments "
                                          "that can be used with current "

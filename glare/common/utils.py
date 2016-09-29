@@ -40,11 +40,13 @@ from oslo_log import log as logging
 from oslo_utils import encodeutils
 from oslo_utils import excutils
 from oslo_utils import timeutils
+from oslo_versionedobjects import fields
 import six
 from webob import exc
 
 from glare.common import exception
 from glare.i18n import _, _LE, _LW
+from glare.objects.meta import fields as glare_fields
 
 CONF = cfg.CONF
 
@@ -551,6 +553,54 @@ class error_handler(object):
                     else:
                         raise
         return new_function
+
+
+def get_schema_type(attr):
+    if isinstance(attr, fields.IntegerField):
+        return 'integer'
+    elif isinstance(attr, fields.FloatField):
+        return 'number'
+    elif isinstance(attr, fields.BooleanField):
+        return 'boolean'
+    elif isinstance(attr, glare_fields.List):
+        return 'array'
+    elif isinstance(attr, (glare_fields.Dict, glare_fields.BlobField)):
+        return 'object'
+    return 'string'
+
+
+def get_glare_type(attr):
+    if isinstance(attr, fields.IntegerField):
+        return 'Integer'
+    elif isinstance(attr, fields.FloatField):
+        return 'Float'
+    elif isinstance(attr, fields.FlexibleBooleanField):
+        return 'Boolean'
+    elif isinstance(attr, fields.DateTimeField):
+        return 'DateTime'
+    elif isinstance(attr, glare_fields.BlobField):
+        return 'Blob'
+    elif isinstance(attr, glare_fields.Link):
+        return 'Link'
+    elif isinstance(attr, glare_fields.List):
+        return _get_element_type(attr.element_type) + 'List'
+    elif isinstance(attr, glare_fields.Dict):
+        return _get_element_type(attr.element_type) + 'Dict'
+    return 'String'
+
+
+def _get_element_type(element_type):
+    if element_type is fields.FlexibleBooleanField:
+        return 'Boolean'
+    elif element_type is fields.Integer:
+        return 'Integer'
+    elif element_type is fields.Float:
+        return 'Float'
+    elif element_type is glare_fields.BlobFieldType:
+        return 'Blob'
+    elif element_type is glare_fields.LinkFieldType:
+        return 'Link'
+    return 'String'
 
 
 class DictDiffer(object):
