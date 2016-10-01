@@ -113,7 +113,7 @@ class Engine(object):
 
     @classmethod
     def show_type_schema(cls, context, type_name):
-        policy.authorize("artifact:type_get", {}, context)
+        policy.authorize("artifact:type_list", {}, context)
         schemas = cls._get_schemas(cls.registry)
         if type_name not in schemas:
             msg = _("Artifact type %s does not exist") % type_name

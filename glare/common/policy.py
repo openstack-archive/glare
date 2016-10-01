@@ -33,8 +33,6 @@ artifact_policy_rules = [
                        'is_admin:True or project_id:%(owner)s'),
     policy.RuleDefault("artifact:type_list", "",
                        "Policy to request list of artifact types"),
-    policy.RuleDefault("artifact:type_get", "",
-                       "Policy to request artifact type definition"),
     policy.RuleDefault("artifact:create", "", "Policy to create artifact."),
     policy.RuleDefault("artifact:update_public",
                        "'public':%(visibility)s and rule:context_is_admin "
