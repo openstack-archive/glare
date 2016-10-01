@@ -15,7 +15,6 @@
 from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging
-from oslo_messaging import serializer
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
@@ -31,19 +30,8 @@ def get_transport():
     return oslo_messaging.get_notification_transport(CONF)
 
 
-class RequestSerializer(serializer.Serializer):
-
-    def serialize_entity(self, context, entity):
-        return entity.to_notification()
-
-    def deserialize_entity(self, context, entity):
-        return entity
-
-    def serialize_context(self, context):
-        return context.to_dict()
-
-    def deserialize_context(self, context):
-        return context.from_dict(context)
+def set_defaults(control_exchange='glare'):
+    oslo_messaging.set_transport_defaults(control_exchange)
 
 
 class Notifier(object):
@@ -59,8 +47,7 @@ class Notifier(object):
         if cls.GLARE_NOTIFIER is None:
             cls.GLARE_NOTIFIER = oslo_messaging.Notifier(
                 get_transport(),
-                publisher_id=CONF.glare_publisher_id,
-                serializer=RequestSerializer())
+                publisher_id=CONF.glare_publisher_id)
         return cls.GLARE_NOTIFIER
 
     @classmethod
@@ -74,7 +61,8 @@ class Notifier(object):
         """
         af_notifier = cls._get_notifier()
         method = getattr(af_notifier, level.lower())
-        method(context, "%s.%s" % (cls.SERVICE_NAME, event_type), body)
+        method({}, "%s.%s" % (cls.SERVICE_NAME, event_type),
+               body.to_notification())
         LOG.debug('Notification event %(event)s send successfully for '
                   'request %(request)s', {'event': event_type,
                                           'request': context.request_id})

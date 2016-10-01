@@ -70,6 +70,7 @@ def main():
         config.parse_args()
         wsgi.set_eventlet_hub()
         logging.setup(CONF, 'glare')
+        notification.set_defaults()
 
         if cfg.CONF.profiler.enabled:
             _notifier = osprofiler.notifier.create(

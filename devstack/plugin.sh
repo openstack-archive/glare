@@ -72,6 +72,9 @@ function configure_glare {
     iniset $GLARE_CONF_FILE oslo_messaging_rabbit rabbit_userid $RABBIT_USERID
     iniset $GLARE_CONF_FILE oslo_messaging_rabbit rabbit_password $RABBIT_PASSWORD
 
+    # Enable notifications support
+    iniset $GLARE_CONF_FILE oslo_messaging_notifications driver messaging
+
     # Configure the database.
     iniset $GLARE_CONF_FILE database connection `database_connection_url glare`
     iniset $GLARE_CONF_FILE database max_overflow -1
