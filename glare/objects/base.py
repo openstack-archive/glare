@@ -1200,3 +1200,57 @@ class BaseArtifact(base.VersionedObject):
                    'required': ['name']}
 
         return schemas
+
+
+class ReadOnlyMixin(object):
+    """Mixin that disables all modifying actions on artifacts."""
+
+    @classmethod
+    def create(cls, context, values):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def update(cls, context, af, values):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def get_action_for_updates(cls, context, artifact, updates, registry):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def delete(cls, context, af):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def activate(cls, context, af, values):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def reactivate(cls, context, af, values):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def deactivate(cls, context, af, values):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def publish(cls, context, af, values):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def upload_blob(cls, context, af, field_name, fd, content_type):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def upload_blob_dict(cls, context, af, field_name, blob_key, fd,
+                         content_type):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def add_blob_location(cls, context, af, field_name, location, blob_meta):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def add_blob_dict_location(cls, context, af, field_name,
+                               blob_key, location, blob_meta):
+        raise exception.Forbidden("This type is read only.")
