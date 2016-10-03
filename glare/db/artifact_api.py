@@ -57,7 +57,8 @@ class ArtifactAPI(base_api.BaseDBAPI):
 
     def list(self, context, filters, marker, limit, sort, latest):
         session = api.get_session()
-        filters.append(('type_name', None, 'eq', None, self.type))
+        if self.type != 'all':
+            filters.append(('type_name', None, 'eq', None, self.type))
         return api.get_all(context=context, session=session, filters=filters,
                            marker=marker, limit=limit, sort=sort,
                            latest=latest)

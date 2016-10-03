@@ -15,11 +15,8 @@
 
 import jsonschema
 
-from oslo_serialization import jsonutils
-import requests
-
 from glare.common import utils
-from glare.tests import functional
+from glare.tests.functional import base
 
 fixture_base_props = {
     u'activated_at': {
@@ -230,10 +227,6 @@ fixture_base_props = {
                     u'sortable': True,
                     u'type': u'string'}
 }
-
-enabled_artifact_types = (
-    u'sample_artifact', u'images', u'heat_templates',
-    u'heat_environments', u'tosca_templates', u'murano_packages')
 
 
 def generate_type_props(props):
@@ -976,60 +969,37 @@ fixtures = {
         u'required': [u'name'],
         u'version': u'1.0',
         u'title': u'Artifact type heat_environments of version 1.0',
+        u'type': u'object'},
+    u'all': {
+        u'name': u'all',
+        u'properties': generate_type_props({
+            u'type_name': {u'description': u'Name of artifact type.',
+                           u'filter_ops': [u'eq', u'neq', u'in'],
+                           u'maxLength': 255,
+                           u'type': [u'string', u'null']},
+
+        }),
+        u'required': [u'name'],
+        u'version': u'1.0',
+        u'title': u'Artifact type all of version 1.0',
         u'type': u'object'}
 }
 
 
-class TestSchemas(functional.FunctionalTest):
-
-    def setUp(self):
-        super(TestSchemas, self).setUp()
-        self.glare_server.deployment_flavor = 'noauth'
-
-        self.glare_server.enabled_artifact_types = ','.join(
-            enabled_artifact_types)
-        self.glare_server.custom_artifact_types_modules = (
-            'glare.tests.functional.sample_artifact')
-        self.start_servers(**self.__dict__.copy())
-
-    def tearDown(self):
-        self.stop_servers()
-        self._reset_database(self.glare_server.sql_connection)
-        super(TestSchemas, self).tearDown()
-
-    def _url(self, path):
-        return 'http://127.0.0.1:%d%s' % (self.glare_port, path)
-
-    def _check_artifact_method(self, url, status=200):
-        headers = {
-            'X-Identity-Status': 'Confirmed',
-        }
-        response = requests.get(self._url(url), headers=headers)
-        self.assertEqual(status, response.status_code, response.text)
-        if status >= 400:
-            return response.text
-        if ("application/json" in response.headers["content-type"] or
-                "application/schema+json" in response.headers["content-type"]):
-            return jsonutils.loads(response.text)
-        return response.text
-
-    def get(self, url, status=200, headers=None):
-        return self._check_artifact_method(url, status=status)
-
+class TestSchemas(base.TestArtifact):
     def test_schemas(self):
-
-        # Get list schemas of artifacts
-        result = self.get(url='/schemas')
-        self.assertEqual(fixtures, result['schemas'], utils.DictDiffer(
-            result['schemas'], fixtures))
-
         # Get schemas for specific artifact type
-        for at in enabled_artifact_types:
+        for at in self.enabled_types:
             result = self.get(url='/schemas/%s' % at)
             self.assertEqual(fixtures[at], result['schemas'][at],
                              utils.DictDiffer(
                                  result['schemas'][at]['properties'],
                                  fixtures[at]['properties']))
+
+        # Get list schemas of artifacts
+        result = self.get(url='/schemas')
+        self.assertEqual(fixtures, result['schemas'], utils.DictDiffer(
+            result['schemas'], fixtures))
 
         # Get schema of sample_artifact
         result = self.get(url='/schemas/sample_artifact')

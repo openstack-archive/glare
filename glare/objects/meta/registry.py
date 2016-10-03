@@ -103,7 +103,7 @@ class ArtifactRegistry(vo_base.VersionedObjectRegistry):
         supported_types = []
         for module in modules:
             supported_types.extend(get_subclasses(module, base.BaseArtifact))
-        for type_name in CONF.glare.enabled_artifact_types:
+        for type_name in set(CONF.glare.enabled_artifact_types + ['all']):
             for af_type in supported_types:
                 if type_name == af_type.get_type_name():
                     cls._validate_artifact_type(af_type)

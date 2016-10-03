@@ -17,168 +17,15 @@ import hashlib
 import uuid
 
 from oslo_serialization import jsonutils
-import requests
 
-from glare.tests import functional
+from glare.tests.functional import base
 
 
 def sort_results(lst, target='name'):
     return sorted(lst, key=lambda x: x[target])
 
 
-class TestArtifact(functional.FunctionalTest):
-
-    users = {
-        'user1': {
-            'id': str(uuid.uuid4()),
-            'tenant_id': str(uuid.uuid4()),
-            'token': str(uuid.uuid4()),
-            'role': 'member'
-        },
-        'user2': {
-            'id': str(uuid.uuid4()),
-            'tenant_id': str(uuid.uuid4()),
-            'token': str(uuid.uuid4()),
-            'role': 'member'
-        },
-        'admin': {
-            'id': str(uuid.uuid4()),
-            'tenant_id': str(uuid.uuid4()),
-            'token': str(uuid.uuid4()),
-            'role': 'admin'
-        },
-        'anonymous': {
-            'id': None,
-            'tenant_id': None,
-            'token': None,
-            'role': None
-        }
-    }
-
-    def setUp(self):
-        super(TestArtifact, self).setUp()
-        self.set_user('user1')
-        self.glare_server.deployment_flavor = 'noauth'
-        self.glare_server.enabled_artifact_types = 'sample_artifact'
-        self.glare_server.custom_artifact_types_modules = (
-            'glare.tests.functional.sample_artifact')
-        self.start_servers(**self.__dict__.copy())
-
-    def tearDown(self):
-        self.stop_servers()
-        self._reset_database(self.glare_server.sql_connection)
-        super(TestArtifact, self).tearDown()
-
-    def _url(self, path):
-        if 'schemas' in path:
-            return 'http://127.0.0.1:%d%s' % (self.glare_port, path)
-        else:
-            return 'http://127.0.0.1:%d/artifacts%s' % (self.glare_port, path)
-
-    def set_user(self, username):
-        if username not in self.users:
-            raise KeyError
-        self.current_user = username
-
-    def _headers(self, custom_headers=None):
-        base_headers = {
-            'X-Identity-Status': 'Confirmed',
-            'X-Auth-Token': self.users[self.current_user]['token'],
-            'X-User-Id': self.users[self.current_user]['id'],
-            'X-Tenant-Id': self.users[self.current_user]['tenant_id'],
-            'X-Project-Id': self.users[self.current_user]['tenant_id'],
-            'X-Roles': self.users[self.current_user]['role'],
-        }
-        base_headers.update(custom_headers or {})
-        return base_headers
-
-    def create_artifact(self, data=None, status=201):
-        return self.post('/sample_artifact', data or {}, status=status)
-
-    def _check_artifact_method(self, method, url, data=None, status=200,
-                               headers=None):
-        if not headers:
-            headers = self._headers()
-        else:
-            headers = self._headers(headers)
-        headers.setdefault("Content-Type", "application/json")
-        if 'application/json' in headers['Content-Type'] and data is not None:
-            data = jsonutils.dumps(data)
-        response = getattr(requests, method)(self._url(url), headers=headers,
-                                             data=data)
-        self.assertEqual(status, response.status_code, response.text)
-        if status >= 400:
-            return response.text
-        if ("application/json" in response.headers["content-type"] or
-                "application/schema+json" in response.headers["content-type"]):
-            return jsonutils.loads(response.text)
-        return response.text
-
-    def post(self, url, data=None, status=201, headers=None):
-        return self._check_artifact_method("post", url, data, status=status,
-                                           headers=headers)
-
-    def get(self, url, status=200, headers=None):
-        return self._check_artifact_method("get", url, status=status,
-                                           headers=headers)
-
-    def delete(self, url, status=204):
-        response = requests.delete(self._url(url), headers=self._headers())
-        self.assertEqual(status, response.status_code, response.text)
-        return response.text
-
-    def patch(self, url, data, status=200, headers=None):
-        if headers is None:
-            headers = {}
-        if 'Content-Type' not in headers:
-            headers.update({'Content-Type': 'application/json-patch+json'})
-        return self._check_artifact_method("patch", url, data, status=status,
-                                           headers=headers)
-
-    def put(self, url, data=None, status=200, headers=None):
-        return self._check_artifact_method("put", url, data, status=status,
-                                           headers=headers)
-
-    # the test cases below are written in accordance with use cases
-    # each test tries to cover separate use case in Glare
-    # all code inside each test tries to cover all operators and data
-    # involved in use case execution
-    # each tests represents part of artifact lifecycle
-    # so we can easily define where is the failed code
-
-    make_active = [{"op": "replace", "path": "/status", "value": "active"}]
-
-    def activate_with_admin(self, artifact_id, status=200):
-        cur_user = self.current_user
-        self.set_user('admin')
-        url = '/sample_artifact/%s' % artifact_id
-        af = self.patch(url=url, data=self.make_active, status=status)
-        self.set_user(cur_user)
-        return af
-
-    make_deactivated = [{"op": "replace", "path": "/status",
-                         "value": "deactivated"}]
-
-    def deactivate_with_admin(self, artifact_id, status=200):
-        cur_user = self.current_user
-        self.set_user('admin')
-        url = '/sample_artifact/%s' % artifact_id
-        af = self.patch(url=url, data=self.make_deactivated, status=status)
-        self.set_user(cur_user)
-        return af
-
-    make_public = [{"op": "replace", "path": "/visibility", "value": "public"}]
-
-    def publish_with_admin(self, artifact_id, status=200):
-        cur_user = self.current_user
-        self.set_user('admin')
-        url = '/sample_artifact/%s' % artifact_id
-        af = self.patch(url=url, data=self.make_public, status=status)
-        self.set_user(cur_user)
-        return af
-
-
-class TestList(TestArtifact):
+class TestList(base.TestArtifact):
     def test_list_marker_and_limit(self):
         # Create artifacts
         art_list = [self.create_artifact({'name': 'name%s' % i,
@@ -806,7 +653,7 @@ class TestList(TestArtifact):
         self.assertEqual(response_url, result['first'])
 
 
-class TestBlobs(TestArtifact):
+class TestBlobs(base.TestArtifact):
     def test_blob_dicts(self):
         # Getting empty artifact list
         url = '/sample_artifact'
@@ -1005,7 +852,7 @@ class TestBlobs(TestArtifact):
                  status=400, headers=headers)
 
 
-class TestTags(TestArtifact):
+class TestTags(base.TestArtifact):
     def test_tags(self):
         # Create artifact
         art = self.create_artifact({'name': 'name5',
@@ -1064,7 +911,7 @@ class TestTags(TestArtifact):
         self.patch(url=url, data=patch, status=400)
 
 
-class TestArtifactOps(TestArtifact):
+class TestArtifactOps(base.TestArtifact):
     def test_create(self):
         """All tests related to artifact creation"""
         # check that cannot create artifact for non-existent artifact type
@@ -1346,7 +1193,7 @@ class TestArtifactOps(TestArtifact):
         self.assertEqual("active", deactive_art["status"])
 
 
-class TestUpdate(TestArtifact):
+class TestUpdate(base.TestArtifact):
     def test_update_artifact_before_activate(self):
         """Test updates for artifact before activation"""
         # create artifact to update
@@ -2262,7 +2109,7 @@ class TestUpdate(TestArtifact):
         self.patch(url=url, data=data, status=400)
 
 
-class TestDependencies(TestArtifact):
+class TestDependencies(base.TestArtifact):
     def test_manage_dependencies(self):
         some_af = self.create_artifact(data={"name": "test_af"})
         dep_af = self.create_artifact(data={"name": "test_dep_af"})
