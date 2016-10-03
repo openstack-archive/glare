@@ -50,7 +50,7 @@ class MuranoPackage(base.BaseArtifact):
                                               "the package."),
         'inherits': Dict(fields.String),
         'keywords': List(fields.String, mutable=True),
-        'dependencies': List(glare_fields.Dependency,
+        'dependencies': List(glare_fields.Link,
                              required_on_activate=False,
                              description="List of package dependencies for "
                                          "this package."),

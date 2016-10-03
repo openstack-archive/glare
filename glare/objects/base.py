@@ -434,24 +434,24 @@ class BaseArtifact(base.VersionedObject):
                 else:
                     action = cls.activate
 
-        # check updates for dependencies and validate them
+        # check updates for links and validate them
         try:
             for key, value in six.iteritems(updates):
-                if cls.fields.get(key) is glare_fields.Dependency \
+                if cls.fields.get(key) is glare_fields.Link \
                         and value is not None:
                     # check format
-                    glare_fields.DependencyFieldType.coerce(None, key, value)
+                    glare_fields.LinkFieldType.coerce(None, key, value)
                     # check containment
-                    if glare_fields.DependencyFieldType.is_external(value):
-                        # validate external dependency
-                        cls._validate_external_dependency(value)
+                    if glare_fields.LinkFieldType.is_external(value):
+                        # validate external link
+                        cls._validate_external_link(value)
                     else:
-                        type_name = (glare_fields.DependencyFieldType.
+                        type_name = (glare_fields.LinkFieldType.
                                      get_type_name(value))
                         af_type = registry.get_artifact_type(type_name)
-                        cls._validate_soft_dependency(context, value, af_type)
+                        cls._validate_soft_link(context, value, af_type)
         except Exception as e:
-            msg = (_("Bad dependency in artifact %(af)s: %(msg)s")
+            msg = (_("Bad link in artifact %(af)s: %(msg)s")
                    % {"af": artifact.id, "msg": str(e)})
             raise exception.BadRequest(msg)
 
@@ -461,12 +461,12 @@ class BaseArtifact(base.VersionedObject):
         return action
 
     @classmethod
-    def _validate_external_dependency(cls, link):
+    def _validate_external_link(cls, link):
         with urlrequest.urlopen(link) as data:
             data.read(1)
 
     @classmethod
-    def _validate_soft_dependency(cls, context, link, af_type):
+    def _validate_soft_link(cls, context, link, af_type):
         af_id = link.split('/')[3]
         af_type.get(context, af_id)
 

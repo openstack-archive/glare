@@ -112,8 +112,8 @@ class BlobField(fields.AutoTypedField):
     AUTO_TYPE = BlobFieldType()
 
 
-class DependencyFieldType(fields.FieldType):
-    """Dependency field specifies Artifact dependency on other artifact or some
+class LinkFieldType(fields.FieldType):
+    """Link field specifies Artifact dependency on other artifact or some
     external resource. From technical perspective it is just soft link to Glare
     Artifact or https/http resource. So Artifact users can download the
     referenced file by that link.
@@ -134,7 +134,7 @@ class DependencyFieldType(fields.FieldType):
 
     @staticmethod
     def coerce(obj, attr, value):
-        # to remove the existing dependency user sets its value to None,
+        # to remove the existing link user sets its value to None,
         # we have to consider this case.
         if value is None:
             return value
@@ -144,7 +144,7 @@ class DependencyFieldType(fields.FieldType):
                                'not a %(type)s') %
                              {'attr': attr, 'type': type(value).__name__})
         # determine if link is external or internal
-        external = DependencyFieldType.is_external(value)
+        external = LinkFieldType.is_external(value)
         # validate link itself
         if external:
             link = urlparse.urlparse(value)
@@ -155,7 +155,7 @@ class DependencyFieldType(fields.FieldType):
             result = value.split('/')
             if len(result) != 4 or result[1] != 'artifacts':
                 raise ValueError(
-                    _('Dependency link %(link)s is not valid in field '
+                    _('Link %(link)s is not valid in field '
                       '%(attr)s. The link must be either valid url or '
                       'reference to artifact. Example: '
                       '/artifacts/<artifact_type>/<artifact_id>'
@@ -163,8 +163,8 @@ class DependencyFieldType(fields.FieldType):
         return value
 
 
-class Dependency(fields.AutoTypedField):
-    AUTO_TYPE = DependencyFieldType()
+class Link(fields.AutoTypedField):
+    AUTO_TYPE = LinkFieldType()
 
 
 class List(fields.AutoTypedField):

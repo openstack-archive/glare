@@ -983,7 +983,7 @@ class TestArtifactOps(base.TestArtifact):
         # (except blobs and system)
         expected = {
             "name": "test_big_create",
-            "dependency1": "/artifacts/sample_artifact/%s" % some_af['id'],
+            "link1": "/artifacts/sample_artifact/%s" % some_af['id'],
             "bool1": True,
             "int1": 2323,
             "float1": 0.1,
@@ -1099,14 +1099,14 @@ class TestArtifactOps(base.TestArtifact):
         url = '/sample_artifact/111111'
         self.delete(url=url, status=404)
 
-        # check that we can delete artifact with soft dependency
+        # check that we can delete artifact with soft link
         art = self.create_artifact(
             data={"name": "test_af", "string_required": "test_str",
                   "version": "0.0.1"})
         artd = self.create_artifact(
             data={"name": "test_afd", "string_required": "test_str",
                   "version": "0.0.1",
-                  "dependency1": '/artifacts/sample_artifact/%s' % art['id']})
+                  "link1": '/artifacts/sample_artifact/%s' % art['id']})
 
         url = '/sample_artifact/%s' % artd['id']
         self.delete(url=url, status=204)
@@ -2109,23 +2109,23 @@ class TestUpdate(base.TestArtifact):
         self.patch(url=url, data=data, status=400)
 
 
-class TestDependencies(base.TestArtifact):
-    def test_manage_dependencies(self):
+class TestLinks(base.TestArtifact):
+    def test_manage_links(self):
         some_af = self.create_artifact(data={"name": "test_af"})
         dep_af = self.create_artifact(data={"name": "test_dep_af"})
         dep_url = "/artifacts/sample_artifact/%s" % some_af['id']
 
-        # set valid dependency
-        patch = [{"op": "replace", "path": "/dependency1", "value": dep_url}]
+        # set valid link
+        patch = [{"op": "replace", "path": "/link1", "value": dep_url}]
         url = '/sample_artifact/%s' % dep_af['id']
         af = self.patch(url=url, data=patch)
-        self.assertEqual(af['dependency1'], dep_url)
+        self.assertEqual(af['link1'], dep_url)
 
-        # remove dependency from artifact
-        patch = [{"op": "replace", "path": "/dependency1", "value": None}]
+        # remove link from artifact
+        patch = [{"op": "replace", "path": "/link1", "value": None}]
         af = self.patch(url=url, data=patch)
-        self.assertIsNone(af['dependency1'])
+        self.assertIsNone(af['link1'])
 
-        # try to set invalid dependency
-        patch = [{"op": "replace", "path": "/dependency1", "value": "Invalid"}]
+        # try to set invalid link
+        patch = [{"op": "replace", "path": "/link1", "value": "Invalid"}]
         self.patch(url=url, data=patch, status=400)
