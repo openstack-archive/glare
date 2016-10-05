@@ -132,6 +132,9 @@ class GlareMigrationsCheckers(object):
         self.assertRaises(sqlalchemy.exc.NoSuchTableError,
                           db_utils.get_table, engine,
                           'glare_artifact_blobs')
+        self.assertRaises(sqlalchemy.exc.NoSuchTableError,
+                          db_utils.get_table, engine,
+                          'glare_artifact_locks')
 
     def _check_001(self, engine, data):
         artifacts_indices = [('ix_glare_artifact_name_and_version',
@@ -204,6 +207,12 @@ class GlareMigrationsCheckers(object):
 
         locks_indices = []
         locks_columns = ['id']
+        self.assert_table(engine, 'glare_artifact_locks', locks_indices,
+                          locks_columns)
+
+    def _check_002(self, engine, data):
+        locks_indices = []
+        locks_columns = ['id', 'acquired_at']
         self.assert_table(engine, 'glare_artifact_locks', locks_indices,
                           locks_columns)
 
