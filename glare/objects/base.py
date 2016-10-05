@@ -18,7 +18,6 @@ import uuid
 
 from oslo_config import cfg
 from oslo_log import log as logging
-from oslo_utils import excutils
 from oslo_utils import timeutils
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
@@ -625,6 +624,11 @@ class BaseArtifact(base.VersionedObject):
                                 'for artifact %(id)s') % {'name': name,
                                                           'id': af.id}
                         raise exception.Conflict(msg)
+                    elif b['status'] == glare_fields.\
+                            BlobFieldType.SAVING:
+                        msg = _('Blob %(name)s is saving for artifact %(id)s'
+                                ) % {'name': name, 'id': af.id}
+                        raise exception.Conflict(msg)
                     else:
                         b['status'] = glare_fields.BlobFieldType.PENDING_DELETE
                         blobs[name] = b
@@ -637,6 +641,11 @@ class BaseArtifact(base.VersionedObject):
                             msg = _('Blob %(name)s is already deleting '
                                     'for artifact %(id)s') % {'name': name,
                                                               'id': af.id}
+                            raise exception.Conflict(msg)
+                        elif b['status'] == glare_fields. \
+                                BlobFieldType.SAVING:
+                            msg = _('Blob %(name)s is saving for artifact '
+                                    '%(id)s') % {'name': name, 'id': af.id}
                             raise exception.Conflict(msg)
                         else:
                             b['status'] = glare_fields.\
@@ -773,12 +782,17 @@ class BaseArtifact(base.VersionedObject):
             return cls._init_artifact(context, af)
 
     @classmethod
-    def _get_max_blob_size(cls, field_name):
+    def get_max_blob_size(cls, field_name):
         return getattr(cls.fields[field_name], 'max_blob_size',
                        attribute.BlobAttribute.DEFAULT_MAX_BLOB_SIZE)
 
     @classmethod
-    def _validate_upload_allowed(cls, context, af, field_name, blob_key=None):
+    def validate_upload_allowed(cls, context, af, field_name, blob_key=None):
+        """Validate if given blob is ready for uploading."""
+
+        blob_name = "%s[%s]" % (field_name, blob_key)\
+            if blob_key else field_name
+
         if field_name not in cls.fields:
             msg = _("%s property does not exist") % field_name
             raise exception.BadRequest(msg)
@@ -800,244 +814,22 @@ class BaseArtifact(base.VersionedObject):
                 msg = _("Cannot re-upload blob %(blob)s for artifact "
                         "%(af)s") % {'blob': field_name, 'af': af.id}
                 raise exception.Conflict(message=msg)
-
-    @classmethod
-    def upload_blob(cls, context, af, field_name, fd, content_type):
-        """Upload binary object as artifact property
-
-        :param context: user context
-        :param af: current Artifact definition
-        :param field_name: name of blob field
-        :param fd: file descriptor that Glare uses to upload the file
-        :param content_type: data content-type
-        :return: updated Artifact definition in Glare
-        """
-        fd = cls.validate_upload(context, af, field_name, fd)
-        cls._validate_upload_allowed(context, af, field_name)
-
         LOG.debug("Parameters validation for artifact %(artifact)s blob "
-                  "upload passed for blob %(blob)s. "
+                  "upload passed for blob %(blob_name)s. "
                   "Start blob uploading to backend.",
-                  {'artifact': af.id, 'blob': field_name})
-        blob = {'url': None, 'size': None, 'md5': None, 'sha1': None,
-                'sha256': None, 'status': glare_fields.BlobFieldType.SAVING,
-                'external': False, 'content_type': content_type}
-        setattr(af, field_name, blob)
-        cls.db_api.update(
-            context, af.id, {field_name: getattr(af, field_name)})
-        blob_id = getattr(af, field_name)['id']
-
-        try:
-            location_uri, size, checksums = store_api.save_blob_to_store(
-                blob_id, fd, context, cls._get_max_blob_size(field_name))
-            blob.update({'url': location_uri,
-                         'status': glare_fields.BlobFieldType.ACTIVE,
-                         'size': size})
-            blob.update(checksums)
-            setattr(af, field_name, blob)
-            af_upd = cls.db_api.update(
-                context, af.id, {field_name: getattr(af, field_name)})
-            LOG.info(_LI("Successfully finished blob upload for artifact "
-                         "%(artifact)s blob field %(blob)s."),
-                     {'artifact': af.id, 'blob': field_name})
-            return cls._init_artifact(context, af_upd)
-        except Exception:
-            with excutils.save_and_reraise_exception(logger=LOG):
-                cls.db_api.update(context, af.id, {field_name: None})
+                  {'artifact': af.id, 'blob_name': blob_name})
 
     @classmethod
-    def download_blob(cls, context, af, field_name):
-        """Download binary data from Glare Artifact.
-
-        :param context: user context
-        :param af: Artifact definition in Glare repo
-        :param field_name: name of blob field
-        :return: file iterator for requested file
-        """
-        if not cls.is_blob(field_name):
-            msg = _("%s is not a blob") % field_name
-            raise exception.BadRequest(msg)
-        if af.status == cls.STATUS.DEACTIVATED and not context.is_admin:
-            msg = _("Only admin is allowed to download artifact data "
-                    "when it's deactivated")
-            raise exception.Forbidden(message=msg)
-        blob = getattr(af, field_name)
-        if blob is None or blob['status'] != glare_fields.BlobFieldType.ACTIVE:
-            msg = _("%s is not ready for download") % field_name
-            raise exception.BadRequest(message=msg)
-        meta = {'md5': blob.get('md5'),
-                'sha1': blob.get('sha1'),
-                'sha256': blob.get('sha256'),
-                'external': blob.get('external')}
-        if blob['external']:
-            data = {'url': blob['url']}
-        else:
-            data = store_api.load_from_store(uri=blob['url'], context=context)
-            meta['size'] = blob.get('size')
-            meta['content_type'] = blob.get('content_type')
-        return data, meta
-
-    @classmethod
-    def upload_blob_dict(cls, context, af, field_name, blob_key, fd,
-                         content_type):
+    def update_blob(cls, context, af_id, values):
         """Upload binary object as artifact property
 
         :param context: user context
-        :param af: current Artifact definition
-        :param blob_key: name of blob key in dict
-        :param fd: file descriptor that Glare uses to upload the file
-        :param field_name: name of blob dict field
-        :param content_type: data content-type
-        :return: updated Artifact definition in Glare
+        :param af_id: id of modified artifact
+        :param values: updated blob values
+        :return updated Artifact definition in Glare
         """
-        fd = cls.validate_upload(context, af, field_name, fd)
-        cls._validate_upload_allowed(context, af, field_name, blob_key)
-
-        LOG.debug("Parameters validation for artifact %(artifact)s blob "
-                  "upload passed for blob dict  %(blob)s with key %(key)s. "
-                  "Start blob uploading to backend.",
-                  {'artifact': af.id, 'blob': field_name, 'key': blob_key})
-        blob = {'url': None, 'size': None, 'md5': None, 'sha1': None,
-                'sha256': None, 'status': glare_fields.BlobFieldType.SAVING,
-                'external': False, 'content_type': content_type}
-        blob_dict_attr = getattr(af, field_name)
-        blob_dict_attr[blob_key] = blob
-        cls.db_api.update(
-            context, af.id, {field_name: blob_dict_attr})
-        blob_id = getattr(af, field_name)[blob_key]['id']
-        try:
-            location_uri, size, checksums = store_api.save_blob_to_store(
-                blob_id, fd, context, cls._get_max_blob_size(field_name))
-            blob.update({'url': location_uri,
-                         'status': glare_fields.BlobFieldType.ACTIVE,
-                         'size': size})
-            blob.update(checksums)
-            af_values = cls.db_api.update(
-                context, af.id, {field_name: blob_dict_attr})
-            LOG.info(_LI("Successfully finished blob upload for artifact "
-                         "%(artifact)s blob dict field %(blob)s with key."),
-                     {'artifact': af.id, 'blob': field_name, 'key': blob_key})
-            return cls._init_artifact(context, af_values)
-        except Exception:
-            with excutils.save_and_reraise_exception(logger=LOG):
-                del blob_dict_attr[blob_key]
-                cls.db_api.update(context, af.id, {field_name: blob_dict_attr})
-
-    @classmethod
-    def download_blob_dict(cls, context, af, field_name, blob_key):
-        """Download binary data from Glare Artifact.
-
-        :param context: user context
-        :param af: Artifact definition in Glare repo
-        :param blob_key: name of blob key in dict
-        :param field_name: name of blob dict field
-        :return: file iterator for requested file
-        """
-        if not cls.is_blob_dict(field_name):
-            msg = _("%s is not a blob dict") % field_name
-            raise exception.BadRequest(msg)
-
-        if af.status == cls.STATUS.DEACTIVATED and not context.is_admin:
-            msg = _("Only admin is allowed to download artifact data "
-                    "when it's deactivated")
-            raise exception.Forbidden(message=msg)
-        try:
-            blob = getattr(af, field_name)[blob_key]
-        except KeyError:
-            msg = _("Blob with name %(blob_name)s is not found in blob "
-                    "dictionary %(blob_dict)s") % (blob_key, field_name)
-            raise exception.NotFound(message=msg)
-        if blob is None or blob['status'] != glare_fields.BlobFieldType.ACTIVE:
-            msg = _("Blob %(blob_name)s from blob dictionary %(blob_dict)s "
-                    "is not ready for download") % (blob_key, field_name)
-            LOG.error(msg)
-            raise exception.BadRequest(message=msg)
-        meta = {'md5': blob.get('md5'),
-                'sha1': blob.get('sha1'),
-                'sha256': blob.get('sha256'),
-                'external': blob.get('external')}
-
-        if blob['external']:
-            data = {'url': blob['url']}
-        else:
-            data = store_api.load_from_store(uri=blob['url'], context=context)
-            meta['size'] = blob.get('size')
-            meta['content_type'] = blob.get('content_type')
-        return data, meta
-
-    @classmethod
-    def add_blob_location(cls, context, af, field_name, location, blob_meta):
-        """Upload binary object as artifact property
-
-        :param context: user context
-        :param af: current Artifact definition
-        :param field_name: name of blob field
-        :param location: blob url
-        :return: updated Artifact definition in Glare
-        """
-        cls._validate_upload_allowed(context, af, field_name)
-        LOG.debug("Parameters validation for artifact %(artifact)s location "
-                  "passed for blob %(blob)s. Start location check for artifact"
-                  ".", {'artifact': af.id, 'blob': field_name})
-
-        blob = {'url': location, 'size': None, 'md5': None, 'sha1': None,
-                'sha256': None, 'status': glare_fields.BlobFieldType.ACTIVE,
-                'external': True, 'content_type': None}
-
-        md5 = blob_meta.pop("md5", None)
-        if md5 is None:
-            msg = (_("Incorrect blob metadata %(meta)s. MD5 must be specified "
-                     "for external location in artifact blob %(field_name)."),
-                   {"meta": str(blob_meta), "field_name": field_name})
-            raise exception.BadRequest(msg)
-        else:
-            blob["md5"] = md5
-            blob["sha1"] = blob_meta.pop("sha1", None)
-            blob["sha256"] = blob_meta.pop("sha256", None)
-
-        setattr(af, field_name, blob)
-        updated_af = cls.db_api.update(
-            context, af.id, {field_name: getattr(af, field_name)})
-        LOG.info(_LI("External location %(location)s has been created "
-                     "successfully for artifact %(artifact)s blob %(blob)s"),
-                 {'location': location, 'artifact': af.id,
-                  'blob': field_name})
-        return cls._init_artifact(context, updated_af)
-
-    @classmethod
-    def add_blob_dict_location(cls, context, af, field_name,
-                               blob_key, location, blob_meta):
-        cls._validate_upload_allowed(context, af, field_name, blob_key)
-
-        blob = {'url': location, 'size': None, 'md5': None, 'sha1': None,
-                'sha256': None, 'status': glare_fields.BlobFieldType.ACTIVE,
-                'external': True, 'content_type': None}
-
-        md5 = blob_meta.pop("md5", None)
-        if md5 is None:
-            msg = (_("Incorrect blob metadata %(meta)s. MD5 must be specified "
-                     "for external location in artifact blob "
-                     "%(field_name)[%(blob_key)s]."),
-                   {"meta": str(blob_meta), "field_name": field_name,
-                    "blob_key": str(blob_key)})
-            raise exception.BadRequest(msg)
-        else:
-            blob["md5"] = md5
-            blob["sha1"] = blob_meta.pop("sha1", None)
-            blob["sha256"] = blob_meta.pop("sha256", None)
-
-        blob_dict_attr = getattr(af, field_name)
-        blob_dict_attr[blob_key] = blob
-        updated_af = cls.db_api.update(
-            context, af.id, {field_name: blob_dict_attr})
-
-        LOG.info(
-            _LI("External location %(location)s has been created successfully "
-                "for artifact %(artifact)s blob dict %(blob)s with key "
-                "%(key)s"),
-            {'location': location, 'artifact': af.id,
-             'blob': field_name, 'key': blob_key})
-        return cls._init_artifact(context, updated_af)
+        af_upd = cls.db_api.update(context, af_id, values)
+        return cls._init_artifact(context, af_upd)
 
     @classmethod
     def validate_activate(cls, context, af, values=None):
@@ -1225,19 +1017,5 @@ class ReadOnlyMixin(object):
         raise exception.Forbidden("This type is read only.")
 
     @classmethod
-    def upload_blob(cls, context, af, field_name, fd, content_type):
-        raise exception.Forbidden("This type is read only.")
-
-    @classmethod
-    def upload_blob_dict(cls, context, af, field_name, blob_key, fd,
-                         content_type):
-        raise exception.Forbidden("This type is read only.")
-
-    @classmethod
-    def add_blob_location(cls, context, af, field_name, location, blob_meta):
-        raise exception.Forbidden("This type is read only.")
-
-    @classmethod
-    def add_blob_dict_location(cls, context, af, field_name,
-                               blob_key, location, blob_meta):
+    def update_blob(cls, context, af_id, values):
         raise exception.Forbidden("This type is read only.")

@@ -27,6 +27,7 @@ import six
 import sqlalchemy
 from sqlalchemy import and_
 import sqlalchemy.exc
+from sqlalchemy import exists
 from sqlalchemy import func
 from sqlalchemy import or_
 import sqlalchemy.orm as orm
@@ -162,6 +163,14 @@ def _create_or_update(context, artifact_id, values, session):
 
         artifact.updated_at = timeutils.utcnow()
         if 'status' in values and values['status'] == 'active':
+            if session.query(
+                    exists().where(
+                        models.ArtifactBlob.status == 'saving' and
+                        models.ArtifactBlob.artifact_id == artifact_id)
+            ).one()[0]:
+                raise exception.Conflict(
+                    "You cannot activate artifact if it has "
+                    "uploading blobs.")
             artifact.activated_at = timeutils.utcnow()
         artifact.update(values)
         artifact.save(session=session)
