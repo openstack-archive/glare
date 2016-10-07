@@ -484,8 +484,8 @@ class ResponseSerializer(api_versioning.VersionedResource,
         response.headers['Content-MD5'] = meta['md5']
         response.headers['X-Openstack-Glare-Content-SHA1'] = meta['sha1']
         response.headers['X-Openstack-Glare-Content-SHA256'] = meta['sha256']
-        response.headers['Content-Length'] = str(meta['size'])
         response.app_iter = iter(data)
+        response.content_length = str(meta['size'])
 
     @staticmethod
     def _serialize_location(response, result):

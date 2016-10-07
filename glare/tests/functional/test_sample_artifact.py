@@ -17,6 +17,7 @@ import hashlib
 import uuid
 
 from oslo_serialization import jsonutils
+import requests
 
 from glare.tests.functional import base
 
@@ -776,6 +777,11 @@ class TestBlobs(base.TestArtifact):
         self.assertEqual(md5, art['blob']['md5'])
         self.assertEqual(sha1, art['blob']['sha1'])
         self.assertEqual(sha256, art['blob']['sha256'])
+
+        # check that content-length is in response
+        response = requests.get(self._url(url + '/blob'),
+                                headers=self._headers())
+        self.assertEqual('27', response.headers["content-length"])
 
         blob_data = self.get(url=url + '/blob')
         self.assertEqual(data, blob_data)
