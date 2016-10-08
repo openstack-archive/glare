@@ -35,6 +35,7 @@ _artifacts_opts = [
         glare.api.middleware.context.context_opts,
         glare.api.v1.resource.list_configs,
         glare.api.versions.versions_opts,
+        glare.common.config.common_opts,
         glare.common.wsgi.bind_opts,
         glare.common.wsgi.eventlet_opts,
         glare.common.wsgi.socket_opts,

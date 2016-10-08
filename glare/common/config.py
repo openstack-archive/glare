@@ -39,8 +39,33 @@ paste_deploy_opts = [
                help=_('Name of the paste configuration file.')),
 ]
 
+common_opts = [
+    cfg.StrOpt('digest_algorithm',
+               default='sha256',
+               help=_("""
+Digest algorithm to use for digital signature.
+
+Provide a string value representing the digest algorithm to
+use for generating digital signatures. By default, ``sha256``
+is used.
+
+To get a list of the available algorithms supported by the version
+of OpenSSL on your platform, run the command:
+``openssl list-message-digest-algorithms``.
+Examples are 'sha1', 'sha256', and 'sha512'.
+
+Possible values:
+    * An OpenSSL message digest algorithm identifier
+
+Relation options:
+    * None
+
+""")),
+]
+
 CONF = cfg.CONF
 CONF.register_opts(paste_deploy_opts, group='paste_deploy')
+CONF.register_opts(common_opts)
 policy.Enforcer(CONF)
 
 
