@@ -14,11 +14,26 @@
 
 """Database API for all artifact types"""
 
+from oslo_db import exception as db_exception
+from oslo_log import log as logging
+from retrying import retry
 import six
 
 from glare.db import api as base_api
 from glare.db.sqlalchemy import api
+from glare.i18n import _LW
 from glare import locking
+
+LOG = logging.getLogger(__name__)
+
+
+def _retry_on_connection_error(exc):
+    """Function to retry a DB API call if connection error was received."""
+
+    if isinstance(exc, db_exception.DBConnectionError):
+        LOG.warn(_LW("Connection error detected. Retrying..."))
+        return True
+    return False
 
 
 class ArtifactAPI(base_api.BaseDBAPI):
@@ -36,25 +51,35 @@ class ArtifactAPI(base_api.BaseDBAPI):
                 new_values.setdefault('properties', {})[key] = value
         return new_values
 
+    @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
+           stop_max_attempt_number=20)
     def create(self, context, values):
         values = self._serialize_values(values)
         values['type_name'] = self.type
         session = api.get_session()
         return api.create(context, values, session)
 
+    @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
+           stop_max_attempt_number=20)
     def update(self, context, artifact_id, values):
         session = api.get_session()
         return api.update(context, artifact_id,
                           self._serialize_values(values), session)
 
+    @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
+           stop_max_attempt_number=20)
     def delete(self, context, artifact_id):
         session = api.get_session()
         return api.delete(context, artifact_id, session)
 
+    @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
+           stop_max_attempt_number=20)
     def get(self, context, artifact_id):
         session = api.get_session()
         return api.get(context, artifact_id, session)
 
+    @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
+           stop_max_attempt_number=20)
     def list(self, context, filters, marker, limit, sort, latest):
         session = api.get_session()
         if self.type != 'all':
@@ -65,10 +90,14 @@ class ArtifactAPI(base_api.BaseDBAPI):
 
 
 class ArtifactLockApi(locking.LockApiBase):
+    @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
+           stop_max_attempt_number=20)
     def create_lock(self, context, lock_key):
         session = api.get_session()
         return api.create_lock(context, lock_key, session)
 
+    @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
+           stop_max_attempt_number=20)
     def delete_lock(self, context, lock_id):
         session = api.get_session()
         api.delete_lock(context, lock_id, session)
