@@ -242,6 +242,8 @@ class ArtifactLock(BASE, ArtifactBase):
     __table_args__ = (
         {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8'},)
     id = Column(String(255), primary_key=True, nullable=False)
+    acquired_at = Column(
+        DateTime, nullable=False, default=lambda: timeutils.utcnow())
 
 
 def register_models(engine):
