@@ -783,6 +783,17 @@ class TestBlobs(base.TestArtifact):
                                 headers=self._headers())
         self.assertEqual('27', response.headers["content-length"])
 
+        # check that all checksums are in response
+        response = requests.get(self._url(url + '/blob'),
+                                headers=self._headers())
+        self.assertEqual('0825587cc011b7e76381b65e19d5ec27',
+                         response.headers["Content-MD5"])
+        self.assertEqual('89eb4b969b721ba8c3aff18ad7d69454f651a697',
+                         response.headers["X-Openstack-Glare-Content-SHA1"])
+        self.assertEqual('bbfd48c7ec792fc462e58232d4d9f407'
+                         'ecefb75cc9e9823336166556b499ea4d',
+                         response.headers["X-Openstack-Glare-Content-SHA256"])
+
         blob_data = self.get(url=url + '/blob')
         self.assertEqual(data, blob_data)
 

@@ -480,11 +480,11 @@ class ResponseSerializer(api_versioning.VersionedResource,
     @staticmethod
     def _serialize_blob(response, result):
         data, meta = result['data'], result['meta']
+        response.app_iter = iter(data)
         response.headers['Content-Type'] = meta['content_type']
         response.headers['Content-MD5'] = meta['md5']
         response.headers['X-Openstack-Glare-Content-SHA1'] = meta['sha1']
         response.headers['X-Openstack-Glare-Content-SHA256'] = meta['sha256']
-        response.app_iter = iter(data)
         response.content_length = str(meta['size'])
 
     @staticmethod
