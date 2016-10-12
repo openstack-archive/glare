@@ -28,24 +28,30 @@ down_revision = '001'
 from alembic import op
 import sqlalchemy as sa
 
+MYSQL_ENGINE = 'InnoDB'
+MYSQL_CHARSET = 'utf8'
+
 
 def upgrade():
-    engine = op.get_bind()
-    if engine.dialect.dialect_description.startswith('sqlite'):
-        op.add_column(
-            'glare_artifact_locks',
-            sa.Column(
-                'acquired_at', sa.DateTime(), nullable=False,
-                server_default=sa.text('NOW'))
-        )
-    else:
-        op.add_column(
-            'glare_artifact_locks',
-            sa.Column(
-                'acquired_at', sa.DateTime(), nullable=False,
-                server_default=sa.text('NOW()'))
-        )
+    op.drop_table('glare_artifact_locks')
+
+    op.create_table(
+        'glare_artifact_locks',
+        sa.Column('id', sa.String(255), primary_key=True, nullable=False),
+        sa.Column('acquired_at', sa.DateTime(), nullable=False),
+        sa.PrimaryKeyConstraint('id'),
+        mysql_engine=MYSQL_ENGINE,
+        mysql_charset=MYSQL_CHARSET
+    )
 
 
 def downgrade():
-    op.drop_column('glare_artifact_locks', 'acquired_at')
+    op.drop_table('glare_artifact_locks')
+
+    op.create_table(
+        'glare_artifact_locks',
+        sa.Column('id', sa.String(255), primary_key=True, nullable=False),
+        sa.PrimaryKeyConstraint('id'),
+        mysql_engine=MYSQL_ENGINE,
+        mysql_charset=MYSQL_CHARSET
+    )
