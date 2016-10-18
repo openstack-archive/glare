@@ -333,13 +333,13 @@ class ArtifactsController(api_versioning.VersionedResource):
         if content_type == ('application/vnd+openstack.glare-custom-location'
                             '+json'):
             url = data.pop('url')
-            return self.engine.add_blob_dict_location(
-                req.context, type_name, artifact_id,
-                field_name, blob_key, url, data)
+            return self.engine.add_blob_location(
+                req.context, type_name, artifact_id, field_name, url, data,
+                blob_key)
         else:
-            return self.engine.upload_blob_dict(
-                req.context, type_name, artifact_id,
-                field_name, blob_key, data, content_type)
+            return self.engine.upload_blob(req.context, type_name, artifact_id,
+                                           field_name, data, content_type,
+                                           blob_key)
 
     @supported_versions(min_ver='1.0')
     @log_request_progress
@@ -370,7 +370,7 @@ class ArtifactsController(api_versioning.VersionedResource):
         :param blob_key: name of Dict of blobs (optional)
         :return: iterator that returns blob data
         """
-        data, meta = self.engine.download_blob_dict(
+        data, meta = self.engine.download_blob(
             req.context, type_name, artifact_id, field_name, blob_key)
         result = {'data': data, 'meta': meta}
         return result

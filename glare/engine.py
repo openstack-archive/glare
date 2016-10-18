@@ -17,14 +17,17 @@ import copy
 
 import jsonpatch
 from oslo_log import log as logging
+from oslo_utils import excutils
 
 from glare.common import exception
 from glare.common import policy
+from glare.common import store_api
 from glare.common import utils
 from glare.db import artifact_api
-from glare.i18n import _
+from glare.i18n import _, _LI
 from glare import locking
 from glare.notification import Notifier
+from glare.objects.meta import fields as glare_fields
 from glare.objects.meta import registry as glare_registry
 
 LOG = logging.getLogger(__name__)
@@ -240,67 +243,204 @@ class Engine(object):
         Notifier.notify(context, "artifact.delete", af)
 
     @classmethod
-    @lock_engine.locked(['type_name', 'artifact_id'])
-    def add_blob_location(cls, context, type_name,
-                          artifact_id, field_name, location, blob_meta):
+    def add_blob_location(cls, context, type_name, artifact_id, field_name,
+                          location, blob_meta, blob_key=None):
+        """Add external location to blob.
+
+        :param context: user context
+        :param type_name: name of artifact type
+        :param artifact_id: id of the artifact to be updated
+        :param field_name: name of blob or blob dict field
+        :param location: external blob url
+        :param blob_meta: dictionary containing blob metadata like md5 checksum
+        :param blob_key: if field_name is blob dict it specifies concrete key
+        in this dict
+        :return updated artifact
+        """
         af = cls._get_artifact(context, type_name, artifact_id)
         action_name = 'artifact:set_location'
         policy.authorize(action_name, af.to_dict(), context)
-        modified_af = af.add_blob_location(context, af, field_name, location,
-                                           blob_meta)
+
+        blob_name = "%s[%s]" % (field_name, blob_key)\
+            if blob_key else field_name
+
+        blob = {'url': location, 'size': None, 'md5': None, 'sha1': None,
+                'sha256': None, 'status': glare_fields.BlobFieldType.ACTIVE,
+                'external': True, 'content_type': None}
+        md5 = blob_meta.pop("md5", None)
+        if md5 is None:
+            msg = (_("Incorrect blob metadata %(meta)s. MD5 must be specified "
+                     "for external location in artifact blob %(blob_name)."),
+                   {"meta": str(blob_meta), "blob_name": blob_name})
+            raise exception.BadRequest(msg)
+        else:
+            blob["md5"] = md5
+            blob["sha1"] = blob_meta.pop("sha1", None)
+            blob["sha256"] = blob_meta.pop("sha256", None)
+        modified_af = cls.update_blob(
+            context, type_name, artifact_id, blob, field_name, blob_key,
+            validate=True)
+        LOG.info(_LI("External location %(location)s has been created "
+                     "successfully for artifact %(artifact)s blob %(blob)s"),
+                 {'location': location, 'artifact': af.id,
+                  'blob': blob_name})
+
         Notifier.notify(context, action_name, modified_af)
         return modified_af.to_dict()
 
     @classmethod
-    @lock_engine.locked(['type_name', 'artifact_id'])
-    def add_blob_dict_location(cls, context, type_name, artifact_id,
-                               field_name, blob_key, location, blob_meta):
-        af = cls._get_artifact(context, type_name, artifact_id)
-        action_name = 'artifact:set_location'
-        policy.authorize(action_name, af.to_dict(), context)
-        modified_af = af.add_blob_dict_location(context, af, field_name,
-                                                blob_key, location, blob_meta)
-        Notifier.notify(context, action_name, modified_af)
-        return modified_af.to_dict()
-
-    @classmethod
-    @lock_engine.locked(['type_name', 'artifact_id'])
     def upload_blob(cls, context, type_name, artifact_id, field_name, fd,
-                    content_type):
-        """Upload Artifact blob"""
+                    content_type, blob_key=None):
+        """Upload Artifact blob.
+
+        :param context: user context
+        :param type_name: name of artifact type
+        :param artifact_id: id of the artifact to be updated
+        :param field_name: name of blob or blob dict field
+        :param fd: file descriptor that Glare uses to upload the file
+        :param field_name: name of blob dict field
+        :param content_type: data content-type
+        :param blob_key: if field_name is blob dict it specifies concrete key
+        in this dict
+        :return file iterator for requested file
+        """
         af = cls._get_artifact(context, type_name, artifact_id)
         action_name = "artifact:upload"
         policy.authorize(action_name, af.to_dict(), context)
-        modified_af = af.upload_blob(context, af, field_name, fd, content_type)
+
+        blob_name = "%s[%s]" % (field_name, blob_key)\
+            if blob_key else field_name
+
+        try:
+            # call upload hook
+            fd = af.validate_upload(context, af, field_name, fd)
+        except Exception as e:
+            raise exception.BadRequest(message=str(e))
+
+        # create an an empty blob instance in db with 'saving' status
+        blob = {'url': None, 'size': None, 'md5': None, 'sha1': None,
+                'sha256': None, 'status': glare_fields.BlobFieldType.SAVING,
+                'external': False, 'content_type': content_type}
+        modified_af = cls.update_blob(
+            context, type_name, artifact_id, blob, field_name, blob_key,
+            validate=True)
+
+        if blob_key is None:
+            blob_id = getattr(modified_af, field_name)['id']
+        else:
+            blob_id = getattr(modified_af, field_name)[blob_key]['id']
+
+        # try to perform blob uploading to storage backend
+        try:
+            location_uri, size, checksums = store_api.save_blob_to_store(
+                blob_id, fd, context, af.get_max_blob_size(field_name))
+        except Exception:
+            # if upload failed remove blob from db and storage
+            with excutils.save_and_reraise_exception(logger=LOG):
+                if blob_key is None:
+                    af.update_blob(context, af.id, {field_name: None})
+                else:
+                    blob_dict_attr = modified_af[field_name]
+                    del blob_dict_attr[blob_key]
+                    af.update_blob(context, af.id,
+                                   {field_name: blob_dict_attr})
+        LOG.info(_LI("Successfully finished blob upload for artifact "
+                     "%(artifact)s blob field %(blob)s."),
+                 {'artifact': af.id, 'blob': blob_name})
+
+        # update blob info and activate it
+        blob.update({'url': location_uri,
+                     'status': glare_fields.BlobFieldType.ACTIVE,
+                     'size': size})
+        blob.update(checksums)
+        modified_af = cls.update_blob(
+            context, type_name, artifact_id, blob, field_name, blob_key)
+
         Notifier.notify(context, action_name, modified_af)
         return modified_af.to_dict()
 
     @classmethod
     @lock_engine.locked(['type_name', 'artifact_id'])
-    def upload_blob_dict(cls, context, type_name, artifact_id, field_name,
-                         blob_key, fd, content_type):
-        """Upload Artifact blob to dict"""
+    def update_blob(cls, context, type_name, artifact_id, blob,
+                    field_name, blob_key=None, validate=False):
+        """Update blob info.
+        :param context: user context
+        :param type_name: name of artifact type
+        :param artifact_id: id of the artifact to be updated
+        :param blob: blob representation in dict format
+        :param field_name: name of blob or blob dict field
+        :param blob_key: if field_name is blob dict it specifies concrete key
+        in this dict
+        :param validate: enable validation of possibility of blob uploading
+        :return updated artifact
+        """
         af = cls._get_artifact(context, type_name, artifact_id)
-        action_name = "artifact:upload"
-        policy.authorize(action_name, af.to_dict(), context)
-        modified_af = af.upload_blob_dict(context, af, field_name, blob_key,
-                                          fd, content_type)
-        Notifier.notify(context, action_name, modified_af)
-        return modified_af.to_dict()
+        if validate:
+            af.validate_upload_allowed(context, af, field_name, blob_key)
+        if blob_key is None:
+            setattr(af, field_name, blob)
+            return af.update_blob(
+                context, af.id, {field_name: getattr(af, field_name)})
+        else:
+            blob_dict_attr = getattr(af, field_name)
+            blob_dict_attr[blob_key] = blob
+            return af.update_blob(
+                context, af.id, {field_name: blob_dict_attr})
 
     @classmethod
-    def download_blob(cls, context, type_name, artifact_id, field_name):
-        """Download blob from artifact"""
+    def download_blob(cls, context, type_name, artifact_id, field_name,
+                      blob_key=None):
+        """Download binary data from Glare Artifact.
+        :param context: user context
+        :param type_name: name of artifact type
+        :param artifact_id: id of the artifact to be updated
+        :param field_name: name of blob or blob dict field
+        :param blob_key: if field_name is blob dict it specifies concrete key
+        in this dict
+        :return: file iterator for requested file
+        """
         af = cls._get_artifact(context, type_name, artifact_id,
                                read_only=True)
         policy.authorize("artifact:download", af.to_dict(), context)
-        return af.download_blob(context, af, field_name)
 
-    @classmethod
-    def download_blob_dict(cls, context, type_name, artifact_id, field_name,
-                           blob_key):
-        """Download blob from artifact"""
-        af = cls._get_artifact(context, type_name, artifact_id,
-                               read_only=True)
-        policy.authorize("artifact:download", af.to_dict(), context)
-        return af.download_blob_dict(context, af, field_name, blob_key)
+        blob_name = "%s[%s]" % (field_name, blob_key)\
+            if blob_key else field_name
+
+        # check if property is downloadable
+        if blob_key is None and not af.is_blob(field_name):
+            msg = _("%s is not a blob") % field_name
+            raise exception.BadRequest(msg)
+        if blob_key is not None and not af.is_blob_dict(field_name):
+            msg = _("%s is not a blob dict") % field_name
+            raise exception.BadRequest(msg)
+
+        if af.status == af.STATUS.DEACTIVATED and not context.is_admin:
+            msg = _("Only admin is allowed to download artifact data "
+                    "when it's deactivated")
+            raise exception.Forbidden(message=msg)
+
+        # get blob info from dict or directly
+        if blob_key is None:
+            blob = getattr(af, field_name)
+        else:
+            try:
+                blob = getattr(af, field_name)[blob_key]
+            except KeyError:
+                msg = _("Blob with name %s is not found") % blob_name
+                raise exception.NotFound(message=msg)
+
+        if blob is None or blob['status'] != glare_fields.BlobFieldType.ACTIVE:
+            msg = _("%s is not ready for download") % blob_name
+            raise exception.BadRequest(message=msg)
+
+        meta = {'md5': blob.get('md5'),
+                'sha1': blob.get('sha1'),
+                'sha256': blob.get('sha256'),
+                'external': blob.get('external')}
+        if blob['external']:
+            data = {'url': blob['url']}
+        else:
+            data = store_api.load_from_store(uri=blob['url'], context=context)
+            meta['size'] = blob.get('size')
+            meta['content_type'] = blob.get('content_type')
+        return data, meta
