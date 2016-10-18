@@ -607,15 +607,26 @@ def _do_blobs(artifact, new_blobs):
        stop_max_attempt_number=50)
 def create_lock(context, lock_key, session):
     """Try to create lock record."""
-    try:
-        lock = models.ArtifactLock()
-        lock.id = lock_key
-        lock.save(session=session)
-        return lock.id
-    except (sqlalchemy.exc.IntegrityError, db_exception.DBDuplicateEntry):
-        msg = _("Cannot lock an item with key %s. "
-                "Lock already acquired by other request") % lock_key
-        raise exception.Conflict(msg)
+    existing = session.query(models.ArtifactLock).get(lock_key)
+    if existing is None:
+        try:
+            lock = models.ArtifactLock()
+            lock.id = lock_key
+            lock.save(session=session)
+            return lock.id
+        except (sqlalchemy.exc.IntegrityError, db_exception.DBDuplicateEntry):
+            msg = _("Cannot lock an item with key %s. "
+                    "Lock already acquired by other request") % lock_key
+            raise exception.Conflict(msg)
+    else:
+        if timeutils.is_older_than(existing.acquired_at, 5):
+            existing.acquired_at = timeutils.utcnow()
+            existing.save(session)
+            return existing.id
+        else:
+            msg = _("Cannot lock an item with key %s. "
+                    "Lock already acquired by other request") % lock_key
+            raise exception.Conflict(msg)
 
 
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
