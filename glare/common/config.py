@@ -17,12 +17,12 @@
 Routines for configuring Glare
 """
 
-import logging
 import logging.config
 import logging.handlers
 import os
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_policy import policy
 from paste import deploy
 
