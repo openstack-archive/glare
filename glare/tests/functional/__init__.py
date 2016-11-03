@@ -24,7 +24,6 @@ the server.
 import atexit
 import datetime
 import errno
-import logging
 import os
 import platform
 import shutil
@@ -35,6 +34,7 @@ import tempfile
 import time
 
 import fixtures
+from oslo_log import log as logging
 from oslo_serialization import jsonutils
 # NOTE(jokke): simplified transition to py3, behaves like py2 xrange
 from six.moves import range
