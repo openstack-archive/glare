@@ -843,6 +843,10 @@ class BaseArtifact(base.VersionedObject):
     def validate_publish(cls, context, af):
         pass
 
+    @classmethod
+    def get_default_store(cls, context, af, field_name, blob_key):
+        pass
+
     def to_notification(self):
         """Return notification body that can be send to listeners
 

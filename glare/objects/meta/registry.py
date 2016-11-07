@@ -138,6 +138,7 @@ class ArtifactRegistry(vo_base.VersionedObjectRegistry):
         class_attributes = set(vars(type_class).keys())
         common_attrs = class_attributes & base_attributes
         allowed_attributes = ('VERSION', 'fields', 'init_db_api',
+                              'get_default_store',
                               'get_type_name', 'validate_activate',
                               'validate_publish', 'validate_upload',
                               '__doc__', '__module__')

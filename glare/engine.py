@@ -16,6 +16,7 @@
 import copy
 
 import jsonpatch
+from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 
@@ -30,6 +31,7 @@ from glare.notification import Notifier
 from glare.objects.meta import fields as glare_fields
 from glare.objects.meta import registry as glare_registry
 
+CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 
@@ -332,8 +334,16 @@ class Engine(object):
 
         # try to perform blob uploading to storage backend
         try:
+            default_store = af.get_default_store(
+                context, af, field_name, blob_key)
+            if default_store not in set(CONF.glance_store.stores):
+                LOG.warn("Incorrect backend configuration - scheme '%s' is not"
+                         " supported. Fallback to default store."
+                         % default_store)
+                default_store = None
             location_uri, size, checksums = store_api.save_blob_to_store(
-                blob_id, fd, context, af.get_max_blob_size(field_name))
+                blob_id, fd, context, af.get_max_blob_size(field_name),
+                default_store)
         except Exception:
             # if upload failed remove blob from db and storage
             with excutils.save_and_reraise_exception(logger=LOG):
