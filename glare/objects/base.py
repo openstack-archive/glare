@@ -292,28 +292,27 @@ class BaseArtifact(base.VersionedObject):
         if context.tenant is None or context.read_only:
             msg = _("It's forbidden to anonymous users to create artifacts.")
             raise exception.Forbidden(msg)
-        else:
-            with cls._lock_version(context, values):
-                ver = values.setdefault(
-                    'version', cls.DEFAULT_ARTIFACT_VERSION)
-                cls._validate_versioning(context, values.get('name'), ver)
-                # validate other values
-                cls._validate_input_values(context, values)
-                # validate visibility
-                if 'visibility' in values:
-                    msg = _("visibility is not allowed in a request "
-                            "for artifact create.")
-                    raise exception.BadRequest(msg)
-                values['id'] = str(uuid.uuid4())
-                values['owner'] = context.tenant
-                values['created_at'] = timeutils.utcnow()
-                values['updated_at'] = values['created_at']
-                af = cls._init_artifact(context, values)
-                LOG.info(_LI("Parameters validation for artifact creation "
-                             "passed for request %s."), context.request_id)
-                af_vals = cls.db_api.create(context,
-                                            af.obj_changes_to_primitive())
-                return cls._init_artifact(context, af_vals)
+        with cls._lock_version(context, values):
+            ver = values.setdefault(
+                'version', cls.DEFAULT_ARTIFACT_VERSION)
+            cls._validate_versioning(context, values.get('name'), ver)
+            # validate other values
+            cls._validate_input_values(context, values)
+            # validate visibility
+            if 'visibility' in values:
+                msg = _("visibility is not allowed in a request "
+                        "for artifact create.")
+                raise exception.BadRequest(msg)
+            values['id'] = str(uuid.uuid4())
+            values['owner'] = context.tenant
+            values['created_at'] = timeutils.utcnow()
+            values['updated_at'] = values['created_at']
+            af = cls._init_artifact(context, values)
+            LOG.info(_LI("Parameters validation for artifact creation "
+                         "passed for request %s."), context.request_id)
+            af_vals = cls.db_api.create(context,
+                                        af.obj_changes_to_primitive())
+            return cls._init_artifact(context, af_vals)
 
     @classmethod
     def _validate_versioning(cls, context, name, version, is_public=False):
@@ -602,6 +601,31 @@ class BaseArtifact(base.VersionedObject):
                 for af in cls.db_api.list(
                 context, filters, marker, limit, sort, latest)]
 
+    @staticmethod
+    def _prepare_blob_delete(b, af, name):
+        if b['status'] == glare_fields.BlobFieldType.PENDING_DELETE:
+            msg = _('Blob %(name)s is already deleting '
+                    'for artifact %(id)s') % {'name': name, 'id': af.id}
+            raise exception.Conflict(msg)
+        elif b['status'] == glare_fields.BlobFieldType.SAVING:
+            msg = _('Blob %(name)s is saving for artifact %(id)s'
+                    ) % {'name': name, 'id': af.id}
+            raise exception.Conflict(msg)
+        b['status'] = glare_fields.BlobFieldType.PENDING_DELETE
+
+    @classmethod
+    def _delete_blobs(cls, blobs, context, af):
+        for name, blob in six.iteritems(blobs):
+            if cls.is_blob(name):
+                store_api.delete_blob(blob['url'], context=context)
+                cls.db_api.update(context, af.id, {name: None})
+            elif cls.is_blob_dict(name):
+                upd_blob = deepcopy(blob)
+                for key, val in six.iteritems(blob):
+                    store_api.delete_blob(val['url'], context=context)
+                    del upd_blob[key]
+                    cls.db_api.update(context, af.id, {name: upd_blob})
+
     @classmethod
     def delete(cls, context, af):
         """Delete Artifact and all blobs from Glare.
@@ -618,38 +642,13 @@ class BaseArtifact(base.VersionedObject):
             if cls.is_blob(name):
                 b = getattr(af, name)
                 if b:
-                    if b['status'] == glare_fields.\
-                            BlobFieldType.PENDING_DELETE:
-                        msg = _('Blob %(name)s is already deleting '
-                                'for artifact %(id)s') % {'name': name,
-                                                          'id': af.id}
-                        raise exception.Conflict(msg)
-                    elif b['status'] == glare_fields.\
-                            BlobFieldType.SAVING:
-                        msg = _('Blob %(name)s is saving for artifact %(id)s'
-                                ) % {'name': name, 'id': af.id}
-                        raise exception.Conflict(msg)
-                    else:
-                        b['status'] = glare_fields.BlobFieldType.PENDING_DELETE
-                        blobs[name] = b
+                    cls._prepare_blob_delete(b, af, name)
+                    blobs[name] = b
             elif cls.is_blob_dict(name):
                 bd = getattr(af, name)
                 if bd:
                     for key, b in six.iteritems(bd):
-                        if b['status'] == glare_fields.\
-                                BlobFieldType.PENDING_DELETE:
-                            msg = _('Blob %(name)s is already deleting '
-                                    'for artifact %(id)s') % {'name': name,
-                                                              'id': af.id}
-                            raise exception.Conflict(msg)
-                        elif b['status'] == glare_fields. \
-                                BlobFieldType.SAVING:
-                            msg = _('Blob %(name)s is saving for artifact '
-                                    '%(id)s') % {'name': name, 'id': af.id}
-                            raise exception.Conflict(msg)
-                        else:
-                            b['status'] = glare_fields.\
-                                BlobFieldType.PENDING_DELETE
+                        cls._prepare_blob_delete(b, af, name)
                     blobs[name] = bd
         if blobs:
             LOG.debug("Marked all blobs %(blobs) for artifact %(artifact)s "
@@ -658,17 +657,7 @@ class BaseArtifact(base.VersionedObject):
             cls.db_api.update(context, af.id, blobs)
             # delete blobs one by one
             if not CONF.delayed_blob_delete:
-                for name, blob in six.iteritems(blobs):
-                    if cls.is_blob(name):
-                        store_api.delete_blob(blob['url'], context=context)
-                        cls.db_api.update(context, af.id, {name: None})
-                    elif cls.is_blob_dict(name):
-                        upd_blob = deepcopy(blob)
-                        for key, val in six.iteritems(blob):
-                            store_api.delete_blob(val['url'], context=context)
-                            del upd_blob[key]
-                            cls.db_api.update(context, af.id, {name: upd_blob})
-
+                cls._delete_blobs(blobs, context, af)
             LOG.info(_LI("Blobs successfully deleted for artifact %s"), af.id)
         # delete artifact itself
         cls.db_api.delete(context, af.id)
