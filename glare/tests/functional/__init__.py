@@ -301,6 +301,8 @@ log_file = %(log_file)s
 delayed_delete = %(delayed_delete)s
 workers = %(workers)s
 lock_path = %(lock_path)s
+enabled_artifact_types = %(enabled_artifact_types)s
+custom_artifact_types_modules = %(custom_artifact_types_modules)s
 [oslo_policy]
 policy_file = %(policy_file)s
 policy_default_rule = %(policy_default_rule)s
@@ -309,9 +311,6 @@ flavor = %(deployment_flavor)s
 [glance_store]
 filesystem_store_datadir=%(blob_dir)s
 default_store = %(default_store)s
-[glare]
-enabled_artifact_types = %(enabled_artifact_types)s
-custom_artifact_types_modules = %(custom_artifact_types_modules)s
 [database]
 connection = %(sql_connection)s
 """

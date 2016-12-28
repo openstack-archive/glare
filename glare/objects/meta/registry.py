@@ -44,7 +44,7 @@ registry_options = [
                        "will be uploaded by Glare dynamically during service "
                        "startup."))
 ]
-CONF.register_opts(registry_options, group='glare')
+CONF.register_opts(registry_options)
 
 
 def import_submodules(module):
@@ -98,12 +98,12 @@ class ArtifactRegistry(vo_base.VersionedObjectRegistry):
         # to specify custom logic inside
         modules = (import_submodules('glare.objects') +
                    import_modules_list(
-                       CONF.glare.custom_artifact_types_modules))
+                       CONF.custom_artifact_types_modules))
         # get all versioned object classes in module
         supported_types = []
         for module in modules:
             supported_types.extend(get_subclasses(module, base.BaseArtifact))
-        for type_name in set(CONF.glare.enabled_artifact_types + ['all']):
+        for type_name in set(CONF.enabled_artifact_types + ['all']):
             for af_type in supported_types:
                 if type_name == af_type.get_type_name():
                     cls._validate_artifact_type(af_type)
