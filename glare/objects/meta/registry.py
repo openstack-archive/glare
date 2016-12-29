@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import importlib
 import pkgutil
 import sys
@@ -148,3 +149,8 @@ class ArtifactRegistry(vo_base.VersionedObjectRegistry):
                     explanation=_("attribute %(attr)s not allowed to be "
                                   "redefined in subclass %(class_name)s") % {
                         "attr": attr, "class_name": str(type_class)})
+
+    @classmethod
+    def reset_registry(cls):
+        """Resets all registered artifact type classes"""
+        cls._registry._obj_classes = collections.defaultdict(list)

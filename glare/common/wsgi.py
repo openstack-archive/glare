@@ -48,7 +48,6 @@ import webob.dec
 import webob.exc
 from webob import multidict
 
-from glare.common import config
 from glare.common import exception as glare_exc
 from glare.common import utils
 from glare.i18n import _, _LE, _LI, _LW
@@ -356,10 +355,19 @@ class Server(object):
         Apply configuration settings
 
         :param old_conf: Cached old configuration settings (if any)
-        :param has changed: callable to determine if a parameter has changed
+        :param has_changed: callable to determine if a parameter has changed
         """
         eventlet.wsgi.MAX_HEADER_LINE = CONF.max_header_line
         self.client_socket_timeout = CONF.client_socket_timeout or None
+
+        # determine if we need to reload artifact type definitions
+        if old_conf is not None and (
+                has_changed('enabled_artifact_types') or
+                has_changed('custom_artifact_types_modules')):
+            from glare import engine
+            engine.Engine.registry.reset_registry()
+            engine.Engine.registry.register_all_artifacts()
+
         self.configure_socket(old_conf, has_changed)
         if self.initialize_glance_store:
             initialize_glance_store()
@@ -377,7 +385,7 @@ class Server(object):
         def _has_changed(old, new, param):
             old = old.get(param)
             new = getattr(new, param)
-            return (new != old)
+            return new != old
 
         old_conf = utils.stash_conf_values()
         has_changed = functools.partial(_has_changed, old_conf, CONF)
@@ -388,7 +396,6 @@ class Server(object):
 
         # Ensure any logging config changes are picked up
         logging.setup(CONF, 'glare')
-        config.set_config_defaults()
 
         self.configure(old_conf, has_changed)
         self.start_wsgi()
@@ -469,7 +476,7 @@ class Server(object):
         called in the event of a configuration reload.
 
         When called for the first time a new socket is created.
-        If reloading and either bind_host or bind port have been
+        If reloading and either bind_host or bind_port have been
         changed the existing socket must be closed and a new
         socket opened (laws of physics).
 
@@ -477,7 +484,7 @@ class Server(object):
         the existing socket is reused.
 
         :param old_conf: Cached old configuration settings (if any)
-        :param has changed: callable to determine if a parameter has changed
+        :param has_changed: callable to determine if a parameter has changed
         """
         # Do we need a fresh socket?
         new_sock = (old_conf is None or (
@@ -509,10 +516,7 @@ class Server(object):
         if wrap_sock:
             self.sock = ssl_wrap_socket(self._sock)
 
-        if unwrap_sock:
-            self.sock = self._sock
-
-        if new_sock and not use_ssl:
+        if unwrap_sock or new_sock and not use_ssl:
             self.sock = self._sock
 
         # Pick up newly deployed certs
@@ -831,14 +835,7 @@ class Resource(object):
         except Exception:
             return {}
 
-        try:
-            del args['controller']
-        except KeyError:
-            pass
-
-        try:
-            del args['format']
-        except KeyError:
-            pass
+        args.pop("controller", None)
+        args.pop("format", None)
 
         return args

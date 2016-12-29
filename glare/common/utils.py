@@ -409,7 +409,9 @@ def stash_conf_values():
         'tcp_keepidle': CONF.cert_file,
         'backlog': CONF.backlog,
         'key_file': CONF.key_file,
-        'cert_file': CONF.cert_file
+        'cert_file': CONF.cert_file,
+        'enabled_artifact_types': CONF.enabled_artifact_types,
+        'custom_artifact_types_modules': CONF.custom_artifact_types_modules
     }
 
     return conf
