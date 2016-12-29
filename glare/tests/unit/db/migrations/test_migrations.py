@@ -31,8 +31,8 @@ import contextlib
 
 from alembic import script
 import mock
-from oslo_db.sqlalchemy import test_base
 from oslo_db.sqlalchemy import utils as db_utils
+from oslo_db.tests.sqlalchemy import base as test_base
 from oslo_log import log as logging
 import sqlalchemy
 import sqlalchemy.exc
