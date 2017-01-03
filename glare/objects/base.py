@@ -18,6 +18,7 @@ import uuid
 
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_utils import importutils
 from oslo_utils import timeutils
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
@@ -27,7 +28,6 @@ import six.moves.urllib.request as urlrequest
 from glare.common import exception
 from glare.common import store_api
 from glare.common import utils
-from glare.db import artifact_api
 from glare import locking
 from glare.i18n import _, _LI
 from glare.objects.meta import attribute
@@ -233,24 +233,14 @@ class BaseArtifact(base.VersionedObject):
 
     _DB_API = None
 
-    @classmethod
-    def init_db_api(cls):
-        """Provide initialized db api to interact with artifact database.
-
-        To interact with database each artifact type must provide an api
-        to execute db operations with artifacts.
-        :return: subtype of glare.db.api.BaseDBAPI
-        """
-        return artifact_api.ArtifactAPI(cls)
-
     @classproperty
     def db_api(cls):
         """Return current database API"""
         if cls._DB_API is None:
-            cls._DB_API = cls.init_db_api()
+            cls._DB_API = importutils.import_class(CONF.data_api)(cls)
         return cls._DB_API
 
-    lock_engine = locking.LockEngine(artifact_api.ArtifactLockApi())
+    lock_engine = locking.LockEngine(importutils.import_class(CONF.lock_api)())
 
     @classmethod
     def _lock_version(cls, context, values):
