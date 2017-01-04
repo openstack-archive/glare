@@ -275,7 +275,7 @@ class GlareServer(Server):
         self.pid_file = pid_file or os.path.join(self.test_dir, "glare.pid")
         self.log_file = os.path.join(self.test_dir, "glare.log")
         self.delayed_delete = delayed_delete
-        self.workers = 0
+        self.workers = 1
         self.policy_file = policy_file
         self.policy_default_rule = 'default'
         self.disable_path = None
@@ -289,6 +289,8 @@ class GlareServer(Server):
         self.send_identity_headers = False
         self.enabled_artifact_types = ''
         self.custom_artifact_types_modules = ''
+        self.data_api = 'glare.db.artifact_api.ArtifactAPI'
+        self.lock_api = 'glare.db.artifact_api.ArtifactLockApi'
 
         self.conf_base = """[DEFAULT]
 debug = %(debug)s
@@ -303,6 +305,8 @@ workers = %(workers)s
 lock_path = %(lock_path)s
 enabled_artifact_types = %(enabled_artifact_types)s
 custom_artifact_types_modules = %(custom_artifact_types_modules)s
+data_api = %(data_api)s
+lock_api = %(lock_api)s
 [oslo_policy]
 policy_file = %(policy_file)s
 policy_default_rule = %(policy_default_rule)s
