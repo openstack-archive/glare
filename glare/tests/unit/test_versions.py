@@ -20,7 +20,7 @@ from glare.api import versions
 from glare.tests.unit import base
 
 
-class VersionsTest(base.IsolatedUnitTest):
+class VersionsTest(base.StoreClearingUnitTest):
 
     """Test the version information returned from the API service."""
 
