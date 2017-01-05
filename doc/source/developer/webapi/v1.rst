@@ -1,0 +1,5 @@
+V1 API
+======
+
+This API describes the ways of interacting with Glare service via HTTP protocol
+using Representational State Transfer concept (ReST).
