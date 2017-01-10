@@ -37,9 +37,11 @@ class TestList(base.TestArtifact):
                                           'str1': 'bugaga',
                                           'bool1': True})
                     for i in range(5)]
-        # Sorting by several custom columns leads to 400 error
-        url = '/sample_artifact?limit=1&sort=float1:asc,int1:asc,name:desc'
-        self.get(url=url, status=400)
+
+        if self.glare_server.data_api == 'glare.db.artifact_api.ArtifactAPI':
+            # Sorting by several custom columns leads to 400 error
+            url = '/sample_artifact?limit=1&sort=float1:asc,int1:asc,name:desc'
+            self.get(url=url, status=400)
 
         # sort by 'next' url
         url = '/sample_artifact?limit=1&sort=int1:asc,name:desc'
