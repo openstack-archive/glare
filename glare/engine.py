@@ -19,12 +19,12 @@ import jsonpatch
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
+from oslo_utils import importutils
 
 from glare.common import exception
 from glare.common import policy
 from glare.common import store_api
 from glare.common import utils
-from glare.db import artifact_api
 from glare.i18n import _, _LI
 from glare import locking
 from glare.notification import Notifier
@@ -52,7 +52,7 @@ class Engine(object):
 
     registry = glare_registry.ArtifactRegistry
     registry.register_all_artifacts()
-    lock_engine = locking.LockEngine(artifact_api.ArtifactLockApi())
+    lock_engine = locking.LockEngine(importutils.import_class(CONF.lock_api)())
 
     @classmethod
     def _get_schemas(cls, reg):
