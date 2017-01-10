@@ -232,6 +232,7 @@ class BaseArtifact(base.VersionedObject):
         raise NotImplementedError()
 
     _DB_API = None
+    _LOCK_ENGINE = None
 
     @classproperty
     def db_api(cls):
@@ -240,7 +241,13 @@ class BaseArtifact(base.VersionedObject):
             cls._DB_API = importutils.import_class(CONF.data_api)(cls)
         return cls._DB_API
 
-    lock_engine = locking.LockEngine(importutils.import_class(CONF.lock_api)())
+    @classproperty
+    def lock_engine(cls):
+        """Return current lock engine"""
+        if cls._LOCK_ENGINE is None:
+            cls._LOCK_ENGINE = locking.LockEngine(
+                importutils.import_class(CONF.lock_api)())
+        return cls._LOCK_ENGINE
 
     @classmethod
     def _lock_version(cls, context, values):

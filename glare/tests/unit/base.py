@@ -15,21 +15,48 @@
 
 import os
 import shutil
+import uuid
 
 import fixtures
 import glance_store as store
 from glance_store import location
-from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_config import fixture as cfg_fixture
-from oslo_db import options
-from oslo_serialization import jsonutils
 import testtools
 
+from glare.api.middleware import context
 from glare.common import config
 from glare.common import utils
+from glare.common import wsgi
 
 CONF = cfg.CONF
+
+users = {
+    'user1': {
+        'id': str(uuid.uuid4()),
+        'tenant_id': str(uuid.uuid4()),
+        'token': str(uuid.uuid4()),
+        'role': 'member'
+    },
+    'user2': {
+        'id': str(uuid.uuid4()),
+        'tenant_id': str(uuid.uuid4()),
+        'token': str(uuid.uuid4()),
+        'role': 'member'
+    },
+    'admin': {
+        'id': str(uuid.uuid4()),
+        'tenant_id': str(uuid.uuid4()),
+        'token': str(uuid.uuid4()),
+        'role': 'admin'
+    },
+    'anonymous': {
+        'id': None,
+        'tenant_id': None,
+        'token': None,
+        'role': None
+    }
+}
 
 
 class BaseTestCase(testtools.TestCase):
@@ -44,6 +71,10 @@ class BaseTestCase(testtools.TestCase):
         self.conf_dir = os.path.join(self.test_dir, 'etc')
         utils.safe_mkdirs(self.conf_dir)
         self.set_policy()
+        self.data_api = 'glare.db.simple_api.SimpleAPI'
+        self.lock_api = 'glare.db.simple_api.SimpleLockApi'
+        self.config(data_api=self.data_api)
+        self.config(lock_api=self.lock_api)
 
     def set_policy(self):
         conf_file = "policy.json"
@@ -79,6 +110,25 @@ class BaseTestCase(testtools.TestCase):
         """
         self._config_fixture.config(**kw)
 
+    @staticmethod
+    def get_fake_request(path='', method='POST', is_admin=False,
+                         user=None, roles=None):
+        if roles is None:
+            roles = ['member']
+
+        req = wsgi.Request.blank(path)
+        req.method = method
+
+        kwargs = {
+            'user': user['id'],
+            'tenant': user['tenant_id'],
+            'roles': roles,
+            'is_admin': is_admin,
+        }
+
+        req.context = context.RequestContext(**kwargs)
+        return req
+
 
 class StoreClearingUnitTest(BaseTestCase):
 
@@ -104,31 +154,3 @@ class StoreClearingUnitTest(BaseTestCase):
                     group="glance_store")
 
         store.create_stores(CONF)
-
-
-class IsolatedUnitTest(StoreClearingUnitTest):
-
-    """
-    Unit test case that establishes a mock environment within
-    a testing directory (in isolation)
-    """
-    registry = None
-
-    def setUp(self):
-        super(IsolatedUnitTest, self).setUp()
-        options.set_defaults(CONF, connection='sqlite:////%s/tests.sqlite' %
-                                              self.test_dir)
-        lockutils.set_defaults(os.path.join(self.test_dir))
-
-        self.config(debug=False)
-
-        self.config(default_store='filesystem',
-                    filesystem_store_datadir=self.test_dir,
-                    group="glance_store")
-
-        store.create_stores()
-
-    def set_policy_rules(self, rules):
-        fap = open(CONF.oslo_policy.policy_file, 'w')
-        fap.write(jsonutils.dumps(rules))
-        fap.close()
