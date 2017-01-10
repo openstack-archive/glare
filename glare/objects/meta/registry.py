@@ -19,7 +19,7 @@ import pkgutil
 import sys
 
 from oslo_config import cfg
-from oslo_config import types
+from oslo_config import types as conf_types
 from oslo_log import log as logging
 from oslo_versionedobjects import base as vo_base
 import six
@@ -36,11 +36,11 @@ registry_options = [
     cfg.ListOpt('enabled_artifact_types',
                 default=['heat_templates', 'heat_environments',
                          'murano_packages', 'tosca_templates', 'images'],
-                item_type=types.String(),
+                item_type=conf_types.String(),
                 help=_("List of enabled artifact types that will be "
                        "available to user")),
     cfg.ListOpt('custom_artifact_types_modules', default=[],
-                item_type=types.String(),
+                item_type=conf_types.String(),
                 help=_("List of custom user modules with artifact types that "
                        "will be uploaded by Glare dynamically during service "
                        "startup."))
@@ -104,7 +104,8 @@ class ArtifactRegistry(vo_base.VersionedObjectRegistry):
         supported_types = []
         for module in modules:
             supported_types.extend(get_subclasses(module, base.BaseArtifact))
-        for type_name in set(CONF.enabled_artifact_types + ['all']):
+        types = [t.partition(':')[0] for t in CONF.enabled_artifact_types]
+        for type_name in set(types + ['all']):
             for af_type in supported_types:
                 if type_name == af_type.get_type_name():
                     cls.register(af_type)
