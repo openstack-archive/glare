@@ -156,8 +156,6 @@ def get_socket(default_port):
     """
     Bind socket to bind ip:port in conf
 
-    note: Mostly comes from Swift with a few small changes...
-
     :param default_port: port to bind to if none is specified in conf
 
     :returns: a socket object as returned from socket.listen or

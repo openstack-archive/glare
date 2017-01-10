@@ -630,3 +630,44 @@ def delete_lock(context, lock_id, session):
     except orm.exc.NoResultFound:
         msg = _("Cannot delete a lock with id %s.") % lock_id
         raise exception.NotFound(msg)
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def save_blob_data(context, blob_data_id, data, session):
+    """Save blob data to database."""
+
+    blob_data = models.ArtifactBlobData()
+    blob_data.id = blob_data_id
+    blob_data.data = data
+    blob_data.save(session=session)
+    return "sql://" + blob_data.id
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def get_blob_data(context, uri, session):
+    """Download blob data from database."""
+
+    blob_data_id = uri[6:]
+    try:
+        blob_data = session.query(
+            models.ArtifactBlobData).filter_by(id=blob_data_id).one()
+    except orm.exc.NoResultFound:
+        msg = _("Cannot find a blob data with id %s.") % blob_data_id
+        raise exception.NotFound(msg)
+    return blob_data.data
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def delete_blob_data(context, uri, session):
+    """Delete blob data from database."""
+
+    blob_data_id = uri[6:]
+    try:
+        session.query(
+            models.ArtifactBlobData).filter_by(id=blob_data_id).delete()
+    except orm.exc.NoResultFound:
+        msg = _("Cannot delete a blob data with id %s.") % blob_data_id
+        raise exception.NotFound(msg)
