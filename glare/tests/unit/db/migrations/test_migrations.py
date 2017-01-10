@@ -216,6 +216,12 @@ class GlareMigrationsCheckers(object):
         self.assert_table(engine, 'glare_artifact_locks', locks_indices,
                           locks_columns)
 
+    def _check_003(self, engine, data):
+        locks_indices = []
+        locks_columns = ['id', 'data']
+        self.assert_table(engine, 'glare_blob_data', locks_indices,
+                          locks_columns)
+
 
 class TestMigrationsMySQL(GlareMigrationsCheckers,
                           WalkVersionsMixin,
