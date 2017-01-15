@@ -896,38 +896,31 @@ class TestTags(base.TestArtifact):
         self.assertEqual('public', art['visibility'])
         # only admins can update tags for public artifacts
         self.set_user("admin")
-        # Check that tags created correctly
-        url = '/sample_artifact/%s/tags' % art['id']
-        tags = self.get(url=url, status=200)
-        for tag in ['tag1', 'tag2', 'tag3']:
-            self.assertIn(tag, tags['tags'])
 
-        # Get the list of tags
-        url = '/sample_artifact/%s/tags' % art['id']
-        tags = self.get(url=url, status=200)
+        # Check that tags created correctly
+        url = '/sample_artifact/%s' % art['id']
+        resp = self.get(url=url, status=200)
         for tag in ['tag1', 'tag2', 'tag3']:
-            self.assertIn(tag, tags['tags'])
+            self.assertIn(tag, resp['tags'])
 
         # Set new tag list to the art
-        body = {"tags": ["new_tag1", "new_tag2", "new_tag3"]}
-        tags = self.put(url=url, data=body, status=200)
+        body = [{"op": "replace",
+                 "path": "/tags",
+                 "value": ["new_tag1", "new_tag2", "new_tag3"]}]
+        resp = self.patch(url=url, data=body, status=200)
         for tag in ['new_tag1', 'new_tag2', 'new_tag3']:
-            self.assertIn(tag, tags['tags'])
+            self.assertIn(tag, resp['tags'])
 
         # Delete all tags from the art
-        url = '/sample_artifact/%s/tags' % art['id']
-        self.delete(url=url, status=204)
+        body = [{"op": "replace",
+                 "path": "/tags",
+                 "value": []}]
+        resp = self.patch(url=url, data=body, status=200)
+        self.assertEqual([], resp['tags'])
 
         # Get the list of tags
-        url = '/sample_artifact/%s/tags' % art['id']
-        tags = self.get(url=url, status=200)
-        self.assertEqual([], tags['tags'])
-
-        # Modifing tags with PATCH leads to 400 error
-        url = '/sample_artifact/%s' % art['id']
-        patch = [{'op': 'remove',
-                  'path': '/tags'}]
-        self.patch(url=url, data=patch, status=400)
+        resp = self.get(url=url, status=200)
+        self.assertEqual([], resp['tags'])
 
 
 class TestArtifactOps(base.TestArtifact):
