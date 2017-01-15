@@ -41,7 +41,7 @@ class ArtifactAPI(base_api.BaseDBAPI):
     def _serialize_values(self, values):
         new_values = {}
         if 'tags' in values:
-            new_values['tags'] = values.pop('tags')
+            new_values['tags'] = values.pop('tags') if values['tags'] else []
         for key, value in six.iteritems(values):
             if key in api.BASE_ARTIFACT_PROPERTIES:
                 new_values[key] = value

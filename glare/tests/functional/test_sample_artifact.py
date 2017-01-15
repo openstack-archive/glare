@@ -918,6 +918,13 @@ class TestTags(base.TestArtifact):
         resp = self.patch(url=url, data=body, status=200)
         self.assertEqual([], resp['tags'])
 
+        # Set new tags as null
+        body = [{"op": "replace",
+                 "path": "/tags",
+                 "value": None}]
+        resp = self.patch(url=url, data=body, status=200)
+        self.assertEqual([], resp['tags'])
+
         # Get the list of tags
         resp = self.get(url=url, status=200)
         self.assertEqual([], resp['tags'])
