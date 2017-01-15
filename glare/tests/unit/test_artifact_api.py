@@ -17,7 +17,7 @@ from glare.api.v1 import resource
 from glare.tests.unit import base
 
 
-class TestArtifactAPI(base.StoreClearingUnitTest):
+class TestArtifactAPI(base.BaseTestCase):
 
     """Test Glare API Controller."""
 

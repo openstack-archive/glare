@@ -26,8 +26,10 @@ import testtools
 
 from glare.api.middleware import context
 from glare.common import config
+from glare.common import policy
 from glare.common import utils
 from glare.common import wsgi
+from glare.db import simple_api
 
 CONF = cfg.CONF
 
@@ -63,37 +65,31 @@ class BaseTestCase(testtools.TestCase):
 
     def setUp(self):
         super(BaseTestCase, self).setUp()
-
         self._config_fixture = self.useFixture(cfg_fixture.Config())
         config.parse_args(args=[])
-        self.addCleanup(CONF.reset)
+
         self.test_dir = self.useFixture(fixtures.TempDir()).path
         self.conf_dir = os.path.join(self.test_dir, 'etc')
         utils.safe_mkdirs(self.conf_dir)
-        self.set_policy()
-        self.data_api = 'glare.db.simple_api.SimpleAPI'
-        self.lock_api = 'glare.db.simple_api.SimpleLockApi'
-        self.config(data_api=self.data_api)
-        self.config(lock_api=self.lock_api)
 
-    def set_policy(self):
-        conf_file = "policy.json"
-        self.policy_file = self._copy_data_file(conf_file, self.conf_dir)
+        self.config(data_api='glare.db.simple_api.SimpleAPI')
+        self.config(lock_api='glare.db.simple_api.SimpleLockApi')
+        self.policy_file = self._copy_data_file("policy.json", self.conf_dir)
         self.config(policy_file=self.policy_file, group='oslo_policy')
 
-    def _copy_data_file(self, file_name, dst_dir):
+        location.SCHEME_TO_CLS_MAP = {}
+        self._create_stores()
+        self.addCleanup(setattr, location, 'SCHEME_TO_CLS_MAP', dict())
+
+        self.addCleanup(simple_api.reset)
+        self.addCleanup(policy.reset)
+
+    @staticmethod
+    def _copy_data_file(file_name, dst_dir):
         src_file_name = os.path.join('glare/tests/etc', file_name)
         shutil.copy(src_file_name, dst_dir)
         dst_file_name = os.path.join(dst_dir, file_name)
         return dst_file_name
-
-    def set_property_protection_rules(self, rules):
-        with open(self.property_file, 'w') as f:
-            for rule_key in rules.keys():
-                f.write('[%s]\n' % rule_key)
-                for operation in rules[rule_key].keys():
-                    roles_str = ','.join(rules[rule_key][operation])
-                    f.write('%s = %s\n' % (operation, roles_str))
 
     def config(self, **kw):
         """
@@ -129,22 +125,10 @@ class BaseTestCase(testtools.TestCase):
         req.context = context.RequestContext(**kwargs)
         return req
 
-
-class StoreClearingUnitTest(BaseTestCase):
-
-    def setUp(self):
-        super(StoreClearingUnitTest, self).setUp()
-        # Ensure stores + locations cleared
-        location.SCHEME_TO_CLS_MAP = {}
-
-        self._create_stores()
-        self.addCleanup(setattr, location, 'SCHEME_TO_CLS_MAP', dict())
-
-    def _create_stores(self, passing_config=True):
+    def _create_stores(self):
         """Create known stores. Mock out sheepdog's subprocess dependency
         on collie.
 
-        :param passing_config: making store driver passes basic configurations.
         :returns: the number of how many store drivers been loaded.
         """
         store.register_opts(CONF)
@@ -154,3 +138,7 @@ class StoreClearingUnitTest(BaseTestCase):
                     group="glance_store")
 
         store.create_stores(CONF)
+
+    @staticmethod
+    def init_database(data):
+        simple_api.init_artifacts(data)

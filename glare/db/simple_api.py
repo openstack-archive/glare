@@ -37,6 +37,22 @@ DATA = {
 error_map = [{"catch": KeyError, "raise": glare_exc.NotFound}]
 
 
+def reset():
+    global DATA
+    DATA = {
+        'artifacts': {},
+        'locks': {}
+    }
+
+
+def init_artifacts(data):
+    global DATA
+    DATA = {
+        'artifacts': data,
+        'locks': {}
+    }
+
+
 class SimpleAPI(api.BaseDBAPI):
 
     @utils.error_handler(error_map)
