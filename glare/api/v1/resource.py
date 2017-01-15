@@ -142,11 +142,6 @@ class RequestDeserializer(api_versioning.VersionedResource,
         except (jsonpatch.InvalidJsonPatch, TypeError):
             msg = _("Json Patch body is malformed")
             raise exc.BadRequest(msg)
-        for patch_item in body:
-            if patch_item['path'] == '/tags':
-                msg = _("Cannot modify artifact tags with PATCH "
-                        "request. Use special Tag API for that.")
-                raise exc.BadRequest(msg)
         return {'patch': patch}
 
     def _deserialize_blob(self, req):
@@ -169,17 +164,6 @@ class RequestDeserializer(api_versioning.VersionedResource,
     @supported_versions(min_ver='1.0')
     def upload_blob_dict(self, req):
         return self._deserialize_blob(req)
-
-    @supported_versions(min_ver='1.0')
-    def set_tags(self, req):
-        self._get_content_type(req, expected=['application/json'])
-        body = self._get_request_body(req)
-
-        if 'tags' not in body:
-            msg = _("Tag list must be in the body of request.")
-            raise exc.BadRequest(msg)
-
-        return {'tag_list': body['tags']}
 
 
 def log_request_progress(f):
@@ -375,31 +359,6 @@ class ArtifactsController(api_versioning.VersionedResource):
         result = {'data': data, 'meta': meta}
         return result
 
-    @staticmethod
-    def _tag_body_resp(af):
-        return {'tags': af['tags']}
-
-    @supported_versions(min_ver='1.0')
-    @log_request_progress
-    def get_tags(self, req, type_name, artifact_id):
-        return self._tag_body_resp(self.engine.get(
-            req.context, type_name, artifact_id))
-
-    @supported_versions(min_ver='1.0')
-    @log_request_progress
-    def set_tags(self, req, type_name, artifact_id, tag_list):
-        patch = [{'op': 'replace', 'path': '/tags', 'value': tag_list}]
-        patch = jsonpatch.JsonPatch(patch)
-        return self._tag_body_resp(self.engine.update(
-            req.context, type_name, artifact_id, patch))
-
-    @supported_versions(min_ver='1.0')
-    @log_request_progress
-    def delete_tags(self, req, type_name, artifact_id):
-        patch = [{'op': 'replace', 'path': '/tags', 'value': []}]
-        patch = jsonpatch.JsonPatch(patch)
-        self.engine.update(req.context, type_name, artifact_id, patch)
-
 
 class ResponseSerializer(api_versioning.VersionedResource,
                          wsgi.JSONResponseSerializer):
@@ -513,10 +472,6 @@ class ResponseSerializer(api_versioning.VersionedResource,
             self._serialize_location(response, result)
         else:
             self._serialize_blob(response, result)
-
-    @supported_versions(min_ver='1.0')
-    def delete_tags(self, response, result):
-        response.status_int = http_client.NO_CONTENT
 
 
 def create_resource():

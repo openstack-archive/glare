@@ -82,25 +82,6 @@ class API(wsgi.Router):
                        action='reject',
                        allowed_methods='GET, PATCH, DELETE')
 
-        # ---tags---
-        mapper.connect('/artifacts/{type_name}/{artifact_id}/tags',
-                       controller=glare_resource,
-                       action='set_tags',
-                       conditions={'method': ['PUT']})
-        mapper.connect('/artifacts/{type_name}/{artifact_id}/tags',
-                       controller=glare_resource,
-                       action='get_tags',
-                       conditions={'method': ['GET']})
-        mapper.connect('/artifacts/{type_name}/{artifact_id}/tags',
-                       controller=glare_resource,
-                       action='delete_tags',
-                       conditions={'method': ['DELETE']},
-                       body_reject=True)
-        mapper.connect('/artifacts/{type_name}/{artifact_id}/tags',
-                       controller=reject_method_resource,
-                       action='reject',
-                       allowed_methods='GET, PUT, DELETE')
-
         # ---blobs---
         mapper.connect('/artifacts/{type_name}/{artifact_id}/{field_name}',
                        controller=glare_resource,
