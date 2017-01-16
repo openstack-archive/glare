@@ -103,7 +103,7 @@ class BlobFieldType(fields.FieldType):
             blob_path = attr.split('[')
             url = url + blob_path[0]
             if len(blob_path) > 1:
-                url = '/%s' % blob_path[1][:-1]
+                url += '/%s' % blob_path[1][1:-2]
             prim['url'] = url
         return prim
 

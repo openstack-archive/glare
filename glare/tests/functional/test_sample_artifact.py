@@ -692,8 +692,14 @@ class TestBlobs(base.TestArtifact):
                          self.get(url=url + '/dict_of_blobs/new_blob',
                                   status=200))
 
-        # download blob from undefined dict property
+        # Download blob from undefined dict property
         self.get(url=url + '/not_a_dict/not_a_blob', status=400)
+
+        # Blob url is generated right
+        art = self.get(url=url, status=200)
+        exp_blob_url = '/artifacts' + url + '/dict_of_blobs/new_blob'
+        self.assertEqual(exp_blob_url,
+                         art['dict_of_blobs']['new_blob']['url'])
 
     def test_blob_upload(self):
         # create artifact with blob
@@ -732,6 +738,10 @@ class TestBlobs(base.TestArtifact):
                          art['blob']['content_type'])
         self.assertIn('url', art['blob'])
         self.assertNotIn('id', art['blob'])
+
+        # Blob url is generated right
+        exp_blob_url = '/artifacts' + url + '/blob'
+        self.assertEqual(exp_blob_url, art['blob']['url'])
 
         # reUpload file to artifact
         self.put(url=url + '/blob', data=data, status=409,
