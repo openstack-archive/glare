@@ -880,6 +880,9 @@ class TestBlobs(base.TestArtifact):
         self.put(url=url + '/dict_of_blobs/blob_incorrect', data="incorrect",
                  status=400, headers=headers)
 
+        # delete the artifact
+        self.delete(url=url)
+
 
 class TestTags(base.TestArtifact):
     def test_tags(self):
