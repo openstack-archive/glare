@@ -2148,3 +2148,42 @@ class TestLinks(base.TestArtifact):
         # try to set invalid link
         patch = [{"op": "replace", "path": "/link1", "value": "Invalid"}]
         self.patch(url=url, data=patch, status=400)
+
+        # try to set link to non-existing artifact
+        non_exiting_url = "/artifacts/sample_artifact/%s" % uuid.uuid4()
+        patch = [{"op": "replace",
+                  "path": "/link1",
+                  "value": non_exiting_url}]
+        self.patch(url=url, data=patch, status=400)
+
+    def test_manage_dict_of_links(self):
+        some_af = self.create_artifact(data={"name": "test_af"})
+        dep_af = self.create_artifact(data={"name": "test_dep_af"})
+        dep_url = "/artifacts/sample_artifact/%s" % some_af['id']
+
+        # set valid link
+        patch = [{"op": "add",
+                  "path": "/dict_of_links/link1",
+                  "value": dep_url}]
+        url = '/sample_artifact/%s' % dep_af['id']
+        af = self.patch(url=url, data=patch)
+        self.assertEqual(af['dict_of_links']['link1'], dep_url)
+
+        # remove link from artifact
+        patch = [{"op": "remove",
+                  "path": "/dict_of_links/link1"}]
+        af = self.patch(url=url, data=patch)
+        self.assertNotIn('link1', af['dict_of_links'])
+
+        # try to set invalid link
+        patch = [{"op": "replace",
+                  "path": "/dict_of_links/link1",
+                  "value": "Invalid"}]
+        self.patch(url=url, data=patch, status=400)
+
+        # try to set link to non-existing artifact
+        non_exiting_url = "/artifacts/sample_artifact/%s" % uuid.uuid4()
+        patch = [{"op": "replace",
+                  "path": "/dict_of_links/link1",
+                  "value": non_exiting_url}]
+        self.patch(url=url, data=patch, status=400)
