@@ -614,12 +614,14 @@ class BaseArtifact(base.VersionedObject):
     def _delete_blobs(cls, blobs, context, af):
         for name, blob in six.iteritems(blobs):
             if cls.is_blob(name):
-                store_api.delete_blob(blob['url'], context=context)
+                if not blob['external']:
+                    store_api.delete_blob(blob['url'], context=context)
                 cls.db_api.update(context, af.id, {name: None})
             elif cls.is_blob_dict(name):
                 upd_blob = deepcopy(blob)
                 for key, val in six.iteritems(blob):
-                    store_api.delete_blob(val['url'], context=context)
+                    if not val['external']:
+                        store_api.delete_blob(val['url'], context=context)
                     del upd_blob[key]
                     cls.db_api.update(context, af.id, {name: upd_blob})
 
