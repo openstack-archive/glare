@@ -19,17 +19,16 @@ import jsonpatch
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
-from oslo_utils import importutils
 
 from glare.common import exception
 from glare.common import policy
 from glare.common import store_api
 from glare.common import utils
 from glare.i18n import _, _LI, _LW
-from glare import locking
 from glare.notification import Notifier
+from glare.objects import base
 from glare.objects.meta import fields as glare_fields
-from glare.objects.meta import registry as glare_registry
+from glare.objects.meta import registry
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
@@ -49,10 +48,9 @@ class Engine(object):
     to Artifacts. Engine should not know any internal details of Artifacts
     because it controls access to Artifacts in common.
     """
-
-    registry = glare_registry.ArtifactRegistry
-    registry.register_all_artifacts()
-    lock_engine = locking.LockEngine(importutils.import_class(CONF.lock_api)())
+    def __init__(self):
+        # register all artifact types
+        registry.ArtifactRegistry.register_all_artifacts()
 
     @classmethod
     def _get_schemas(cls, reg):
@@ -99,7 +97,7 @@ class Engine(object):
                 # TODO(kairat): check artifact sharing here
                 raise exception.Forbidden()
 
-        artifact_type = Engine.registry.get_artifact_type(type_name)
+        artifact_type = registry.ArtifactRegistry.get_artifact_type(type_name)
         # only artifact is available for class users
         artifact = artifact_type.get(context, artifact_id)
         if read_only:
@@ -114,12 +112,12 @@ class Engine(object):
     @classmethod
     def list_type_schemas(cls, context):
         policy.authorize("artifact:type_list", {}, context)
-        return cls._get_schemas(cls.registry)
+        return cls._get_schemas(registry.ArtifactRegistry)
 
     @classmethod
     def show_type_schema(cls, context, type_name):
         policy.authorize("artifact:type_list", {}, context)
-        schemas = cls._get_schemas(cls.registry)
+        schemas = cls._get_schemas(registry.ArtifactRegistry)
         if type_name not in schemas:
             msg = _("Artifact type %s does not exist") % type_name
             raise exception.NotFound(message=msg)
@@ -130,7 +128,7 @@ class Engine(object):
         """Create new artifact in Glare"""
         action_name = "artifact:create"
         policy.authorize(action_name, field_values, context)
-        artifact_type = cls.registry.get_artifact_type(type_name)
+        artifact_type = registry.ArtifactRegistry.get_artifact_type(type_name)
         # acquire version lock and execute artifact create
         af = artifact_type.create(context, field_values)
         # notify about new artifact
@@ -139,7 +137,6 @@ class Engine(object):
         return af.to_dict()
 
     @classmethod
-    @lock_engine.locked(['type_name', 'artifact_id'])
     def update(cls, context, type_name, artifact_id, patch):
         """Update artifact with json patch.
 
@@ -185,23 +182,24 @@ class Engine(object):
             except TypeError as e:
                 msg = _("Incorrect type of the element. Reason: %s") % str(e)
                 raise exception.BadRequest(msg)
+        lock_key = "%s:%s:" % (type_name, artifact_id)
+        with base.BaseArtifact.lock_engine.acquire(context, lock_key):
+            artifact = cls._get_artifact(context, type_name, artifact_id)
+            af_dict = artifact.to_dict()
+            updates = get_updates(af_dict, patch)
+            LOG.debug("Update diff successfully calculated for artifact "
+                      "%(af)s %(diff)s", {'af': artifact_id, 'diff': updates})
 
-        artifact = cls._get_artifact(context, type_name, artifact_id)
-        af_dict = artifact.to_dict()
-        updates = get_updates(af_dict, patch)
-        LOG.debug("Update diff successfully calculated for artifact %(af)s "
-                  "%(diff)s", {'af': artifact_id, 'diff': updates})
-
-        if not updates:
-            return af_dict
-        else:
-            action = artifact.get_action_for_updates(context, artifact,
-                                                     updates, cls.registry)
-            action_name = "artifact:%s" % action.__name__
-            policy.authorize(action_name, af_dict, context)
-            modified_af = action(context, artifact, updates)
-            Notifier.notify(context, action_name, modified_af)
-            return modified_af.to_dict()
+            if not updates:
+                return af_dict
+            else:
+                action = artifact.get_action_for_updates(
+                    context, artifact, updates, registry.ArtifactRegistry)
+                action_name = "artifact:%s" % action.__name__
+                policy.authorize(action_name, af_dict, context)
+                modified_af = action(context, artifact, updates)
+                Notifier.notify(context, action_name, modified_af)
+                return modified_af.to_dict()
 
     @classmethod
     def get(cls, context, type_name, artifact_id):
@@ -229,7 +227,7 @@ class Engine(object):
         :return: list of artifacts
         """
         policy.authorize("artifact:list", {}, context)
-        artifact_type = cls.registry.get_artifact_type(type_name)
+        artifact_type = registry.ArtifactRegistry.get_artifact_type(type_name)
         # return list to the user
         af_list = [af.to_dict()
                    for af in artifact_type.list(context, filters, marker,
@@ -370,7 +368,6 @@ class Engine(object):
         return modified_af.to_dict()
 
     @classmethod
-    @lock_engine.locked(['type_name', 'artifact_id'])
     def update_blob(cls, context, type_name, artifact_id, blob,
                     field_name, blob_key=None, validate=False):
         """Update blob info.
@@ -384,18 +381,20 @@ class Engine(object):
         :param validate: enable validation of possibility of blob uploading
         :return updated artifact
         """
-        af = cls._get_artifact(context, type_name, artifact_id)
-        if validate:
-            af.validate_upload_allowed(context, af, field_name, blob_key)
-        if blob_key is None:
-            setattr(af, field_name, blob)
-            return af.update_blob(
-                context, af.id, {field_name: getattr(af, field_name)})
-        else:
-            blob_dict_attr = getattr(af, field_name)
-            blob_dict_attr[blob_key] = blob
-            return af.update_blob(
-                context, af.id, {field_name: blob_dict_attr})
+        lock_key = "%s:%s:" % (type_name, artifact_id)
+        with base.BaseArtifact.lock_engine.acquire(context, lock_key):
+            af = cls._get_artifact(context, type_name, artifact_id)
+            if validate:
+                af.validate_upload_allowed(context, af, field_name, blob_key)
+            if blob_key is None:
+                setattr(af, field_name, blob)
+                return af.update_blob(
+                    context, af.id, {field_name: getattr(af, field_name)})
+            else:
+                blob_dict_attr = getattr(af, field_name)
+                blob_dict_attr[blob_key] = blob
+                return af.update_blob(
+                    context, af.id, {field_name: blob_dict_attr})
 
     @classmethod
     def download_blob(cls, context, type_name, artifact_id, field_name,

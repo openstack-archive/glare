@@ -47,13 +47,6 @@ CONF.register_opts(artifact_opts)
 LOG = logging.getLogger(__name__)
 
 
-class classproperty(property):
-    """Special decorator that creates class properties"""
-
-    def __get__(self, cls, owner):
-        return classmethod(self.fget).__get__(None, owner)()
-
-
 class BaseArtifact(base.VersionedObject):
     """BaseArtifact is a central place in Glare. It execute Glare business
     logic operations and checks in like:
@@ -254,14 +247,14 @@ class BaseArtifact(base.VersionedObject):
     _DB_API = None
     _LOCK_ENGINE = None
 
-    @classproperty
+    @utils.classproperty
     def db_api(cls):
         """Return current database API"""
         if cls._DB_API is None:
             cls._DB_API = importutils.import_class(CONF.data_api)(cls)
         return cls._DB_API
 
-    @classproperty
+    @utils.classproperty
     def lock_engine(cls):
         """Return current lock engine"""
         if cls._LOCK_ENGINE is None:
