@@ -60,7 +60,7 @@ def _retry_on_deadlock(exc):
     """Decorator to retry a DB API call if Deadlock was received."""
 
     if isinstance(exc, db_exception.DBDeadlock):
-        LOG.warn(_LW("Deadlock detected. Retrying..."))
+        LOG.warning(_LW("Deadlock detected. Retrying..."))
         return True
     return False
 
@@ -185,7 +185,7 @@ def _get(context, artifact_id, session):
         artifact = query.one()
     except orm.exc.NoResultFound:
         msg = _("Artifact with id=%s not found.") % artifact_id
-        LOG.warn(msg)
+        LOG.warning(msg)
         raise exception.ArtifactNotFound(msg)
     return artifact
 

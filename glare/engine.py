@@ -25,7 +25,7 @@ from glare.common import exception
 from glare.common import policy
 from glare.common import store_api
 from glare.common import utils
-from glare.i18n import _, _LI
+from glare.i18n import _, _LI, _LW
 from glare import locking
 from glare.notification import Notifier
 from glare.objects.meta import fields as glare_fields
@@ -337,9 +337,9 @@ class Engine(object):
             default_store = af.get_default_store(
                 context, af, field_name, blob_key)
             if default_store not in set(CONF.glance_store.stores):
-                LOG.warn("Incorrect backend configuration - scheme '%s' is not"
-                         " supported. Fallback to default store."
-                         % default_store)
+                LOG.warning(_LW('Incorrect backend configuration - scheme '
+                                '"%s" is not supported. Fallback to default '
+                                'store.'), default_store)
                 default_store = None
             location_uri, size, checksums = store_api.save_blob_to_store(
                 blob_id, fd, context, af.get_max_blob_size(field_name),

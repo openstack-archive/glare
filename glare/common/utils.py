@@ -318,7 +318,7 @@ def validate_key_cert(key_file, cert_file):
         data = encodeutils.to_utf8(data)
         digest = CONF.digest_algorithm
         if digest == 'sha1':
-            LOG.warn(
+            LOG.warning(
                 _LW('The FIPS (FEDERAL INFORMATION PROCESSING STANDARDS)'
                     ' state that the SHA-1 is not suitable for'
                     ' general-purpose digital signature applications (as'

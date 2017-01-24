@@ -31,7 +31,7 @@ def _retry_on_connection_error(exc):
     """Function to retry a DB API call if connection error was received."""
 
     if isinstance(exc, db_exception.DBConnectionError):
-        LOG.warn(_LW("Connection error detected. Retrying..."))
+        LOG.warning(_LW("Connection error detected. Retrying..."))
         return True
     return False
 
