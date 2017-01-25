@@ -314,7 +314,7 @@ class BaseArtifact(base.VersionedObject):
                 'version', cls.DEFAULT_ARTIFACT_VERSION)
             cls._validate_versioning(context, values.get('name'), ver)
             # validate other values
-            cls._validate_input_values(context, values)
+            cls._validate_change_allowed(values)
             # validate visibility
             if 'visibility' in values:
                 msg = _("visibility is not allowed in a request "
@@ -350,48 +350,33 @@ class BaseArtifact(base.VersionedObject):
             raise exception.BadRequest(msg)
 
     @classmethod
-    def _validate_input_values(cls, context, values):
-        # validate that we are not specifying any system attribute
-        # and that we do not upload blobs or add locations here
-        for field_name in values:
-            if field_name in cls.fields:
-                if cls.fields[field_name].system is True:
-                    msg = _("Cannot specify system property %s. It is not "
-                            "available for modifying by users.") % field_name
-                    raise exception.Forbidden(msg)
-                elif cls.is_blob(field_name) or cls.is_blob_dict(field_name):
-                    msg = _("Cannot add blob %s with this request. "
-                            "Use special Blob API for that.") % field_name
-                    raise exception.BadRequest(msg)
-            else:
-                msg = (_("Cannot add non-existing property %s to artifact. ")
-                       % field_name)
-                raise exception.BadRequest(msg)
-
-    @classmethod
-    def _validate_update_allowed(cls, context, af, field_names):
-        """Validate if fields can be updated in artifact
-
-        :param context:
-        :param af:
-        :param field_names:
-        :return:
-        """
-        if af.status not in (cls.STATUS.ACTIVE, cls.STATUS.DRAFTED):
+    def _validate_change_allowed(cls, field_names, af=None,
+                                 validate_blob_names=True):
+        """Validate if fields can be updated in artifact"""
+        af_status = cls.STATUS.DRAFTED if af is None else af.status
+        if af_status not in (cls.STATUS.ACTIVE, cls.STATUS.DRAFTED):
             msg = _("Forbidden to change attributes "
                     "if artifact not active or drafted.")
             raise exception.Forbidden(message=msg)
 
         for field_name in field_names:
+            if field_name not in cls.fields:
+                msg = _("%s property does not exist") % field_name
+                raise exception.BadRequest(msg)
             field = cls.fields[field_name]
             if field.system is True:
                 msg = _("Cannot specify system property %s. It is not "
                         "available for modifying by users.") % field_name
                 raise exception.Forbidden(msg)
-            if af.status == cls.STATUS.ACTIVE and not field.mutable:
+            if af_status == cls.STATUS.ACTIVE and not field.mutable:
                 msg = (_("Forbidden to change property '%s' after activation.")
                        % field_name)
                 raise exception.Forbidden(message=msg)
+            if validate_blob_names and \
+                    (cls.is_blob(field_name) or cls.is_blob_dict(field_name)):
+                msg = _("Cannot add blob %s with this request. "
+                        "Use special Blob API for that.") % field_name
+                raise exception.BadRequest(msg)
 
     @classmethod
     def update(cls, context, af, values):
@@ -399,7 +384,7 @@ class BaseArtifact(base.VersionedObject):
 
         :param context: user Context
         :param af: current definition of Artifact in Glare
-        :param values: list of changes for artifact
+        :param values: dictionary with changes for artifact
         :return: definition of updated Artifact
         """
         # reset all changes of artifact to reuse them after update
@@ -412,8 +397,7 @@ class BaseArtifact(base.VersionedObject):
                 cls._validate_versioning(context, new_name, new_version)
 
             # validate other values
-            cls._validate_update_allowed(context, af, list(values))
-            cls._validate_input_values(context, values)
+            cls._validate_change_allowed(values, af)
             # apply values to the artifact. if all changes applied then update
             # values in db or raise an exception in other case.
             for key, value in six.iteritems(values):
@@ -807,10 +791,8 @@ class BaseArtifact(base.VersionedObject):
         blob_name = "%s[%s]" % (field_name, blob_key)\
             if blob_key else field_name
 
-        if field_name not in cls.fields:
-            msg = _("%s property does not exist") % field_name
-            raise exception.BadRequest(msg)
-        cls._validate_update_allowed(context, af, [field_name])
+        cls._validate_change_allowed([field_name], af,
+                                     validate_blob_names=False)
         if blob_key:
             if not cls.is_blob_dict(field_name):
                 msg = _("%s is not a blob dict") % field_name
