@@ -2200,3 +2200,35 @@ class TestLinks(base.TestArtifact):
                   "path": "/dict_of_links/link1",
                   "value": non_exiting_url}]
         self.patch(url=url, data=patch, status=400)
+
+    def test_manage_list_of_links(self):
+        some_af = self.create_artifact(data={"name": "test_af"})
+        dep_af = self.create_artifact(data={"name": "test_dep_af"})
+        dep_url = "/artifacts/sample_artifact/%s" % some_af['id']
+
+        # set valid link
+        patch = [{"op": "add",
+                  "path": "/list_of_links/-",
+                  "value": dep_url}]
+        url = '/sample_artifact/%s' % dep_af['id']
+        af = self.patch(url=url, data=patch)
+        self.assertEqual(af['list_of_links'][0], dep_url)
+
+        # remove link from artifact
+        patch = [{"op": "remove",
+                  "path": "/list_of_links/0"}]
+        af = self.patch(url=url, data=patch)
+        self.assertEqual(0, len(af['list_of_links']))
+
+        # try to set invalid link
+        patch = [{"op": "add",
+                  "path": "/list_of_links/-",
+                  "value": "Invalid"}]
+        self.patch(url=url, data=patch, status=400)
+
+        # try to set link to non-existing artifact
+        non_exiting_url = "/artifacts/sample_artifact/%s" % uuid.uuid4()
+        patch = [{"op": "add",
+                  "path": "/list_of_links/-",
+                  "value": non_exiting_url}]
+        self.patch(url=url, data=patch, status=400)
