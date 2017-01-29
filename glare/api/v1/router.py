@@ -100,18 +100,18 @@ class API(wsgi.Router):
         # ---blob dicts---
 
         mapper.connect('/artifacts/{type_name}/{artifact_id}/{field_name}/'
-                       '{blob_key}',
+                       '{blob_key:.*?}',
                        controller=glare_resource,
                        action='download_blob_dict',
                        conditions={'method': ['GET']},
                        body_reject=True)
         mapper.connect('/artifacts/{type_name}/{artifact_id}/{field_name}/'
-                       '{blob_key}',
+                       '{blob_key:.*?}',
                        controller=glare_resource,
                        action='upload_blob_dict',
                        conditions={'method': ['PUT']})
         mapper.connect('/artifacts/{type_name}/{artifact_id}/{field_name}/'
-                       '{blob_key}',
+                       '{blob_key:.*?}',
                        controller=reject_method_resource,
                        action='reject',
                        allowed_methods='GET, PUT')
