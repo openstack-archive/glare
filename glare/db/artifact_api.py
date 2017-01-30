@@ -19,7 +19,6 @@ from oslo_log import log as logging
 from retrying import retry
 import six
 
-from glare.db import api as base_api
 from glare.db.sqlalchemy import api
 from glare.i18n import _LW
 from glare import locking
@@ -36,7 +35,7 @@ def _retry_on_connection_error(exc):
     return False
 
 
-class ArtifactAPI(base_api.BaseDBAPI):
+class ArtifactAPI(object):
 
     def _serialize_values(self, values):
         new_values = {}
@@ -45,45 +44,92 @@ class ArtifactAPI(base_api.BaseDBAPI):
         for key, value in six.iteritems(values):
             if key in api.BASE_ARTIFACT_PROPERTIES:
                 new_values[key] = value
-            elif self.cls.is_blob(key) or self.cls.is_blob_dict(key):
-                new_values.setdefault('blobs', {})[key] = value
             else:
                 new_values.setdefault('properties', {})[key] = value
         return new_values
 
     @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
            stop_max_attempt_number=20)
-    def create(self, context, values):
+    def create(self, context, values, type):
+        """Create new artifact in db and return dict of values to the user
+
+        :param context: user context
+        :param values: dict of values that needs to be saved to db
+        :param type: string indicates artifact of what type to create
+        :return: dict of created values
+        """
         values = self._serialize_values(values)
-        values['type_name'] = self.type
+        values['type_name'] = type
         session = api.get_session()
         return api.create(context, values, session)
 
     @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
            stop_max_attempt_number=20)
     def update(self, context, artifact_id, values):
+        """Update artifact values in database
+
+        :param artifact_id: id of artifact that needs to be updated
+        :param context: user context
+        :param values: values that needs to be updated
+        :return: dict of updated artifact values
+        """
         session = api.get_session()
         return api.update(context, artifact_id,
                           self._serialize_values(values), session)
 
+    def update_blob(self, context, artifact_id, values):
+        """Create and update blob records in db
+
+        :param artifact_id: id of artifact that needs to be updated
+        :param context: user context
+        :param values: blob values that needs to be updated
+        :return: dict of updated artifact values
+        """
+        session = api.get_session()
+        return api.update(context, artifact_id,
+                          {'blobs': values}, session)
+
     @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
            stop_max_attempt_number=20)
     def delete(self, context, artifact_id):
+        """Delete artifacts from db
+
+        :param context: user context
+        :param artifact_id: id of artifact that needs to be deleted
+        :return: dict for deleted artifact value
+        """
         session = api.get_session()
         return api.delete(context, artifact_id, session)
 
     @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
            stop_max_attempt_number=20)
     def get(self, context, artifact_id):
+        """Return artifact values from database
+
+        :param context: user context
+        :param artifact_id: id of the artifact
+        :return: dict of artifact values
+        """
         session = api.get_session()
         return api.get(context, artifact_id, session)
 
     @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
            stop_max_attempt_number=20)
     def list(self, context, filters, marker, limit, sort, latest):
+        """List artifacts from db
+
+        :param context: user request context
+        :param filters: filter conditions from url
+        :param marker: id of first artifact where we need to start
+        artifact lookup
+        :param limit: max number of items in list
+        :param sort: sort conditions
+        :param latest: flag that indicates, that only artifacts with highest
+        versions should be returned in output
+        :return: list of artifacts. Each artifact is represented as dict of
+        values.
+        """
         session = api.get_session()
-        if self.type != 'all':
-            filters.append(('type_name', None, 'eq', None, self.type))
         return api.get_all(context=context, session=session, filters=filters,
                            marker=marker, limit=limit, sort=sort,
                            latest=latest)

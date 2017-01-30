@@ -22,7 +22,6 @@ import six
 
 import glare.common.exception as glare_exc
 from glare.common import utils
-from glare.db import api
 from glare.i18n import _
 from glare import locking
 
@@ -53,17 +52,17 @@ def init_artifacts(data):
     }
 
 
-class SimpleAPI(api.BaseDBAPI):
+class SimpleAPI(object):
 
     @utils.error_handler(error_map)
-    def create(self, context, values):
+    def create(self, context, values, type):
         global DATA
         values['created_at'] = values['updated_at'] = timeutils.utcnow()
         artifact_id = values['id']
         if artifact_id in DATA['artifacts']:
             msg = _("Artifact with id '%s' already exists") % artifact_id
             raise glare_exc.BadRequest(msg)
-        values['type_name'] = self.type
+        values['type_name'] = type
 
         DATA['artifacts'][artifact_id] = values
         return values
@@ -83,11 +82,13 @@ class SimpleAPI(api.BaseDBAPI):
                 del af[key]
             else:
                 af[key] = val
-        if 'status' in values and values['status'] == self.cls.STATUS.ACTIVE:
+        if 'status' in values and values['status'] == 'active':
             af['activated_at'] = timeutils.utcnow()
         af['updated_at'] = timeutils.utcnow()
         DATA['artifacts'][artifact_id] = af
         return af
+
+    update_blob = update
 
     @utils.error_handler(error_map)
     def delete(self, context, artifact_id):
@@ -113,8 +114,6 @@ class SimpleAPI(api.BaseDBAPI):
     def list(self, context, filters, marker, limit, sort, latest):
         global DATA
         afs = list(DATA['artifacts'].values())
-        if self.type != 'all':
-            filters.append(('type_name', None, 'eq', None, self.type))
 
         for field_name, key_name, op, field_type, value in filters:
             if field_name == 'tags':

@@ -30,7 +30,7 @@ from glare.common import config
 from glare.common import policy
 from glare.common import utils
 from glare.common import wsgi
-from glare.db import simple_api
+from glare.tests.unit import simple_db_api
 
 CONF = cfg.CONF
 
@@ -73,8 +73,8 @@ class BaseTestCase(testtools.TestCase):
         self.conf_dir = os.path.join(self.test_dir, 'etc')
         utils.safe_mkdirs(self.conf_dir)
 
-        self.config(data_api='glare.db.simple_api.SimpleAPI')
-        self.config(lock_api='glare.db.simple_api.SimpleLockApi')
+        self.config(data_api='glare.tests.unit.simple_db_api.SimpleAPI')
+        self.config(lock_api='glare.tests.unit.simple_db_api.SimpleLockApi')
         self.policy_file = self._copy_data_file("policy.json", self.conf_dir)
         self.config(policy_file=self.policy_file, group='oslo_policy')
 
@@ -82,7 +82,7 @@ class BaseTestCase(testtools.TestCase):
         self._create_stores()
         self.addCleanup(setattr, location, 'SCHEME_TO_CLS_MAP', dict())
 
-        self.addCleanup(simple_api.reset)
+        self.addCleanup(simple_db_api.reset)
         self.addCleanup(policy.reset)
 
     @staticmethod
@@ -142,7 +142,7 @@ class BaseTestCase(testtools.TestCase):
 
     @staticmethod
     def init_database(data):
-        simple_api.init_artifacts(data)
+        simple_db_api.init_artifacts(data)
 
     @staticmethod
     def generate_json_patch(values):
