@@ -30,6 +30,8 @@ from glare.common import config
 from glare.common import policy
 from glare.common import utils
 from glare.common import wsgi
+from glare import locking
+from glare.objects import base
 from glare.tests.unit import simple_db_api
 
 CONF = cfg.CONF
@@ -73,8 +75,10 @@ class BaseTestCase(testtools.TestCase):
         self.conf_dir = os.path.join(self.test_dir, 'etc')
         utils.safe_mkdirs(self.conf_dir)
 
-        self.config(data_api='glare.tests.unit.simple_db_api.SimpleAPI')
-        self.config(lock_api='glare.tests.unit.simple_db_api.SimpleLockApi')
+        base.BaseArtifact.db_api = simple_db_api.SimpleAPI()
+        base.BaseArtifact.lock_engine = locking.LockEngine(
+            simple_db_api.SimpleLockApi())
+
         self.policy_file = self._copy_data_file("policy.json", self.conf_dir)
         self.config(policy_file=self.policy_file, group='oslo_policy')
 

@@ -14,6 +14,7 @@
 
 from oslo_versionedobjects import fields
 
+from glare.common import exception
 from glare.objects import base
 from glare.objects.meta import attribute
 
@@ -21,13 +22,49 @@ from glare.objects.meta import attribute
 Field = attribute.Attribute.init
 
 
-class All(base.ReadOnlyMixin, base.BaseArtifact):
+class All(base.BaseArtifact):
     """Artifact type that allows to get artifacts regardless of their type"""
 
     fields = {
         'type_name': Field(fields.StringField,
                            description="Name of artifact type."),
     }
+
+    @classmethod
+    def create(cls, context, values):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def update(cls, context, af, values):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def get_action_for_updates(cls, context, artifact, updates, registry):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def delete(cls, context, af):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def activate(cls, context, af, values):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def reactivate(cls, context, af, values):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def deactivate(cls, context, af, values):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def publish(cls, context, af, values):
+        raise exception.Forbidden("This type is read only.")
+
+    @classmethod
+    def update_blob(cls, context, af_id, values):
+        raise exception.Forbidden("This type is read only.")
 
     @classmethod
     def get_type_name(cls):
