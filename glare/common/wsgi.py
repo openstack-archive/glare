@@ -104,41 +104,12 @@ eventlet_opts = [
                       'wait forever.')),
 ]
 
-data_api_opts = [
-    cfg.StrOpt('data_api',
-               default='glare.db.artifact_api.ArtifactAPI',
-               help=("""
-Python class path of data access API.
-
-Specifies the path to the API to use for accessing the data model.
-This option determines how the artifact catalog data will be accessed.
-
-If this option is set to ``glare.db.artifact_api.ArtifactAPI`` then
-the artifact catalog data is stored in and read from the database via the
-SQLAlchemy Core and ORM APIs.
-""")),
-    cfg.StrOpt('lock_api',
-               default='glare.db.artifact_api.ArtifactLockApi',
-               help=("""
-Python class path of API for setting locks on artifacts.
-
-Specifies the path to the API to use for locking.
-This option determines how the locking will be accessed.
-
-If this option is set to ``glare.db.artifact_api.ArtifactLockApi``
-then the locks are stored in and read from the database via the
-SQLAlchemy Core and ORM APIs.
-"""))
-]
-
-
 LOG = logging.getLogger(__name__)
 
 CONF = cfg.CONF
 CONF.register_opts(bind_opts)
 CONF.register_opts(socket_opts)
 CONF.register_opts(eventlet_opts)
-CONF.register_opts(data_api_opts)
 profiler_opts.set_defaults(CONF)
 
 ASYNC_EVENTLET_THREAD_POOL_LIST = []

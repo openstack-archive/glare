@@ -642,10 +642,3 @@ class DictDiffer(object):
         msg += "\tChanged keys: %s\n" % ', '.join(self.changed())
         msg += "\tUnchanged keys: %s\n" % ', '.join(self.unchanged())
         return msg
-
-
-class classproperty(property):
-    """Special decorator that creates class properties"""
-
-    def __get__(self, cls, owner):
-        return classmethod(self.fget).__get__(None, owner)()

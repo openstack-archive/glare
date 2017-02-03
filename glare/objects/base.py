@@ -18,7 +18,6 @@ import uuid
 
 from oslo_config import cfg
 from oslo_log import log as logging
-from oslo_utils import importutils
 from oslo_utils import timeutils
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
@@ -28,6 +27,7 @@ import six.moves.urllib.request as urlrequest
 from glare.common import exception
 from glare.common import store_api
 from glare.common import utils
+from glare.db import artifact_api
 from glare import locking
 from glare.i18n import _, _LI
 from glare.objects.meta import attribute
@@ -165,6 +165,9 @@ class BaseArtifact(base.VersionedObject):
                              description="URL to artifact license."),
     }
 
+    db_api = artifact_api.ArtifactAPI()
+    lock_engine = locking.LockEngine(artifact_api.ArtifactLockApi())
+
     @classmethod
     def is_blob(cls, field_name):
         """Helper to check that field is blob
@@ -243,24 +246,6 @@ class BaseArtifact(base.VersionedObject):
         :return: string that identifies current Artifact Type.
         """
         raise NotImplementedError()
-
-    _DB_API = None
-    _LOCK_ENGINE = None
-
-    @utils.classproperty
-    def db_api(cls):
-        """Return current database API"""
-        if cls._DB_API is None:
-            cls._DB_API = importutils.import_class(CONF.data_api)()
-        return cls._DB_API
-
-    @utils.classproperty
-    def lock_engine(cls):
-        """Return current lock engine"""
-        if cls._LOCK_ENGINE is None:
-            cls._LOCK_ENGINE = locking.LockEngine(
-                importutils.import_class(CONF.lock_api)())
-        return cls._LOCK_ENGINE
 
     @classmethod
     def _lock_version(cls, context, values):
@@ -978,43 +963,3 @@ class BaseArtifact(base.VersionedObject):
                    'required': ['name']}
 
         return schemas
-
-
-class ReadOnlyMixin(object):
-    """Mixin that disables all modifying actions on artifacts."""
-
-    @classmethod
-    def create(cls, context, values):
-        raise exception.Forbidden("This type is read only.")
-
-    @classmethod
-    def update(cls, context, af, values):
-        raise exception.Forbidden("This type is read only.")
-
-    @classmethod
-    def get_action_for_updates(cls, context, artifact, updates, registry):
-        raise exception.Forbidden("This type is read only.")
-
-    @classmethod
-    def delete(cls, context, af):
-        raise exception.Forbidden("This type is read only.")
-
-    @classmethod
-    def activate(cls, context, af, values):
-        raise exception.Forbidden("This type is read only.")
-
-    @classmethod
-    def reactivate(cls, context, af, values):
-        raise exception.Forbidden("This type is read only.")
-
-    @classmethod
-    def deactivate(cls, context, af, values):
-        raise exception.Forbidden("This type is read only.")
-
-    @classmethod
-    def publish(cls, context, af, values):
-        raise exception.Forbidden("This type is read only.")
-
-    @classmethod
-    def update_blob(cls, context, af_id, values):
-        raise exception.Forbidden("This type is read only.")
