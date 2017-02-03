@@ -251,7 +251,7 @@ class BaseArtifact(base.VersionedObject):
     def db_api(cls):
         """Return current database API"""
         if cls._DB_API is None:
-            cls._DB_API = importutils.import_class(CONF.data_api)(cls)
+            cls._DB_API = importutils.import_class(CONF.data_api)()
         return cls._DB_API
 
     @utils.classproperty
@@ -320,8 +320,8 @@ class BaseArtifact(base.VersionedObject):
             af = cls._init_artifact(context, values)
             LOG.info(_LI("Parameters validation for artifact creation "
                          "passed for request %s."), context.request_id)
-            af_vals = cls.db_api.create(context,
-                                        af.obj_changes_to_primitive())
+            af_vals = cls.db_api.create(
+                context, af.obj_changes_to_primitive(), cls.get_type_name())
             return cls._init_artifact(context, af_vals)
 
     @classmethod
@@ -527,7 +527,13 @@ class BaseArtifact(base.VersionedObject):
         # (filter_name, filter_value)
         # output format for filters is list of tuples:
         # (field_name, key_name, op, field_type, value)
-        new_filters = []
+
+        if cls.get_type_name() != 'all':
+            new_filters = [
+                ('type_name', None, 'eq', None, cls.get_type_name())]
+        else:
+            new_filters = []
+
         for filter_name, filter_value in filters:
             if filter_name in ('tags-any', 'tags'):
                 if ':' in filter_value:
@@ -619,14 +625,14 @@ class BaseArtifact(base.VersionedObject):
             if cls.is_blob(name):
                 if not blob['external']:
                     store_api.delete_blob(blob['url'], context=context)
-                cls.db_api.update(context, af.id, {name: None})
+                cls.db_api.update_blob(context, af.id, {name: None})
             elif cls.is_blob_dict(name):
                 upd_blob = deepcopy(blob)
                 for key, val in six.iteritems(blob):
                     if not val['external']:
                         store_api.delete_blob(val['url'], context=context)
                     del upd_blob[key]
-                    cls.db_api.update(context, af.id, {name: upd_blob})
+                    cls.db_api.update_blob(context, af.id, {name: upd_blob})
 
     @classmethod
     def delete(cls, context, af):
@@ -656,7 +662,7 @@ class BaseArtifact(base.VersionedObject):
             LOG.debug("Marked all blobs %(blobs) for artifact %(artifact)s "
                       "as pending delete. Start blobs delete.",
                       {'blobs': blobs, 'artifact': af.id})
-            cls.db_api.update(context, af.id, blobs)
+            cls.db_api.update_blob(context, af.id, blobs)
             # delete blobs one by one
             if not CONF.delayed_blob_delete:
                 cls._delete_blobs(blobs, context, af)
@@ -817,7 +823,7 @@ class BaseArtifact(base.VersionedObject):
         :param values: updated blob values
         :return updated Artifact definition in Glare
         """
-        af_upd = cls.db_api.update(context, af_id, values)
+        af_upd = cls.db_api.update_blob(context, af_id, values)
         return cls._init_artifact(context, af_upd)
 
     @classmethod
