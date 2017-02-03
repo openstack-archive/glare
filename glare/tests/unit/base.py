@@ -20,6 +20,7 @@ import uuid
 import fixtures
 import glance_store as store
 from glance_store import location
+import jsonpatch
 from oslo_config import cfg
 from oslo_config import fixture as cfg_fixture
 import testtools
@@ -142,3 +143,9 @@ class BaseTestCase(testtools.TestCase):
     @staticmethod
     def init_database(data):
         simple_api.init_artifacts(data)
+
+    @staticmethod
+    def generate_json_patch(values):
+        patch = jsonpatch.JsonPatch(values)
+        tuple(map(patch._get_operation, patch.patch))
+        return patch

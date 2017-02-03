@@ -12,10 +12,6 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
-import inspect
-import six
-
 from oslo_log import log as logging
 
 from glare.i18n import _LI
@@ -114,23 +110,3 @@ class LockEngine(object):
             self.lock_api.delete_lock(lock.context, lock.lock_id)
             LOG.info(_LI("Lock %(lock_id)s released for lock_key %(key)s"),
                      {'lock_id': lock.lock_id, 'key': lock.lock_key})
-
-    def locked(self, lock_name_parameters):
-        """Synchronization decorator.
-        :param list lock_name_parameters: List of parameters that will be used
-        as part of lock name
-        :returns: function that locks artifact by specified parameters
-        """
-        def wrap(f):
-            @six.wraps(f)
-            def wrapped(*a, **k):
-                call_args = inspect.getcallargs(f, *a, **k)
-                lock_key = ''
-                for param in lock_name_parameters:
-                    lock_key += str(call_args[param]) + ':'
-                context = call_args.get('context')
-                with self.acquire(context, lock_key):
-                    res = f(*a, **k)
-                return res
-            return wrapped
-        return wrap

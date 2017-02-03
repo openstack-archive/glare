@@ -107,7 +107,6 @@ class ArtifactRegistry(vo_base.VersionedObjectRegistry):
         for type_name in set(CONF.enabled_artifact_types + ['all']):
             for af_type in supported_types:
                 if type_name == af_type.get_type_name():
-                    cls._validate_artifact_type(af_type)
                     cls.register(af_type)
                     break
             else:
@@ -124,31 +123,6 @@ class ArtifactRegistry(vo_base.VersionedObjectRegistry):
             if af_type[0].get_type_name() == type_name:
                 return af_type[0]
         raise exception.TypeNotFound(name=type_name)
-
-    @classmethod
-    def _validate_artifact_type(cls, type_class):
-        """Validate artifact type class
-
-        Raises an exception if validation will fail.
-        :param type_class: artifact class
-        """
-        base_classes = [object, base.BaseArtifact, vo_base.VersionedObject]
-        base_attributes = set()
-        for b_class in base_classes:
-            base_attributes.update(set(vars(b_class).keys()))
-        class_attributes = set(vars(type_class).keys())
-        common_attrs = class_attributes & base_attributes
-        allowed_attributes = ('VERSION', 'fields', 'init_db_api',
-                              'get_default_store',
-                              'get_type_name', 'validate_activate',
-                              'validate_publish', 'validate_upload',
-                              '__doc__', '__module__')
-        for attr in common_attrs:
-            if attr not in allowed_attributes:
-                raise exception.IncorrectArtifactType(
-                    explanation=_("attribute %(attr)s not allowed to be "
-                                  "redefined in subclass %(class_name)s") % {
-                        "attr": attr, "class_name": str(type_class)})
 
     @classmethod
     def reset_registry(cls):
