@@ -90,7 +90,9 @@ class SampleArtifact(base_artifact.BaseArtifact):
                               mutable=True,
                               required_on_activate=False,
                               filter_ops=(attribute.FILTER_EQ,)),
-        'dict_of_blobs': BlobDict(required_on_activate=False),
+        'dict_of_blobs': BlobDict(required_on_activate=False,
+                                  validators=[
+                                      validators.MaxDictKeyLen(1000)]),
         'string_mutable': Field(fields.StringField,
                                 required_on_activate=False,
                                 mutable=True,

@@ -87,7 +87,13 @@ class Attribute(object):
                 setattr(field, prop, value)
 
         # apply custom validators
-        vals = self.validators + self.get_default_validators()
+        vals = self.validators
+        for def_val in self.get_default_validators():
+            for val in self.validators:
+                if type(val) is type(def_val):
+                    break
+            else:
+                vals.append(def_val)
 
         def wrapper(coerce_func):
             def coerce_wrapper(obj, attr, value):

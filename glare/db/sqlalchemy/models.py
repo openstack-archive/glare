@@ -230,7 +230,7 @@ class ArtifactBlob(BASE, ArtifactBase):
     external = Column(Boolean)
     url = Column(Text)
     status = Column(String(32), nullable=False)
-    key_name = Column(String(255))
+    key_name = Column(String(2048))
     content_type = Column(String(255))
     artifact = relationship(Artifact,
                             backref=backref('blobs',

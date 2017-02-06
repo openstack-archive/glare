@@ -678,13 +678,13 @@ class TestBlobs(base.TestArtifact):
         # Upload data to blob dict
         headers = {'Content-Type': 'application/octet-stream'}
         data = "data" * 100
-
-        self.put(url=url + '/dict_of_blobs/new_blob',
+        blob_name = 'blob_name' * 100
+        self.put(url=url + '/dict_of_blobs/' + blob_name,
                  data=data, status=200, headers=headers)
 
         # Download data from blob dict
         self.assertEqual(data,
-                         self.get(url=url + '/dict_of_blobs/new_blob',
+                         self.get(url=url + '/dict_of_blobs/' + blob_name,
                                   status=200))
 
         # Download blob from undefined dict property
@@ -692,9 +692,9 @@ class TestBlobs(base.TestArtifact):
 
         # Blob url is generated right
         art = self.get(url=url, status=200)
-        exp_blob_url = '/artifacts' + url + '/dict_of_blobs/new_blob'
+        exp_blob_url = '/artifacts' + url + '/dict_of_blobs/' + blob_name
         self.assertEqual(exp_blob_url,
-                         art['dict_of_blobs']['new_blob']['url'])
+                         art['dict_of_blobs'][blob_name]['url'])
 
     def test_blob_upload(self):
         # create artifact with blob
