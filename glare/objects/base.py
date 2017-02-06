@@ -129,40 +129,7 @@ class BaseArtifact(base.VersionedObject):
                          default=DEFAULT_ARTIFACT_VERSION,
                          filter_ops=attribute.FILTERS, nullable=False,
                          sortable=True, validators=[validators.Version()],
-                         description="Artifact version(semver)."),
-        'provided_by': DictField(fields.String,
-                                 validators=[
-                                     validators.AllowedDictKeys(
-                                         ("name", "href", "company")),
-                                     validators.RequiredDictKeys(
-                                         ("name", "href", "company"))
-                                 ],
-                                 default=None,
-                                 required_on_activate=False,
-                                 description="Info about artifact authors."),
-        'supported_by': DictField(fields.String,
-                                  validators=[
-                                      validators.RequiredDictKeys(("name",))
-                                  ],
-                                  default=None,
-                                  required_on_activate=False,
-                                  description="Info about persons who "
-                                              "responsible for artifact "
-                                              "support"),
-        'release': ListField(fields.String,
-                             validators=[validators.Unique()],
-                             required_on_activate=False,
-                             description="Target Openstack release "
-                                         "for artifact. It is usually the same"
-                                         " when artifact was uploaded."),
-        'icon': Blob(required_on_activate=False,
-                     description="Artifact icon."),
-        'license': Field(fields.StringField,
-                         required_on_activate=False,
-                         description="Artifact license type."),
-        'license_url': Field(fields.StringField,
-                             required_on_activate=False,
-                             description="URL to artifact license."),
+                         description="Artifact version(semver).")
     }
 
     db_api = artifact_api.ArtifactAPI()

@@ -18,7 +18,6 @@ from oslo_versionedobjects import fields
 
 from glare.objects import base
 from glare.objects.meta import attribute
-from glare.objects.meta import fields as glare_fields
 from glare.objects.meta import validators
 
 
@@ -49,19 +48,6 @@ class Image(base.BaseArtifact):
         'image': Blob(max_blob_size=1073741824000,
                       required_on_activate=False,
                       description="Image binary."),
-        'image_indirect_url': Field(fields.StringField,
-                                    required_on_activate=False,
-                                    description="URL where image is available "
-                                                "for users by accepting EULA "
-                                                "or some other form. It is "
-                                                "used when it is not possible "
-                                                "to upload image directly to "
-                                                "Glare. F.e. some Windows "
-                                                "cloud images requires EULA "
-                                                "acceptance before download."),
-        'cloud_user': Field(fields.StringField,
-                            required_on_activate=False,
-                            description="Default cloud user."),
         'kernel_id': Field(fields.StringField,
                            required_on_activate=False,
                            validators=[validators.UUID()],
@@ -103,13 +89,3 @@ class Image(base.BaseArtifact):
     @classmethod
     def get_type_name(cls):
         return "images"
-
-    @classmethod
-    def validate_activate(cls, context, af, values=None):
-        blob_status = None
-        if af.image:
-            blob_status = af.image['status']
-        if (blob_status != glare_fields.BlobFieldType.ACTIVE and
-                not af.image_indirect_url):
-            raise ValueError("Either image or image_indirect_url must be "
-                             "specified for Binary Image.")

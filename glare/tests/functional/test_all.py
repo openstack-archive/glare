@@ -62,11 +62,6 @@ class TestAll(base.TestArtifact):
 
         url = '/all/%s' % art['id']
 
-        headers = {'Content-Type': 'application/octet-stream'}
-        # upload to 'all' is forbidden
-        self.put(url=url + '/icon', data='data', status=403,
-                 headers=headers)
-
         # update 'all' is forbidden
         data = [{
             "op": "replace",

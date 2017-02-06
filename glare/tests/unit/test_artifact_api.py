@@ -25,8 +25,7 @@ class TestArtifactAPI(base.BaseTestCase):
         req = self.get_fake_request(user=base.users['user1'])
         values = {'name': 'img', 'version': '1.0',
                   'description': "Test Image", 'tags': ['test'],
-                  'metadata': {'type': 'image'},
-                  'license': 'apache'}
+                  'metadata': {'type': 'image'}}
 
         res = resource.ArtifactsController().create(req, 'images', values)
         self.assertEqual('img', res['name'])
@@ -36,7 +35,6 @@ class TestArtifactAPI(base.BaseTestCase):
         self.assertEqual('private', res['visibility'])
         self.assertEqual('Test Image', res['description'])
         self.assertEqual({'type': 'image'}, res['metadata'])
-        self.assertEqual('apache', res['license'])
 
     def test_list_artifacts(self):
         req = self.get_fake_request(user=base.users['user1'])
