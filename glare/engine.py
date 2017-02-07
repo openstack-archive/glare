@@ -14,6 +14,7 @@
 #    under the License.
 
 import copy
+import os
 
 import jsonpatch
 from oslo_config import cfg
@@ -313,59 +314,64 @@ class Engine(object):
 
         try:
             # call upload hook
-            fd = af.validate_upload(context, af, field_name, fd)
+            fd, path = af.validate_upload(context, af, field_name, fd)
         except Exception as e:
             raise exception.BadRequest(message=str(e))
 
-        # create an an empty blob instance in db with 'saving' status
-        blob = {'url': None, 'size': None, 'md5': None, 'sha1': None,
-                'sha256': None, 'status': glare_fields.BlobFieldType.SAVING,
-                'external': False, 'content_type': content_type}
-        modified_af = cls.update_blob(
-            context, type_name, artifact_id, blob, field_name, blob_key,
-            validate=True)
-
-        if blob_key is None:
-            blob_id = getattr(modified_af, field_name)['id']
-        else:
-            blob_id = getattr(modified_af, field_name)[blob_key]['id']
-
-        # try to perform blob uploading to storage backend
         try:
-            default_store = af.get_default_store(
-                context, af, field_name, blob_key)
-            if default_store not in set(CONF.glance_store.stores):
-                LOG.warning(_LW('Incorrect backend configuration - scheme '
-                                '"%s" is not supported. Fallback to default '
-                                'store.'), default_store)
-                default_store = None
-            location_uri, size, checksums = store_api.save_blob_to_store(
-                blob_id, fd, context, af.get_max_blob_size(field_name),
-                default_store)
-        except Exception:
-            # if upload failed remove blob from db and storage
-            with excutils.save_and_reraise_exception(logger=LOG):
-                if blob_key is None:
-                    af.update_blob(context, af.id, {field_name: None})
-                else:
-                    blob_dict_attr = modified_af[field_name]
-                    del blob_dict_attr[blob_key]
-                    af.update_blob(context, af.id,
-                                   {field_name: blob_dict_attr})
-        LOG.info(_LI("Successfully finished blob upload for artifact "
-                     "%(artifact)s blob field %(blob)s."),
-                 {'artifact': af.id, 'blob': blob_name})
+            # create an an empty blob instance in db with 'saving' status
+            blob = {'url': None, 'size': None, 'md5': None, 'sha1': None,
+                    'sha256': None,
+                    'status': glare_fields.BlobFieldType.SAVING,
+                    'external': False, 'content_type': content_type}
+            modified_af = cls.update_blob(
+                context, type_name, artifact_id, blob, field_name, blob_key,
+                validate=True)
 
-        # update blob info and activate it
-        blob.update({'url': location_uri,
-                     'status': glare_fields.BlobFieldType.ACTIVE,
-                     'size': size})
-        blob.update(checksums)
-        modified_af = cls.update_blob(
-            context, type_name, artifact_id, blob, field_name, blob_key)
+            if blob_key is None:
+                blob_id = getattr(modified_af, field_name)['id']
+            else:
+                blob_id = getattr(modified_af, field_name)[blob_key]['id']
 
-        Notifier.notify(context, action_name, modified_af)
-        return modified_af.to_dict()
+            # try to perform blob uploading to storage backend
+            try:
+                default_store = af.get_default_store(
+                    context, af, field_name, blob_key)
+                if default_store not in set(CONF.glance_store.stores):
+                    LOG.warning(_LW('Incorrect backend configuration - scheme '
+                                    '"%s" is not supported. Fallback to '
+                                    'default store.'), default_store)
+                    default_store = None
+                location_uri, size, checksums = store_api.save_blob_to_store(
+                    blob_id, fd, context, af.get_max_blob_size(field_name),
+                    default_store)
+            except Exception:
+                # if upload failed remove blob from db and storage
+                with excutils.save_and_reraise_exception(logger=LOG):
+                    if blob_key is None:
+                        af.update_blob(context, af.id, {field_name: None})
+                    else:
+                        blob_dict_attr = modified_af[field_name]
+                        del blob_dict_attr[blob_key]
+                        af.update_blob(context, af.id,
+                                       {field_name: blob_dict_attr})
+            LOG.info(_LI("Successfully finished blob upload for artifact "
+                         "%(artifact)s blob field %(blob)s."),
+                     {'artifact': af.id, 'blob': blob_name})
+
+            # update blob info and activate it
+            blob.update({'url': location_uri,
+                         'status': glare_fields.BlobFieldType.ACTIVE,
+                         'size': size})
+            blob.update(checksums)
+            modified_af = cls.update_blob(
+                context, type_name, artifact_id, blob, field_name, blob_key)
+
+            Notifier.notify(context, action_name, modified_af)
+            return modified_af.to_dict()
+        finally:
+            if path:
+                os.remove(path)
 
     @classmethod
     def update_blob(cls, context, type_name, artifact_id, blob,

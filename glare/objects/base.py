@@ -817,7 +817,7 @@ class BaseArtifact(base.VersionedObject):
 
     @classmethod
     def validate_upload(cls, context, af, field_name, fd):
-        return fd
+        return fd, None
 
     @classmethod
     def validate_publish(cls, context, af):
