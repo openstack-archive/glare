@@ -34,25 +34,15 @@ import warnings
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path = [
-    os.path.abspath('../..'),
-    os.path.abspath('../../bin')
-    ] + sys.path
+sys.path.insert(0, os.path.abspath('../../'))
+sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('./'))
 
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.coverage',
-              'sphinx.ext.ifconfig',
-              'sphinx.ext.graphviz',
-              'oslosphinx',
-              'stevedore.sphinxext',
-              'oslo_config.sphinxext',
-              'sphinx.ext.autodoc',
-              'sphinx.ext.viewcode',
-              'oslo_config.sphinxconfiggen',
-              ]
+extensions = []
 
 config_generator_config_file = [
     ('../../etc/oslo-config-generator/glare.conf',
@@ -155,9 +145,9 @@ man_pages = []
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = ['_theme']
 
-# The name for this set of Sphinx documents.  If None, it defaults to
+# The name for this set of Sphinx documents. If None, it defaults to
 # "<project> v<release> documentation".
-#html_title = None
+html_title = 'Glare'
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #html_short_title = None
@@ -235,10 +225,10 @@ htmlhelp_basename = 'glareedoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author,
 # documentclass [howto/manual]).
-latex_documents = [
-    ('index', 'Glare.tex', u'Glare Documentation',
-     u'Glare Team', 'manual'),
-]
+#latex_documents = [
+#    ('index', 'Glare.tex', u'Glare Documentation',
+#     u'Glare Team', 'manual'),
+#]
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
