@@ -309,12 +309,11 @@ class Engine(object):
         action_name = "artifact:upload"
         policy.authorize(action_name, af.to_dict(), context)
 
-        blob_name = "%s[%s]" % (field_name, blob_key)\
-            if blob_key else field_name
-
         try:
             # call upload hook
-            fd, path = af.validate_upload(context, af, field_name, fd)
+            lock_key = "%s:%s" % (type_name, artifact_id)
+            with base.BaseArtifact.lock_engine.acquire(context, lock_key):
+                fd, path = af.validate_upload(context, af, field_name, fd)
         except Exception as e:
             raise exception.BadRequest(message=str(e))
 
@@ -355,6 +354,8 @@ class Engine(object):
                         del blob_dict_attr[blob_key]
                         af.update_blob(context, af.id,
                                        {field_name: blob_dict_attr})
+            blob_name = "%s[%s]" % (field_name, blob_key) \
+                if blob_key else field_name
             LOG.info(_LI("Successfully finished blob upload for artifact "
                          "%(artifact)s blob field %(blob)s."),
                      {'artifact': af.id, 'blob': blob_name})
@@ -387,7 +388,7 @@ class Engine(object):
         :param validate: enable validation of possibility of blob uploading
         :return updated artifact
         """
-        lock_key = "%s:%s:" % (type_name, artifact_id)
+        lock_key = "%s:%s" % (type_name, artifact_id)
         with base.BaseArtifact.lock_engine.acquire(context, lock_key):
             af = cls._get_artifact(context, type_name, artifact_id)
             if validate:
