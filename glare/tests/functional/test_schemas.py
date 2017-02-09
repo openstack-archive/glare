@@ -365,6 +365,14 @@ fixtures = {
                                u'mutable': True,
                                u'required_on_activate': False,
                                u'type': [u'object', u'null']},
+            u'list_of_links': {u'default': [],
+                               u'filter_ops': [u'eq'],
+                               u'glareType': u'LinkList',
+                               u'items': {u'type': u'string'},
+                               u'maxItems': 255,
+                               u'mutable': True,
+                               u'required_on_activate': False,
+                               u'type': [u'array', u'null']},
             u'dict_of_str': {
                 u'additionalProperties': {
                     u'type': u'string'},

@@ -209,6 +209,17 @@ class BaseArtifact(base.VersionedObject):
                 glare_fields.LinkFieldType)
 
     @classmethod
+    def is_link_list(cls, field_name):
+        """Helper to check that field is link list
+
+        :param field_name: name of field
+        :return: True if field is a link list, False otherwise
+        """
+        return (isinstance(cls.fields.get(field_name), glare_fields.List) and
+                cls.fields[field_name].element_type ==
+                glare_fields.LinkFieldType)
+
+    @classmethod
     def _init_artifact(cls, context, values):
         """Initialize an empty versioned object with values
 
@@ -419,6 +430,9 @@ class BaseArtifact(base.VersionedObject):
                 elif cls.is_link_dict(key) and value:
                     for l in value:
                         cls._validate_link(key, value[l], context, registry)
+                elif cls.is_link_list(key) and value:
+                    for l in value:
+                        cls._validate_link(key, l, context, registry)
         except Exception as e:
             msg = (_("Bad link in artifact %(af)s: %(msg)s")
                    % {"af": artifact.id, "msg": str(e)})
