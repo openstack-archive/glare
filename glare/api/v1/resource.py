@@ -144,7 +144,8 @@ class RequestDeserializer(api_versioning.VersionedResource,
             raise exc.BadRequest(msg)
         return {'patch': patch}
 
-    def _deserialize_blob(self, req):
+    @supported_versions(min_ver='1.0')
+    def upload_blob(self, req):
         content_type = self._get_content_type(req)
         if content_type == ('application/vnd+openstack.glare-custom-location'
                             '+json'):
@@ -156,14 +157,6 @@ class RequestDeserializer(api_versioning.VersionedResource,
         else:
             data = req.body_file
         return {'data': data, 'content_type': content_type}
-
-    @supported_versions(min_ver='1.0')
-    def upload_blob(self, req):
-        return self._deserialize_blob(req)
-
-    @supported_versions(min_ver='1.0')
-    def upload_blob_dict(self, req):
-        return self._deserialize_blob(req)
 
 
 def log_request_progress(f):
@@ -280,40 +273,20 @@ class ArtifactsController(api_versioning.VersionedResource):
 
     @supported_versions(min_ver='1.0')
     @log_request_progress
-    def upload_blob(self, req, type_name, artifact_id, field_name, data,
+    def upload_blob(self, req, type_name, artifact_id, blob_name, data,
                     content_type):
         """Upload blob into Glare repo
 
         :param req: User request
         :param type_name: Artifact type name
         :param artifact_id: id of Artifact to reactivate
-        :param field_name: name of blob field in artifact
+        :param blob_name: name of blob field in artifact
         :param data: Artifact payload
         :param content_type: data content-type
         """
-        if content_type == ('application/vnd+openstack.glare-custom-location'
-                            '+json'):
-            url = data.pop('url')
-            return self.engine.add_blob_location(
-                req.context, type_name, artifact_id, field_name, url, data)
-        else:
-            return self.engine.upload_blob(req.context, type_name, artifact_id,
-                                           field_name, data, content_type)
-
-    @supported_versions(min_ver='1.0')
-    @log_request_progress
-    def upload_blob_dict(self, req, type_name, artifact_id, field_name, data,
-                         blob_key, content_type):
-        """Upload blob into Glare repo
-
-        :param req: User request
-        :param type_name: Artifact type name
-        :param artifact_id: id of Artifact to reactivate
-        :param field_name: name of blob field in artifact
-        :param data: Artifact payload
-        :param content_type: data content-type
-        :param blob_key: blob key in dict
-        """
+        field_name, _sep, blob_key = blob_name.partition('/')
+        if not blob_key:
+            blob_key = None
         if content_type == ('application/vnd+openstack.glare-custom-location'
                             '+json'):
             url = data.pop('url')
@@ -321,39 +294,24 @@ class ArtifactsController(api_versioning.VersionedResource):
                 req.context, type_name, artifact_id, field_name, url, data,
                 blob_key)
         else:
-            return self.engine.upload_blob(req.context, type_name, artifact_id,
-                                           field_name, data, content_type,
-                                           blob_key)
+            return self.engine.upload_blob(
+                req.context, type_name, artifact_id, field_name, data,
+                content_type, blob_key)
 
     @supported_versions(min_ver='1.0')
     @log_request_progress
-    def download_blob(self, req, type_name, artifact_id, field_name):
+    def download_blob(self, req, type_name, artifact_id, blob_name):
         """Download blob data from Artifact
 
         :param req: User request
         :param type_name: Artifact type name
         :param artifact_id: id of Artifact to reactivate
-        :param field_name: name of blob field in artifact
+        :param blob_name: name of blob field in artifact
         :return: iterator that returns blob data
         """
-        data, meta = self.engine.download_blob(req.context, type_name,
-                                               artifact_id, field_name)
-        result = {'data': data, 'meta': meta}
-        return result
-
-    @supported_versions(min_ver='1.0')
-    @log_request_progress
-    def download_blob_dict(self, req, type_name, artifact_id,
-                           field_name, blob_key):
-        """Download blob data from Artifact
-
-        :param req: User request
-        :param type_name: Artifact type name
-        :param artifact_id: id of Artifact to reactivate
-        :param field_name: name of blob field in artifact
-        :param blob_key: name of Dict of blobs (optional)
-        :return: iterator that returns blob data
-        """
+        field_name, _sep, blob_key = blob_name.partition('/')
+        if not blob_key:
+            blob_key = None
         data, meta = self.engine.download_blob(
             req.context, type_name, artifact_id, field_name, blob_key)
         result = {'data': data, 'meta': meta}
@@ -459,14 +417,6 @@ class ResponseSerializer(api_versioning.VersionedResource,
 
     @supported_versions(min_ver='1.0')
     def download_blob(self, response, result):
-        external = result['meta']['external']
-        if external:
-            self._serialize_location(response, result)
-        else:
-            self._serialize_blob(response, result)
-
-    @supported_versions(min_ver='1.0')
-    def download_blob_dict(self, response, result):
         external = result['meta']['external']
         if external:
             self._serialize_location(response, result)
