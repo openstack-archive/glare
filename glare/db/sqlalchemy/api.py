@@ -109,11 +109,7 @@ def update(context, artifact_id, values, session):
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
 def delete(context, artifact_id, session):
-    artifact = _get(context, artifact_id, session)
-    artifact.properties = []
-    artifact.tags = []
-    artifact.status = 'deleted'
-    artifact.save(session=session)
+    session.query(models.Artifact).filter_by(id=artifact_id).delete()
 
 
 def _drop_protected_attrs(model_class, values):
@@ -144,7 +140,7 @@ def _create_or_update(context, artifact_id, values, session):
             artifact.created_at = timeutils.utcnow()
         else:
             # update the existing artifact
-            artifact = _get(context, artifact_id, session)
+            artifact = _get(context, artifact_id, session, show_deleted=True)
 
         if 'version' in values:
             values['version'] = semver_db.parse(values['version'])
@@ -178,10 +174,13 @@ def _create_or_update(context, artifact_id, values, session):
         return artifact.to_dict()
 
 
-def _get(context, artifact_id, session):
+def _get(context, artifact_id, session, show_deleted=False):
     try:
         query = _do_artifacts_query(context, session).filter_by(
             id=artifact_id)
+        if not show_deleted:
+            # Don't show deleted artifacts
+            query = query.filter(models.Artifact.status != 'deleted')
         artifact = query.one()
     except orm.exc.NoResultFound:
         msg = _("Artifact with id=%s not found.") % artifact_id
@@ -303,6 +302,9 @@ def _get_all(context, session, filters=None, marker=None, limit=None,
 
 
 def _do_paginate_query(query, marker=None, limit=None, sort=None):
+    # Don't show deleted artifacts
+    query = query.filter(models.Artifact.status != 'deleted')
+
     # Add sorting
     number_of_custom_props = 0
     for sort_key, sort_dir, sort_type in sort:
@@ -388,7 +390,7 @@ def _do_paginate_query(query, marker=None, limit=None, sort=None):
     return query
 
 
-def _do_artifacts_query(context, session, latest=False):
+def _do_artifacts_query(context, session):
     """Build the query to get all artifacts based on the context"""
 
     query = session.query(models.Artifact)
@@ -401,9 +403,6 @@ def _do_artifacts_query(context, session, latest=False):
 
 
 def _apply_query_base_filters(query, context):
-    # Don't show deleted artifacts
-    query = query.filter(models.Artifact.status != 'deleted')
-
     # If admin, return everything.
     if context.is_admin:
         return query

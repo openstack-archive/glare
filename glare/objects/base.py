@@ -643,6 +643,9 @@ class BaseArtifact(base.VersionedObject):
         if af.visibility == 'public' and not context.is_admin:
             msg = _("Only admins are allowed to delete public artifacts")
             raise exception.Forbidden(msg)
+        # marking artifact as deleted
+        cls.db_api.update(context, af.id, {'status': cls.STATUS.DELETED})
+
         # marking all blobs as pending delete
         blobs = {}
         for name, field in six.iteritems(af.fields):
@@ -657,16 +660,17 @@ class BaseArtifact(base.VersionedObject):
                     for key, b in six.iteritems(bd):
                         cls._prepare_blob_delete(b, af, name)
                     blobs[name] = bd
-        if blobs:
-            LOG.debug("Marked all blobs %(blobs) for artifact %(artifact)s "
-                      "as pending delete. Start blobs delete.",
-                      {'blobs': blobs, 'artifact': af.id})
-            cls.db_api.update_blob(context, af.id, blobs)
+        LOG.debug("Marked artifact %(artifact)s as deleted and all its blobs "
+                  "%(blobs) as pending delete.",
+                  {'artifact': af.id, 'blobs': blobs})
+        cls.db_api.update_blob(context, af.id, blobs)
+
+        if blobs and not CONF.delayed_blob_delete:
             # delete blobs one by one
-            if not CONF.delayed_blob_delete:
-                cls._delete_blobs(blobs, context, af)
+            cls._delete_blobs(blobs, context, af)
             LOG.info(_LI("Blobs successfully deleted for artifact %s"), af.id)
-        # delete artifact itself
+
+        # delete the artifact itself
         cls.db_api.delete(context, af.id)
 
     @classmethod
