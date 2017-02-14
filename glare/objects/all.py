@@ -63,7 +63,7 @@ class All(base.BaseArtifact):
         raise exception.Forbidden("This type is read only.")
 
     @classmethod
-    def update_blob(cls, context, af_id, values):
+    def update_blob(cls, context, af_id, field_name, values):
         raise exception.Forbidden("This type is read only.")
 
     @classmethod

@@ -49,7 +49,7 @@ CONF.register_opts(registry_options)
 
 
 def import_submodules(module):
-    """Import all submodules of a module
+    """Import all submodules of a module.
 
     :param module: Package name
     :return list of imported modules
@@ -92,7 +92,7 @@ class ArtifactRegistry(vo_base.VersionedObjectRegistry):
 
     @classmethod
     def register_all_artifacts(cls):
-        """Register all artifacts in glare"""
+        """Register all artifacts in Glare."""
         # get all submodules in glare.objects
         # please note that we registering trusted modules first
         # and applying custom modules after that to allow custom modules
@@ -114,7 +114,7 @@ class ArtifactRegistry(vo_base.VersionedObjectRegistry):
 
     @classmethod
     def get_artifact_type(cls, type_name):
-        """Return artifact type based on artifact type name
+        """Return artifact type based on artifact type name.
 
         :param type_name: name of artifact type
         :return: artifact class
@@ -126,5 +126,5 @@ class ArtifactRegistry(vo_base.VersionedObjectRegistry):
 
     @classmethod
     def reset_registry(cls):
-        """Resets all registered artifact type classes"""
+        """Resets all registered artifact type classes."""
         cls._registry._obj_classes = collections.defaultdict(list)

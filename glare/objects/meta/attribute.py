@@ -29,7 +29,7 @@ class Attribute(object):
     def __init__(self, field_class, mutable=False, required_on_activate=True,
                  system=False, validators=None, nullable=True, default=None,
                  sortable=False, filter_ops=None, description=""):
-        """Init and validate attribute"""
+        """Init and validate attribute."""
         if not issubclass(field_class, fields.AutoTypedField):
             raise exc.IncorrectArtifactType(
                 "Field class %s must be sub-class of AutoTypedField." %
@@ -115,7 +115,7 @@ class Attribute(object):
 
     @classmethod
     def init(cls, *args, **kwargs):
-        """Fabric to build attributes"""
+        """Fabric to build attributes."""
         return cls(*args, **kwargs).get_field()
 
 

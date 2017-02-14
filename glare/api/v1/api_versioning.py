@@ -22,13 +22,14 @@ from glare.i18n import _
 class VersionedMethod(object):
 
     def __init__(self, name, start_version, end_version, func):
-        """Versioning information for a single method
+        """Versioning information for a single method.
+
         :param name: Name of the method
         :param start_version: Minimum acceptable version
         :param end_version: Maximum acceptable_version
         :param func: Method to call
-        Minimum and maximums are inclusive
         """
+        # NOTE(kairat): minimums and maximums are inclusive
         self.name = name
         self.start_version = start_version
         self.end_version = end_version
@@ -41,7 +42,7 @@ class VersionedMethod(object):
 
 class VersionedResource(object):
     """Versioned mixin that provides ability to define versioned methods and
-    return appropriate methods based on user request
+    return appropriate methods based on user request.
     """
 
     # prefix for all versioned methods in class
@@ -52,6 +53,7 @@ class VersionedResource(object):
         """Determines whether function list contains version intervals
         intersections or not. General algorithm:
         https://en.wikipedia.org/wiki/Intersection_algorithm
+
         :param func_list: list of VersionedMethod objects
         :return: boolean
         """
@@ -128,9 +130,10 @@ class VersionedResource(object):
         def version_select(*args, **kwargs):
             """Look for the method which matches the name supplied and version
             constraints and calls it with the supplied arguments.
+
             :returns: Returns the result of the method called
             :raises: VersionNotFoundForAPIMethod if there is no method which
-                 matches the name and version constraints
+            matches the name and version constraints
             """
             # versioning is used in 3 classes: request deserializer and
             # controller have request as first argument

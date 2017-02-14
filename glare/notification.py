@@ -35,9 +35,7 @@ def set_defaults(control_exchange='glare'):
 
 
 class Notifier(object):
-    """Simple interface to receive Glare notifier
-
-    """
+    """Simple interface to receive Glare notifier."""
 
     SERVICE_NAME = 'artifact'
     GLARE_NOTIFIER = None
@@ -52,7 +50,7 @@ class Notifier(object):
 
     @classmethod
     def notify(cls, context, event_type, body, level='INFO'):
-        """Notify Glare listeners with some useful info
+        """Notify Glare listeners with some useful info.
 
         :param context: User request context
         :param event_type: type of event

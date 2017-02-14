@@ -67,7 +67,7 @@ class ContextMiddleware(base_middleware.ConfigurableMiddleware):
 
     @staticmethod
     def process_request(req):
-        """Convert authentication information into a request context
+        """Convert authentication information into a request context.
 
         Generate a RequestContext object from the available
         authentication headers and store on the 'context' attribute
@@ -88,7 +88,7 @@ class ContextMiddleware(base_middleware.ConfigurableMiddleware):
 
     @staticmethod
     def _get_anonymous_context():
-        """Anonymous user has only Read-Only grants"""
+        """Anonymous user has only Read-Only grants."""
         return RequestContext(read_only=True, is_admin=False)
 
     @staticmethod

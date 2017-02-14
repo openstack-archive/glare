@@ -16,7 +16,7 @@
 
 
 """
-Glare (Glare Artifact Repository) API service
+Glare (Glare Artifact Repository) API service.
 """
 
 import os

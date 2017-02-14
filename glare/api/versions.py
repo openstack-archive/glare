@@ -60,6 +60,7 @@ class Controller(object):
     @staticmethod
     def index(req, is_multi):
         """Respond to a request for all OpenStack API versions.
+
         :param is_multi: defines if multiple choices should be response status
         or not
         :param req: user request object

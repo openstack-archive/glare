@@ -14,7 +14,7 @@
 #    under the License.
 
 """
-Routines for configuring Glare
+Routines for configuring Glare.
 """
 
 import logging.config

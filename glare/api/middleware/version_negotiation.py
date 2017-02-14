@@ -16,7 +16,7 @@
 """
 A filter middleware that inspects the requested URI for a version string
 and/or Accept headers and attempts to negotiate an API controller to
-return
+return.
 """
 
 import microversion_parse
@@ -32,7 +32,7 @@ LOG = logging.getLogger(__name__)
 
 
 def get_version_from_accept(accept_header, vnd_mime_type):
-        """Try to parse accept header to extract api version
+        """Try to parse accept header to extract api version.
 
         :param accept_header: accept header
         :return: version string in the request or None if not specified

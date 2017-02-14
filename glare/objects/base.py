@@ -170,19 +170,19 @@ class BaseArtifact(base.VersionedObject):
 
     @classmethod
     def is_blob(cls, field_name):
-        """Helper to check that field is blob
+        """Helper to check that a field is a blob.
 
-        :param field_name: name of field
-        :return: True if field is a blob, False otherwise
+        :param field_name: name of the field
+        :return: True if the field is a blob, False otherwise
         """
         return isinstance(cls.fields.get(field_name), glare_fields.BlobField)
 
     @classmethod
     def is_blob_dict(cls, field_name):
-        """Helper to check that field is blob dict
+        """Helper to check that field is a blob dict.
 
-        :param field_name: name of field
-        :return: True if field is a blob dict, False otherwise
+        :param field_name: name of the field
+        :return: True if the field is a blob dict, False otherwise
         """
         return (isinstance(cls.fields.get(field_name), glare_fields.Dict) and
                 cls.fields[field_name].element_type ==
@@ -190,18 +190,18 @@ class BaseArtifact(base.VersionedObject):
 
     @classmethod
     def is_link(cls, field_name):
-        """Helper to check that field is link
+        """Helper to check that a field is a link.
 
-        :param field_name: name of field
+        :param field_name: name of the field
         :return: True if field is a link, False otherwise
         """
         return isinstance(cls.fields.get(field_name), glare_fields.Link)
 
     @classmethod
     def is_link_dict(cls, field_name):
-        """Helper to check that field is link dict
+        """Helper to check that a field is a link dict.
 
-        :param field_name: name of field
+        :param field_name: name of the field
         :return: True if field is a link dict, False otherwise
         """
         return (isinstance(cls.fields.get(field_name), glare_fields.Dict) and
@@ -210,10 +210,10 @@ class BaseArtifact(base.VersionedObject):
 
     @classmethod
     def is_link_list(cls, field_name):
-        """Helper to check that field is link list
+        """Helper to check that a field is a link list.
 
-        :param field_name: name of field
-        :return: True if field is a link list, False otherwise
+        :param field_name: name of the field
+        :return: True if the field is a link list, False otherwise
         """
         return (isinstance(cls.fields.get(field_name), glare_fields.List) and
                 cls.fields[field_name].element_type ==
@@ -221,11 +221,11 @@ class BaseArtifact(base.VersionedObject):
 
     @classmethod
     def _init_artifact(cls, context, values):
-        """Initialize an empty versioned object with values
+        """Initialize an empty versioned object with values.
 
         Initialize vo object with default values and values specified by user.
-        Also reset all changes for initialized object so user of the method
-        can track own changes.
+        Also reset all changes of initialized object so user can track own
+        changes.
 
         :param context: user context
         :param values: values needs to be set
@@ -239,31 +239,28 @@ class BaseArtifact(base.VersionedObject):
                 default_attrs.append(attr)
         if default_attrs:
             af.obj_set_defaults(*default_attrs)
+
+        # apply values specified by user
         for name, value in six.iteritems(values):
             setattr(af, name, value)
         return af
 
     @classmethod
     def get_type_name(cls):
-        """Return type name that allows to find Artifact Type in Glare
+        """Return type name that allows to find artifact type in Glare
 
-        Type name allows to find Artifact Type definition in Glare registry
-        so Engine can instantiate Artifacts. Artifact also becomes available
-        with artifact type in Glare API.
-        For example, when get_type_name returns 'my_artifact' then
-        users can list artifacts by GET <host_name>/v1/artifacts/my_artifact.
-        This type name is also used in glare configuration when turning on/off
-        specific Artifact Types.
-        :return: string that identifies current Artifact Type.
+        Type name allows to find artifact type definition in Glare registry.
+
+        :return: string that identifies current artifact type
         """
         raise NotImplementedError()
 
     @classmethod
     def _lock_version(cls, context, values):
-        """Calculate version scope for new artifact
+        """Create scope lock for artifact creation.
 
-        :param values: af values
-        :return: string that identifies af version or None
+        :param values: artifact values
+        :return: Lock object
         """
         name = values.get('name')
         version = values.get('version', cls.DEFAULT_ARTIFACT_VERSION)
@@ -274,10 +271,15 @@ class BaseArtifact(base.VersionedObject):
         return cls.lock_engine.acquire(context, scope_id)
 
     @classmethod
-    def _lock_updated_version(cls, af, updates):
-        name = updates.get('name', af.name)
-        version = updates.get('version', af.version)
-        visibility = updates.get('visibility', af.visibility)
+    def _lock_updated_version(cls, af, values):
+        """Create scope lock for artifact update.
+
+        :param values: artifact values
+        :return: Lock object
+        """
+        name = values.get('name', af.name)
+        version = values.get('version', af.version)
+        visibility = values.get('visibility', af.visibility)
         scope_id = None
         if (name, version, visibility) != (af.name, af.version, af.visibility):
             # no version change == no lock for version
@@ -289,11 +291,11 @@ class BaseArtifact(base.VersionedObject):
 
     @classmethod
     def create(cls, context, values):
-        """Create new Artifact in Glare repo
+        """Create new artifact in Glare repo.
 
         :param context: user context
-        :param values: Dict with specified artifact properties
-        :return: definition of create Artifact
+        :param values: dictionary with specified artifact fields
+        :return: created artifact object
         """
         if context.tenant is None or context.read_only:
             msg = _("It's forbidden to anonymous users to create artifacts.")
@@ -317,11 +319,18 @@ class BaseArtifact(base.VersionedObject):
             LOG.info(_LI("Parameters validation for artifact creation "
                          "passed for request %s."), context.request_id)
             af_vals = cls.db_api.create(
-                context, af.obj_changes_to_primitive(), cls.get_type_name())
+                context, af._obj_changes_to_primitive(), cls.get_type_name())
             return cls._init_artifact(context, af_vals)
 
     @classmethod
     def _validate_versioning(cls, context, name, version, is_public=False):
+        """Validate if artifact with given name and version already exists.
+
+        :param context: user context
+        :param name: name of artifact to be checked
+        :param version: version of artifact
+        :param is_public: flag that indicates to search artifact globally
+        """
         if version is not None and name not in (None, ""):
             filters = [('name', name), ('version', version),
                        ('status', 'neq:deleted')]
@@ -341,7 +350,7 @@ class BaseArtifact(base.VersionedObject):
     @classmethod
     def _validate_change_allowed(cls, field_names, af=None,
                                  validate_blob_names=True):
-        """Validate if fields can be updated in artifact"""
+        """Validate if fields can be updated in artifact."""
         af_status = cls.STATUS.DRAFTED if af is None else af.status
         if af_status not in (cls.STATUS.ACTIVE, cls.STATUS.DRAFTED):
             msg = _("Forbidden to change attributes "
@@ -350,15 +359,15 @@ class BaseArtifact(base.VersionedObject):
 
         for field_name in field_names:
             if field_name not in cls.fields:
-                msg = _("%s property does not exist") % field_name
+                msg = _("%s field does not exist") % field_name
                 raise exception.BadRequest(msg)
             field = cls.fields[field_name]
             if field.system is True:
-                msg = _("Cannot specify system property %s. It is not "
+                msg = _("Cannot specify system field %s. It is not "
                         "available for modifying by users.") % field_name
                 raise exception.Forbidden(msg)
             if af_status == cls.STATUS.ACTIVE and not field.mutable:
-                msg = (_("Forbidden to change property '%s' after activation.")
+                msg = (_("Forbidden to change field '%s' after activation.")
                        % field_name)
                 raise exception.Forbidden(message=msg)
             if validate_blob_names and \
@@ -369,12 +378,12 @@ class BaseArtifact(base.VersionedObject):
 
     @classmethod
     def update(cls, context, af, values):
-        """Update Artifact in Glare repo
+        """Update artifact in Glare repo.
 
-        :param context: user Context
-        :param af: current definition of Artifact in Glare
+        :param context: user context
+        :param af: current definition of artifact
         :param values: dictionary with changes for artifact
-        :return: definition of updated Artifact
+        :return: updated artifact object
         """
         # reset all changes of artifact to reuse them after update
         af.obj_reset_changes()
@@ -396,35 +405,39 @@ class BaseArtifact(base.VersionedObject):
                          "update passed for request %(request)s."),
                      {'artifact': af.id, 'request': context.request_id})
             updated_af = cls.db_api.update(
-                context, af.id, af.obj_changes_to_primitive())
+                context, af.id, af._obj_changes_to_primitive())
             return cls._init_artifact(context, updated_af)
 
     @classmethod
-    def get_action_for_updates(cls, context, artifact, updates, registry):
-        """The method defines how to detect appropriate action based on update
+    def get_action_for_updates(cls, context, af, values, registry):
+        """Define the appropriate method for artifact update.
 
-        Validate request for update and determine if it is request for action.
-        Also do a validation for request for action if it is an action.
+        Based on update params this method defines what action engine should
+        call for artifact update: activate, deactivate, reactivate, publish or
+        just a regular update of artifact fields.
 
-        :return: action reference for updates dict
+        :param context: user context
+        :param af: current definition of artifact
+        :param values: dictionary with changes for artifact
+        :param registry: registry of enabled artifact types
+        :return: method reference for updates dict
         """
-        action = cls.update
-        if 'visibility' in updates:
+        if 'visibility' in values:
             # validate publish action format
-            action = cls.publish
-        elif 'status' in updates:
-            status = updates['status']
+            return cls.publish
+        elif 'status' in values:
+            status = values['status']
             if status == cls.STATUS.DEACTIVATED:
-                action = cls.deactivate
+                return cls.deactivate
             elif status == cls.STATUS.ACTIVE:
-                if artifact.status == artifact.STATUS.DEACTIVATED:
-                    action = cls.reactivate
+                if af.status == af.STATUS.DEACTIVATED:
+                    return cls.reactivate
                 else:
-                    action = cls.activate
+                    return cls.activate
 
         # check updates for links and validate them
         try:
-            for key, value in six.iteritems(updates):
+            for key, value in six.iteritems(values):
                 if cls.is_link(key) and value is not None:
                     cls._validate_link(key, value, context, registry)
                 elif cls.is_link_dict(key) and value:
@@ -434,14 +447,11 @@ class BaseArtifact(base.VersionedObject):
                     for l in value:
                         cls._validate_link(key, l, context, registry)
         except Exception as e:
-            msg = (_("Bad link in artifact %(af)s: %(msg)s")
-                   % {"af": artifact.id, "msg": str(e)})
+            msg = (_("Broken link in artifact %(af)s: %(msg)s")
+                   % {"af": af.id, "msg": str(e)})
             raise exception.BadRequest(msg)
 
-        LOG.debug("Action %(action)s defined to updates %(updates)s.",
-                  {'action': action.__name__, 'updates': updates})
-
-        return action
+        return cls.update
 
     @classmethod
     def _validate_link(cls, key, value, context, registry):
@@ -450,36 +460,29 @@ class BaseArtifact(base.VersionedObject):
         # check containment
         if glare_fields.LinkFieldType.is_external(value):
             # validate external link
-            cls._validate_external_link(value)
+            with urlrequest.urlopen(value) as data:
+                data.read(1)
         else:
             type_name = (glare_fields.LinkFieldType.
                          get_type_name(value))
             af_type = registry.get_artifact_type(type_name)
-            cls._validate_soft_link(context, value, af_type)
-
-    @classmethod
-    def _validate_external_link(cls, link):
-        with urlrequest.urlopen(link) as data:
-            data.read(1)
-
-    @classmethod
-    def _validate_soft_link(cls, context, link, af_type):
-        af_id = link.split('/')[3]
-        af_type.get(context, af_id)
+            af_id = value.split('/')[3]
+            af_type.get(context, af_id)
 
     @classmethod
     def get(cls, context, artifact_id):
         """Return Artifact from Glare repo
 
         :param context: user context
-        :param artifact_id: id of requested Artifact
-        :return: Artifact definition
+        :param artifact_id: id of requested artifact
+        :return: requested artifact object
         """
         af = cls.db_api.get(context, artifact_id)
         return cls._init_artifact(context, af)
 
     @classmethod
     def _get_field_type(cls, obj):
+        """Get string representation of field type for filters."""
         if isinstance(obj, fields.IntegerField) or obj is fields.Integer:
             return 'int'
         elif isinstance(obj, fields.FloatField) or obj is fields.Float:
@@ -491,6 +494,7 @@ class BaseArtifact(base.VersionedObject):
 
     @classmethod
     def _parse_sort_values(cls, sort):
+        """Prepare sorting parameters for database."""
         new_sort = []
         for key, direction in sort:
             if key not in cls.fields:
@@ -503,12 +507,6 @@ class BaseArtifact(base.VersionedObject):
             new_sort.append((key, direction, cls._get_field_type(
                 cls.fields.get(key))))
         return new_sort
-
-    @classmethod
-    def _validate_filter_name(cls, filter_name):
-        if cls.fields.get(filter_name) is None:
-            msg = _("Unable filter '%s'") % filter_name
-            raise exception.BadRequest(msg)
 
     @classmethod
     def _validate_filter_ops(cls, filter_name, op):
@@ -550,7 +548,10 @@ class BaseArtifact(base.VersionedObject):
                     msg = _("Field %s is not Dict") % filter_name
                     raise exception.BadRequest(msg)
 
-            cls._validate_filter_name(filter_name)
+            if cls.fields.get(filter_name) is None:
+                msg = _("Unable filter '%s'") % filter_name
+                raise exception.BadRequest(msg)
+
             field_type = cls.fields.get(filter_name)
 
             if isinstance(field_type, glare_fields.List) or isinstance(
@@ -581,16 +582,18 @@ class BaseArtifact(base.VersionedObject):
     @classmethod
     def list(cls, context, filters=None, marker=None, limit=None,
              sort=None, latest=False):
-        """List all available Artifacts in Glare repo
+        """Return list of artifacts requested by user.
 
         :param context: user context
-        :param filters: filtering conditions to Artifact list
-        :param marker: id of Artifact that identifies where Glare should
-        start listing Artifacts. So all Artifacts before that Artifact in
-        resulting list must be ignored. It is useful for Artifact pagination.
-        :param limit: maximum number of Artifact items in list.
-        :param sort: sorting preferences when requesting Artifact list.
-        :return: list of Artifacts
+        :param filters: filters that need to be applied to artifact
+        :param marker: the artifact that considered as begin of the list
+        so all artifacts before marker (including marker itself) will not be
+        added to artifact list
+        :param limit: maximum number of items in the list
+        :param sort: sorting options
+        :param latest: flag that indicates, that only artifacts with highest
+        versions should be returned in output
+        :return: list of artifact objects
         """
         if sort is not None:
             sort = cls._parse_sort_values(sort)
@@ -635,14 +638,11 @@ class BaseArtifact(base.VersionedObject):
 
     @classmethod
     def delete(cls, context, af):
-        """Delete Artifact and all blobs from Glare.
+        """Delete artifact and all its blobs from Glare.
 
         :param context: user context
-        :param af: definition of artifact targeted to delete
+        :param af: artifact object targeted for deletion
         """
-        if af.visibility == 'public' and not context.is_admin:
-            msg = _("Only admins are allowed to delete public artifacts")
-            raise exception.Forbidden(msg)
         # marking artifact as deleted
         cls.db_api.update(context, af.id, {'status': cls.STATUS.DELETED})
 
@@ -669,17 +669,17 @@ class BaseArtifact(base.VersionedObject):
             # delete blobs one by one
             cls._delete_blobs(blobs, context, af)
             LOG.info(_LI("Blobs successfully deleted for artifact %s"), af.id)
-
-        # delete the artifact itself
+        # delete artifact itself
         cls.db_api.delete(context, af.id)
 
     @classmethod
     def activate(cls, context, af, values):
-        """Activate Artifact and make it available for users
+        """Activate artifact and make it available for usage.
 
-        :param context: User Context
-        :param af: current Artifact definition in Glare
-        :return: definition of activated Artifact
+        :param context: user context
+        :param af: current artifact object
+        :param values: dictionary with changes for artifact
+        :return: artifact object with changed status
         """
         # validate that came to artifact as updates
         if values != {'status': cls.STATUS.ACTIVE}:
@@ -700,16 +700,17 @@ class BaseArtifact(base.VersionedObject):
         LOG.info(_LI("Parameters validation for artifact %(artifact)s "
                      "activate passed for request %(request)s."),
                  {'artifact': af.id, 'request': context.request_id})
-        active_af = cls.db_api.update(context, af.id, values)
-        return cls._init_artifact(context, active_af)
+        af = cls.db_api.update(context, af.id, {'status': cls.STATUS.ACTIVE})
+        return cls._init_artifact(context, af)
 
     @classmethod
     def reactivate(cls, context, af, values):
-        """Make Artifact active after de-activation
+        """Make Artifact active after deactivation
 
         :param context: user context
-        :param af: definition of de-activated Artifact
-        :return: definition of active Artifact
+        :param af: current artifact object
+        :param values: dictionary with changes for artifact
+        :return: artifact object with changed status
         """
         # validate that came to artifact as updates
         if values != {'status': cls.STATUS.ACTIVE}:
@@ -723,21 +724,23 @@ class BaseArtifact(base.VersionedObject):
         LOG.info(_LI("Parameters validation for artifact %(artifact)s "
                      "reactivate passed for request %(request)s."),
                  {'artifact': af.id, 'request': context.request_id})
-        af = cls.db_api.update(context, af.id, values)
+        af = cls.db_api.update(context, af.id, {'status': cls.STATUS.ACTIVE})
         return cls._init_artifact(context, af)
 
     @classmethod
     def deactivate(cls, context, af, values):
-        """Deny Artifact downloading due to security concerns
+        """Deny Artifact downloading due to security concerns.
 
-        If user uploaded suspicious Artifact then Cloud Admins(or other users -
-        it depends on policy configurations) can deny Artifact download by
-        users by making Artifact de-activated. After additional investigation
-        Artifact can be re-activated or deleted from Glare.
+        If user uploaded suspicious artifact then administrators(or other
+        users - it depends on policy configurations) can deny artifact data
+        to be downloaded by regular users by making artifact deactivated.
+        After additional investigation artifact can be reactivated or
+        deleted from Glare.
 
         :param context: user context
-        :param af: Artifact definition in Glare
-        :return: definition of de-activated Artifact
+        :param af: current artifact object
+        :param values: dictionary with changes for artifact
+        :return: artifact object with changed status
         """
         if values != {'status': cls.STATUS.DEACTIVATED}:
             msg = _("Only {'status': %s} is allowed in a request "
@@ -751,16 +754,18 @@ class BaseArtifact(base.VersionedObject):
         LOG.info(_LI("Parameters validation for artifact %(artifact)s "
                      "deactivate passed for request %(request)s."),
                  {'artifact': af.id, 'request': context.request_id})
-        af = cls.db_api.update(context, af.id, values)
+        af = cls.db_api.update(context, af.id,
+                               {'status': cls.STATUS.DEACTIVATED})
         return cls._init_artifact(context, af)
 
     @classmethod
     def publish(cls, context, af, values):
-        """Make Artifact available for everyone
+        """Make artifact available for all tenants.
 
         :param context: user context
-        :param af: definition of published Artifact
-        :return: definition of active Artifact
+        :param af: current artifact object
+        :param values: dictionary with changes for artifact
+        :return: artifact object with changed visibility
         """
         if values != {'visibility': 'public'}:
             msg = _("Only {'visibility': 'public'} is allowed in a request "
@@ -778,17 +783,27 @@ class BaseArtifact(base.VersionedObject):
             LOG.info(_LI("Parameters validation for artifact %(artifact)s "
                          "publish passed for request %(request)s."),
                      {'artifact': af.id, 'request': context.request_id})
-            af = cls.db_api.update(context, af.id, values)
+            af = cls.db_api.update(context, af.id, {'visibility': 'public'})
             return cls._init_artifact(context, af)
 
     @classmethod
     def get_max_blob_size(cls, field_name):
+        """Get the maximum allowed blob size in bytes.
+
+        :param field_name: blob or blob dict field name
+        :return: maximum blob size in bytes
+        """
         return getattr(cls.fields[field_name], 'max_blob_size',
                        attribute.BlobAttribute.DEFAULT_MAX_BLOB_SIZE)
 
     @classmethod
-    def validate_upload_allowed(cls, context, af, field_name, blob_key=None):
-        """Validate if given blob is ready for uploading."""
+    def validate_upload_allowed(cls, af, field_name, blob_key=None):
+        """Validate if given blob is ready for uploading.
+
+        :param af: current artifact object
+        :param field_name: blob or blob dict field name
+        :param blob_key: indicates key name if field_name is a blob dict
+        """
 
         blob_name = "%s[%s]" % (field_name, blob_key)\
             if blob_key else field_name
@@ -818,35 +833,40 @@ class BaseArtifact(base.VersionedObject):
                   {'artifact': af.id, 'blob_name': blob_name})
 
     @classmethod
-    def update_blob(cls, context, af_id, values):
-        """Upload binary object as artifact property
+    def update_blob(cls, context, af_id, field_name, values):
+        """Update blob info in database.
 
         :param context: user context
         :param af_id: id of modified artifact
+        :param field_name: blob or blob dict field name
         :param values: updated blob values
-        :return updated Artifact definition in Glare
+        :return updated artifact definition in Glare
         """
-        af_upd = cls.db_api.update_blob(context, af_id, values)
+        af_upd = cls.db_api.update_blob(context, af_id, {field_name: values})
         return cls._init_artifact(context, af_upd)
 
     @classmethod
     def validate_activate(cls, context, af, values=None):
+        """Validation hook for activation."""
         pass
 
     @classmethod
     def validate_upload(cls, context, af, field_name, fd):
+        """Validation hook for uploading."""
         return fd, None
 
     @classmethod
     def validate_publish(cls, context, af):
+        """Validation hook for publishing."""
         pass
 
     @classmethod
     def get_default_store(cls, context, af, field_name, blob_key):
+        """Return a default store type for artifact type."""
         pass
 
     def to_notification(self):
-        """Return notification body that can be send to listeners
+        """Return notification body that can be send to listeners.
 
         :return: dict with notification information
         """
@@ -865,13 +885,13 @@ class BaseArtifact(base.VersionedObject):
         }
 
     def to_dict(self):
-        """Convert oslo versioned object to dictionary
+        """Convert oslo versioned object to dictionary.
 
         :return: dict with field names and field values
         """
         return self.obj_to_primitive()['versioned_object.data']
 
-    def obj_changes_to_primitive(self):
+    def _obj_changes_to_primitive(self):
         changes = self.obj_get_changes()
         res = {}
         for key, val in six.iteritems(changes):
@@ -882,7 +902,7 @@ class BaseArtifact(base.VersionedObject):
         return res
 
     @classmethod
-    def schema_attr(cls, attr, attr_name=''):
+    def _schema_attr(cls, attr, attr_name=''):
         attr_type = utils.get_schema_type(attr)
         schema = {}
 
@@ -968,10 +988,11 @@ class BaseArtifact(base.VersionedObject):
 
     @classmethod
     def gen_schemas(cls):
+        """Return json schema representation of the artifact type."""
         schemas_prop = {}
         for attr_name, attr in six.iteritems(cls.fields):
-            schemas_prop[attr_name] = cls.schema_attr(attr,
-                                                      attr_name=attr_name)
+            schemas_prop[attr_name] = cls._schema_attr(
+                attr, attr_name=attr_name)
         schemas = {'properties': schemas_prop,
                    'name': cls.get_type_name(),
                    'version': cls.VERSION,

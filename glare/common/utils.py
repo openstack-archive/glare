@@ -68,7 +68,7 @@ def chunkreadable(iter, chunk_size=65536):
 
 def chunkiter(fp, chunk_size=65536):
     """
-    Return an iterator to a file-like obj which yields fixed size chunks
+    Return an iterator to a file-like obj which yields fixed size chunks.
 
     :param fp: a file-like object
     :param chunk_size: maximum size of chunk
@@ -361,7 +361,7 @@ except re.error:
 def no_4byte_params(f):
     """
     Checks that no 4 byte unicode characters are allowed
-    in dicts' keys/values and string's parameters
+    in dicts' keys/values and string's parameters.
     """
     def wrapper(*args, **kwargs):
 
@@ -423,8 +423,7 @@ def split_filter_op(expression):
     When no operator is found, default to an equality comparison.
 
     :param expression: the expression to parse
-
-    :returns: a tuple (operator, threshold) parsed from expression
+    :return: a tuple (operator, threshold) parsed from expression
     """
     left, sep, right = expression.partition(':')
     if sep:
@@ -500,11 +499,8 @@ def evaluate_filter_op(value, operator, threshold):
     :param value: evaluated against the operator, as left side of expression
     :param operator: any supported filter operation
     :param threshold: to compare value against, as right side of expression
-
     :raises: InvalidFilterOperatorValue if an unknown operator is provided
-
-    :returns: boolean result of applied comparison
-
+    :return: boolean result of applied comparison
     """
     if operator == 'gt':
         return value > threshold
@@ -525,21 +521,25 @@ def evaluate_filter_op(value, operator, threshold):
 
 class error_handler(object):
     def __init__(self, error_map, default_exception=None):
+        """Init method of the class.
+
+        :param error_map: dict of exception that can be raised
+        in func and exceptions that must be raised for these exceptions.
+        For example, if sqlalchemy NotFound might be raised and we need
+        re-raise it as glare NotFound exception then error_map must
+        contain {"catch": SQLAlchemyNotFound,
+                 "raise": exceptions.NotFound}
+        :param default_exception: default exception that must be raised if
+        exception that cannot be found in error map was raised
+        :return: func
+        """
         self.error_map = error_map
         self.default_exception = default_exception
 
     def __call__(self, f):
-        """Decorator that catches exception that came from func or method
-            :param f: targer func
-            :param error_map: dict of exception that can be raised
-            in func and exceptions that must be raised for these exceptions.
-            For example, if sqlalchemy NotFound might be raised and we need
-            re-raise it as glare NotFound exception then error_map must
-            contain {"catch": SQLAlchemyNotFound,
-                     "raise": exceptions.NotFound}
-            :param default_exception: default exception that must be raised if
-            exception that cannot be found in error map was raised
-            :return: func
+        """Decorator that catches exception that came from func or method.
+
+        :param f: target func
         """
 
         def new_function(*args, **kwargs):

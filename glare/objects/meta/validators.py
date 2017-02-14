@@ -26,7 +26,7 @@ LOG = logging.getLogger(__name__)
 
 
 class Validator(object):
-    """Common interface for all validators"""
+    """Common interface for all validators."""
 
     def validate(self, value):
         raise NotImplementedError()

@@ -20,11 +20,10 @@ LOG = logging.getLogger(__name__)
 
 
 class LockApiBase(object):
-    """Lock Api Base class that responsible for acquiring/releasing locks
-    """
+    """Lock Api Base class that responsible for acquiring/releasing locks."""
 
     def create_lock(self, context, lock_key):
-        """Acquire lock for current user
+        """Acquire lock for current user.
 
         :param context user context
         :param lock_key: unique lock identifier that defines lock scope
@@ -33,22 +32,21 @@ class LockApiBase(object):
         raise NotImplementedError()
 
     def delete_lock(self, context, lock_id):
-        """Delete acquired user lock
+        """Delete acquired user lock.
 
         :param context: user context
         :param lock_id: lock internal identifier
-        :return:
         """
         raise NotImplementedError()
 
 
 class Lock(object):
     """Object that stores lock context for users. This class is internal
-    and used only for Lock Engine. So users shouldn't use this class directly
+    and used only in lock engine, so users shouldn't use this class directly.
     """
 
     def __init__(self, context, lock_id, lock_key, release_method):
-        """Initialize lock context"""
+        """Initialize lock context."""
         self.context = context
         self.lock_id = lock_id
         self.lock_key = lock_key
@@ -64,31 +62,33 @@ class Lock(object):
 
 class LockEngine(object):
     """Glare lock engine.
+
     Defines how artifact updates must be synchronized with each other. When
-    some user obtains lock  for the same piece of data then other user cannot
-    request that lock and get Conflict error.
-    This little engine also allows to encapsulate lock logic in one place so
-    we can potentially add tooz functionality in future to Glare. Right now
-    there are troubles with locks in Galera (especially in mysql) and zookeeper
-    requires additional work from IT engineers. So we need support production
-    ready DB locks in our implementation.
+    some user obtains a lock for the same artifact then other user cannot
+    request that lock and gets a Conflict error.
     """
+    # NOTE(kairat): Lock Engine also allows to encapsulate lock logic in one
+    # place so we can potentially add tooz functionality in future to Glare.
+    # Right now there are troubles with locks in Galera (especially in mysql)
+    # and zookeeper requires additional work from IT engineers. So we need
+    # support production ready DB locks in our implementation.
 
     MAX_LOCK_LENGTH = 255
 
     def __init__(self, lock_api):
-        """Initialize lock engine with some lock api
+        """Initialize lock engine with some lock api.
 
-        :param lock_api: api that allows to create/delete locks. It must be
-        db_api but it might be replaced with DLM in near future.
+        :param lock_api: api that allows to create/delete locks
         """
+        # NOTE(kairat): lock_api is db_api now but it might be
+        # replaced with DLM in near future.
         self.lock_api = lock_api
 
     def acquire(self, context, lock_key):
-        """Acquire lock to update whole artifact
+        """Acquire lock for artifact.
 
-        Acquire lock to update artifact. If there is some other
-        lock for the same artifact then raise Conflict Error.
+        If there is some other lock with the same key then
+        raise Conflict Error.
 
         :param context: user context
         :param lock_key: lock key
@@ -106,6 +106,10 @@ class LockEngine(object):
         return Lock(context, lock_id, lock_key, self.release)
 
     def release(self, lock):
+        """Release lock for artifact.
+
+        :param lock: Lock object
+        """
         if lock.lock_id is not None:
             self.lock_api.delete_lock(lock.context, lock.lock_id)
             LOG.info(_LI("Lock %(lock_id)s released for lock_key %(key)s"),

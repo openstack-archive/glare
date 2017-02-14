@@ -40,7 +40,7 @@ class APIVersionRequest(object):
         """Create an API version request object.
 
         :param version_string: String representation of APIVersionRequest.
-            Correct format is 'X.Y', where 'X' and 'Y' are int values.
+        Correct format is 'X.Y', where 'X' and 'Y' are int values.
         """
         match = re.match(r"^([1-9]\d*)\.([1-9]\d*|0)$", version_string)
         if match:
@@ -95,9 +95,9 @@ class APIVersionRequest(object):
         greater than or equal to the minimum version and less than
         or equal to the maximum version.
 
-        @param min_version: Minimum acceptable version.
-        @param max_version: Maximum acceptable version.
-        @returns: boolean
+        :param min_version: Minimum acceptable version.
+        :param max_version: Maximum acceptable version.
+        :returns: boolean
         """
         return min_version <= self <= max_version
 
@@ -109,15 +109,15 @@ class APIVersionRequest(object):
 
     @classmethod
     def min_version(cls):
-        """Minimal allowed api version"""
+        """Minimal allowed api version."""
         return APIVersionRequest(cls._MIN_API_VERSION)
 
     @classmethod
     def max_version(cls):
-        """Maximal allowed api version"""
+        """Maximal allowed api version."""
         return APIVersionRequest(cls._MAX_API_VERSION)
 
     @classmethod
     def default_version(cls):
-        """Default api version if no version in request"""
+        """Default api version if no version in request."""
         return APIVersionRequest(cls._DEFAULT_API_VERSION)

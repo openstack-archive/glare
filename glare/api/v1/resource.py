@@ -50,11 +50,12 @@ supported_versions = api_versioning.VersionedResource.supported_versions
 
 class RequestDeserializer(api_versioning.VersionedResource,
                           wsgi.JSONRequestDeserializer):
-    """Glare deserializer for incoming webop Requests.
-    Deserializer converts incoming request into bunch of python primitives.
-    So other components doesn't work with requests at all. Deserializer also
-    executes primary API validation without any knowledge about Artifact
-    structure.
+    """Glare deserializer for incoming webob requests.
+
+    Deserializer checks and converts incoming request into a bunch of Glare
+    primitives. So other service components don't work with requests at all.
+    Deserializer also performs primary API validation without any knowledge
+    about concrete artifact type structure.
     """
 
     @staticmethod
@@ -74,6 +75,7 @@ class RequestDeserializer(api_versioning.VersionedResource,
         return content_type
 
     def _get_request_body(self, req):
+        """Get request json body and convert it to python structures."""
         return self.from_json(req.body)
 
     @supported_versions(min_ver='1.0')
@@ -137,7 +139,7 @@ class RequestDeserializer(api_versioning.VersionedResource,
         patch = jsonpatch.JsonPatch(body)
         try:
             # Initially patch object doesn't validate input. It's only checked
-            # we call get operation on each method
+            # when we call get operation on each method
             tuple(map(patch._get_operation, patch.patch))
         except (jsonpatch.InvalidJsonPatch, TypeError):
             msg = _("Json Patch body is malformed")
@@ -152,7 +154,7 @@ class RequestDeserializer(api_versioning.VersionedResource,
             data = self._get_request_body(req)
             if 'url' not in data:
                 msg = _("url is required when specifying external location. "
-                        "Cannot find url in body: %s") % str(data)
+                        "Cannot find 'url' in request body: %s") % str(data)
                 raise exc.BadRequest(msg)
         else:
             data = req.body_file
@@ -176,10 +178,10 @@ def log_request_progress(f):
 
 class ArtifactsController(api_versioning.VersionedResource):
     """API controller for Glare Artifacts.
+
     Artifact Controller prepares incoming data for Glare Engine and redirects
-    data to appropriate engine method (so only controller is working with
-    Engine. Once the data returned from Engine Controller returns data
-    in appropriate format for Response Serializer.
+    data to the appropriate engine method. Once the response data is returned
+    from the engine Controller passes it next to Response Serializer.
     """
 
     def __init__(self):
@@ -188,12 +190,21 @@ class ArtifactsController(api_versioning.VersionedResource):
     @supported_versions(min_ver='1.0')
     @log_request_progress
     def list_type_schemas(self, req):
+        """List of detailed descriptions of enabled artifact types.
+
+        :return: list of json-schemas of all enabled artifact types.
+        """
         type_schemas = self.engine.list_type_schemas(req.context)
         return type_schemas
 
     @supported_versions(min_ver='1.0')
     @log_request_progress
     def show_type_schema(self, req, type_name):
+        """Get detailed artifact type description.
+
+        :param type_name: artifact type name
+        :return: json-schema representation of artifact type
+        """
         type_schema = self.engine.show_type_schema(req.context, type_name)
         return {type_name: type_schema}
 
@@ -202,10 +213,10 @@ class ArtifactsController(api_versioning.VersionedResource):
     def create(self, req, type_name, values):
         """Create artifact record in Glare.
 
-        :param req: User request
-        :param type_name: Artifact type name
-        :param values: dict with artifact fields {field_name: field_value}
-        :return definition of created artifact
+        :param req: user request
+        :param type_name: artifact type name
+        :param values: dict with artifact fields
+        :return: definition of created artifact
         """
         return self.engine.create(req.context, type_name, values)
 
@@ -218,14 +229,14 @@ class ArtifactsController(api_versioning.VersionedResource):
         :param type_name: Artifact type name
         :param artifact_id: id of artifact to update
         :param patch: json patch with artifact changes
-        :return definition of updated artifact
+        :return: definition of updated artifact
         """
         return self.engine.update(req.context, type_name, artifact_id, patch)
 
     @supported_versions(min_ver='1.0')
     @log_request_progress
     def delete(self, req, type_name, artifact_id):
-        """Delete artifact from Glare
+        """Delete artifact from Glare.
 
         :param req: User request
         :param type_name: Artifact type name
@@ -236,7 +247,7 @@ class ArtifactsController(api_versioning.VersionedResource):
     @supported_versions(min_ver='1.0')
     @log_request_progress
     def show(self, req, type_name, artifact_id):
-        """Show detailed artifact info
+        """Show detailed artifact info.
 
         :param req: User request
         :param type_name: Artifact type name
@@ -249,7 +260,7 @@ class ArtifactsController(api_versioning.VersionedResource):
     @log_request_progress
     def list(self, req, type_name, filters, marker=None, limit=None,
              sort=None, latest=False):
-        """List available artifacts
+        """List available artifacts.
 
         :param req: User request
         :param type_name: Artifact type name
@@ -261,7 +272,7 @@ class ArtifactsController(api_versioning.VersionedResource):
         :param sort: sorting options
         :param latest: flag that indicates, that only artifacts with highest
         versions should be returned in output
-        :return: list of artifacts
+        :return: list of requested artifact definitions
         """
         artifacts = self.engine.list(req.context, type_name, filters, marker,
                                      limit, sort, latest)
@@ -273,18 +284,19 @@ class ArtifactsController(api_versioning.VersionedResource):
 
     @supported_versions(min_ver='1.0')
     @log_request_progress
-    def upload_blob(self, req, type_name, artifact_id, blob_name, data,
+    def upload_blob(self, req, type_name, artifact_id, blob_path, data,
                     content_type):
-        """Upload blob into Glare repo
+        """Upload blob into Glare repo.
 
         :param req: User request
         :param type_name: Artifact type name
-        :param artifact_id: id of Artifact to reactivate
-        :param blob_name: name of blob field in artifact
-        :param data: Artifact payload
+        :param artifact_id: id of artifact where to perform upload
+        :param blob_path: path to artifact blob
+        :param data: blob payload
         :param content_type: data content-type
+        :return: definition of requested artifact with uploaded blob
         """
-        field_name, _sep, blob_key = blob_name.partition('/')
+        field_name, _sep, blob_key = blob_path.partition('/')
         if not blob_key:
             blob_key = None
         if content_type == ('application/vnd+openstack.glare-custom-location'
@@ -300,16 +312,16 @@ class ArtifactsController(api_versioning.VersionedResource):
 
     @supported_versions(min_ver='1.0')
     @log_request_progress
-    def download_blob(self, req, type_name, artifact_id, blob_name):
-        """Download blob data from Artifact
+    def download_blob(self, req, type_name, artifact_id, blob_path):
+        """Download blob data from Artifact.
 
         :param req: User request
-        :param type_name: Artifact type name
-        :param artifact_id: id of Artifact to reactivate
-        :param blob_name: name of blob field in artifact
-        :return: iterator that returns blob data
+        :param type_name: artifact type name
+        :param artifact_id: id of artifact from where to perform download
+        :param blob_path: path to artifact blob
+        :return: requested blob data
         """
-        field_name, _sep, blob_key = blob_name.partition('/')
+        field_name, _sep, blob_key = blob_path.partition('/')
         if not blob_key:
             blob_key = None
         data, meta = self.engine.download_blob(
@@ -320,10 +332,10 @@ class ArtifactsController(api_versioning.VersionedResource):
 
 class ResponseSerializer(api_versioning.VersionedResource,
                          wsgi.JSONResponseSerializer):
-    """Glare Response Serializer converts data received from Glare Engine
-    (it consists from plain data types - dict, int, string, file descriptors,
-    etc) to WSGI Requests. It also specifies proper response status and
-    content type as specified by API design.
+    """Glare serializer for outgoing responses.
+
+    Converts data received from the engine to WSGI responses. It also
+    specifies proper response status and content type as declared in the API.
     """
 
     @staticmethod
@@ -425,7 +437,7 @@ class ResponseSerializer(api_versioning.VersionedResource,
 
 
 def create_resource():
-    """Artifact resource factory method"""
+    """Artifact resource factory method."""
     deserializer = RequestDeserializer()
     serializer = ResponseSerializer()
     controller = ArtifactsController()

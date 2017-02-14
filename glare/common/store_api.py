@@ -53,7 +53,7 @@ error_map = [{'catch': store_exc.NotFound,
 @utils.error_handler(error_map)
 def save_blob_to_store(blob_id, blob, context, max_size,
                        store_type=None, verifier=None):
-    """Save file to specified store type and return location info to the user
+    """Save file to specified store type and return location info to the user.
 
     :param store_type: type of the store, None means save to default store.
     :param blob_id: id of artifact
@@ -84,7 +84,7 @@ def load_from_store(uri, context):
 
 @utils.error_handler(error_map)
 def delete_blob(uri, context):
-    """Delete blob from backend store
+    """Delete blob from backend store.
 
     :param uri: blob uri
     :param context: user context

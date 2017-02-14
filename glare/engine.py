@@ -39,15 +39,16 @@ class Engine(object):
     """Engine is responsible for executing different helper operations when
     processing incoming requests from Glare API.
     Engine receives incoming data and does the following:
-    - check basic policy permissions
-    - requests artifact definition from registry
-    - check access permission(ro, rw)
-    - lock artifact for update if needed
+    - check basic policy permissions;
+    - requests artifact definition from artifact type registry;
+    - check access permission(ro, rw);
+    - lock artifact for update if needed;
     - pass data to base artifact to execute all business logic operations
+      with database;
     - notify other users about finished operation.
     Engine should not include any business logic and validation related
-    to Artifacts. Engine should not know any internal details of Artifacts
-    because it controls access to Artifacts in common.
+    to Artifacts. Engine should not know any internal details of artifact
+    type, because this part of the work is done by Base artifact type.
     """
     def __init__(self):
         # register all artifact types
@@ -69,28 +70,32 @@ class Engine(object):
     @classmethod
     def _get_artifact(cls, context, type_name, artifact_id,
                       read_only=False):
-        """Return artifact for users
+        """Return artifact requested by user.
+        Check access permissions and policies.
 
-        Return artifact for reading/modification by users. Check
-        access permissions and policies for artifact.
+        :param context: user context
+        :param type_name: artifact type name
+        :param artifact_id: id of the artifact to be updated
+        :param read_only: flag, if set to True only read access is checked,
+        if False then engine checks if artifact can be modified by the user
         """
 
         def _check_read_write_access(ctx, af):
-            """Check if artifact can be modified by user
+            """Check if artifact can be modified by user.
 
             :param ctx: user context
             :param af: artifact definition
-            :raise Forbidden if access is not allowed
+            :raise: Forbidden if access is not allowed
             """
             if not ctx.is_admin and ctx.tenant != af.owner or ctx.read_only:
                 raise exception.Forbidden()
 
         def _check_read_only_access(ctx, af):
-            """Check if user has read only access to artifact
+            """Check if user has read only access to artifact.
 
             :param ctx: user context
             :param af: artifact definition
-            :raise Forbidden if access is not allowed
+            :raise: Forbidden if access is not allowed
             """
             private = af.visibility != 'public'
             if (private and
@@ -125,13 +130,19 @@ class Engine(object):
         return schemas[type_name]
 
     @classmethod
-    def create(cls, context, type_name, field_values):
-        """Create new artifact in Glare"""
+    def create(cls, context, type_name, values):
+        """Create artifact record in Glare.
+
+        :param context: user context
+        :param type_name: artifact type name
+        :param values: dict with artifact fields
+        :return: dict representation of created artifact
+        """
         action_name = "artifact:create"
-        policy.authorize(action_name, field_values, context)
+        policy.authorize(action_name, values, context)
         artifact_type = registry.ArtifactRegistry.get_artifact_type(type_name)
         # acquire version lock and execute artifact create
-        af = artifact_type.create(context, field_values)
+        af = artifact_type.create(context, values)
         # notify about new artifact
         Notifier.notify(context, action_name, af)
         # return artifact to the user
@@ -142,24 +153,23 @@ class Engine(object):
         """Update artifact with json patch.
 
         Apply patch to artifact and validate artifact before updating it
-        in database. If there is request for visibility change or custom
-        location change then call specific method for that.
+        in database. If there is request for visibility or status change
+        then call specific method for that.
 
         :param context: user context
         :param type_name: name of artifact type
         :param artifact_id: id of the artifact to be updated
-        :param patch: json patch
-        :return: updated artifact
+        :param patch: json patch object
+        :return: dict representation of updated artifact
         """
 
-        def get_updates(af_dict, patch_with_upd):
-            """Get updated values for artifact and json patch
+        def _get_updates(af_dict, patch_with_upd):
+            """Get updated values for artifact and json patch.
 
             :param af_dict: current artifact definition as dict
-            :param patch_with_upd: json-patch
-            :return: dict of updated attributes and their values
+            :param patch_with_upd: json-patch object
+            :return dict of updated attributes and their values
             """
-
             try:
                 af_dict_patched = patch_with_upd.apply(af_dict)
                 diff = utils.DictDiffer(af_dict_patched, af_dict)
@@ -187,7 +197,7 @@ class Engine(object):
         with base.BaseArtifact.lock_engine.acquire(context, lock_key):
             artifact = cls._get_artifact(context, type_name, artifact_id)
             af_dict = artifact.to_dict()
-            updates = get_updates(af_dict, patch)
+            updates = _get_updates(af_dict, patch)
             LOG.debug("Update diff successfully calculated for artifact "
                       "%(af)s %(diff)s", {'af': artifact_id, 'diff': updates})
 
@@ -196,6 +206,8 @@ class Engine(object):
             else:
                 action = artifact.get_action_for_updates(
                     context, artifact, updates, registry.ArtifactRegistry)
+                LOG.debug("Action %(action)s was defined to values %(val)s.",
+                          {'action': action.__name__, 'val': updates})
                 action_name = "artifact:%s" % action.__name__
                 policy.authorize(action_name, af_dict, context)
                 modified_af = action(context, artifact, updates)
@@ -204,7 +216,13 @@ class Engine(object):
 
     @classmethod
     def get(cls, context, type_name, artifact_id):
-        """Return artifact representation from artifact repo."""
+        """Show detailed artifact info.
+
+        :param context: user context
+        :param type_name: Artifact type name
+        :param artifact_id: id of artifact to show
+        :return: definition of requested artifact
+        """
         policy.authorize("artifact:get", {}, context)
         af = cls._get_artifact(context, type_name, artifact_id,
                                read_only=True)
@@ -225,7 +243,7 @@ class Engine(object):
         :param sort: sorting options
         :param latest: flag that indicates, that only artifacts with highest
         versions should be returned in output
-        :return: list of artifacts
+        :return: list of artifact definitions
         """
         policy.authorize("artifact:list", {}, context)
         artifact_type = registry.ArtifactRegistry.get_artifact_type(type_name)
@@ -237,7 +255,12 @@ class Engine(object):
 
     @classmethod
     def delete(cls, context, type_name, artifact_id):
-        """Delete artifact from glare"""
+        """Delete artifact from Glare.
+
+        :param context: User context
+        :param type_name: Artifact type name
+        :param artifact_id: id of artifact to delete
+        """
         af = cls._get_artifact(context, type_name, artifact_id)
         policy.authorize("artifact:delete", af.to_dict(), context)
         af.delete(context, af)
@@ -254,9 +277,9 @@ class Engine(object):
         :param field_name: name of blob or blob dict field
         :param location: external blob url
         :param blob_meta: dictionary containing blob metadata like md5 checksum
-        :param blob_key: if field_name is blob dict it specifies concrete key
+        :param blob_key: if field_name is blob dict it specifies key
         in this dict
-        :return updated artifact
+        :return: dict representation of updated artifact
         """
         af = cls._get_artifact(context, type_name, artifact_id)
         action_name = 'artifact:set_location'
@@ -299,11 +322,10 @@ class Engine(object):
         :param artifact_id: id of the artifact to be updated
         :param field_name: name of blob or blob dict field
         :param fd: file descriptor that Glare uses to upload the file
-        :param field_name: name of blob dict field
         :param content_type: data content-type
-        :param blob_key: if field_name is blob dict it specifies concrete key
-        in this dict
-        :return file iterator for requested file
+        :param blob_key: if field_name is blob dict it specifies key
+        in this dictionary
+        :return: dict representation of updated artifact
         """
         af = cls._get_artifact(context, type_name, artifact_id)
         action_name = "artifact:upload"
@@ -348,12 +370,12 @@ class Engine(object):
                 # if upload failed remove blob from db and storage
                 with excutils.save_and_reraise_exception(logger=LOG):
                     if blob_key is None:
-                        af.update_blob(context, af.id, {field_name: None})
+                        af.update_blob(context, af.id, field_name, None)
                     else:
                         blob_dict_attr = modified_af[field_name]
                         del blob_dict_attr[blob_key]
                         af.update_blob(context, af.id,
-                                       {field_name: blob_dict_attr})
+                                       field_name, blob_dict_attr)
             blob_name = "%s[%s]" % (field_name, blob_key) \
                 if blob_key else field_name
             LOG.info(_LI("Successfully finished blob upload for artifact "
@@ -378,40 +400,43 @@ class Engine(object):
     def update_blob(cls, context, type_name, artifact_id, blob,
                     field_name, blob_key=None, validate=False):
         """Update blob info.
+
         :param context: user context
         :param type_name: name of artifact type
         :param artifact_id: id of the artifact to be updated
         :param blob: blob representation in dict format
         :param field_name: name of blob or blob dict field
-        :param blob_key: if field_name is blob dict it specifies concrete key
+        :param blob_key: if field_name is blob dict it specifies key
         in this dict
         :param validate: enable validation of possibility of blob uploading
-        :return updated artifact
+
+        :return: dict representation of updated artifact
         """
         lock_key = "%s:%s" % (type_name, artifact_id)
         with base.BaseArtifact.lock_engine.acquire(context, lock_key):
             af = cls._get_artifact(context, type_name, artifact_id)
             if validate:
-                af.validate_upload_allowed(context, af, field_name, blob_key)
+                af.validate_upload_allowed(af, field_name, blob_key)
             if blob_key is None:
                 setattr(af, field_name, blob)
                 return af.update_blob(
-                    context, af.id, {field_name: getattr(af, field_name)})
+                    context, af.id, field_name, getattr(af, field_name))
             else:
                 blob_dict_attr = getattr(af, field_name)
                 blob_dict_attr[blob_key] = blob
                 return af.update_blob(
-                    context, af.id, {field_name: blob_dict_attr})
+                    context, af.id, field_name, blob_dict_attr)
 
     @classmethod
     def download_blob(cls, context, type_name, artifact_id, field_name,
                       blob_key=None):
         """Download binary data from Glare Artifact.
+
         :param context: user context
         :param type_name: name of artifact type
         :param artifact_id: id of the artifact to be updated
         :param field_name: name of blob or blob dict field
-        :param blob_key: if field_name is blob dict it specifies concrete key
+        :param blob_key: if field_name is blob dict it specifies key
         in this dict
         :return: file iterator for requested file
         """

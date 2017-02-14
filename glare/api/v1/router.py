@@ -83,16 +83,16 @@ class API(wsgi.Router):
                        allowed_methods='GET, PATCH, DELETE')
 
         # ---blobs---
-        mapper.connect('/artifacts/{type_name}/{artifact_id}/{blob_name:.*?}',
+        mapper.connect('/artifacts/{type_name}/{artifact_id}/{blob_path:.*?}',
                        controller=glare_resource,
                        action='download_blob',
                        conditions={'method': ['GET']},
                        body_reject=True)
-        mapper.connect('/artifacts/{type_name}/{artifact_id}/{blob_name:.*?}',
+        mapper.connect('/artifacts/{type_name}/{artifact_id}/{blob_path:.*?}',
                        controller=glare_resource,
                        action='upload_blob',
                        conditions={'method': ['PUT']})
-        mapper.connect('/artifacts/{type_name}/{artifact_id}/{blob_name:.*?}',
+        mapper.connect('/artifacts/{type_name}/{artifact_id}/{blob_path:.*?}',
                        controller=reject_method_resource,
                        action='reject',
                        allowed_methods='GET, PUT')

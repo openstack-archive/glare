@@ -97,7 +97,7 @@ def reset():
 
 
 def authorize(policy_name, target, context, do_raise=True):
-    """Method checks that user action can be executed according to policies
+    """Method checks that user action can be executed according to policies.
 
     :param policy_name: policy name
     :param target:
