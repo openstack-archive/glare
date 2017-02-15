@@ -399,6 +399,20 @@ class BaseArtifact(base.VersionedObject):
             # apply values to the artifact. if all changes applied then update
             # values in db or raise an exception in other case.
             for key, value in six.iteritems(values):
+                try:
+                    # check updates for links and validate them
+                    if cls.is_link(key) and value is not None:
+                        cls._validate_link(key, value, context)
+                    elif cls.is_link_dict(key) and value:
+                        for l in value:
+                            cls._validate_link(key, value[l], context)
+                    elif cls.is_link_list(key) and value:
+                        for l in value:
+                            cls._validate_link(key, l, context)
+                except Exception as e:
+                    msg = (_("Bad link in artifact %(af)s: %(msg)s")
+                           % {"af": af.id, "msg": str(e)})
+                    raise exception.BadRequest(msg)
                 setattr(af, key, value)
 
             LOG.info(_LI("Parameters validation for artifact %(artifact)s "
@@ -409,7 +423,7 @@ class BaseArtifact(base.VersionedObject):
             return cls._init_artifact(context, updated_af)
 
     @classmethod
-    def get_action_for_updates(cls, context, af, values, registry):
+    def get_action_for_updates(cls, context, af, values):
         """Define the appropriate method for artifact update.
 
         Based on update params this method defines what action engine should
@@ -419,55 +433,39 @@ class BaseArtifact(base.VersionedObject):
         :param context: user context
         :param af: current definition of artifact
         :param values: dictionary with changes for artifact
-        :param registry: registry of enabled artifact types
         :return: method reference for updates dict
         """
+        action = cls.update
         if 'visibility' in values:
             # validate publish action format
-            return cls.publish
+            action = cls.publish
         elif 'status' in values:
             status = values['status']
             if status == cls.STATUS.DEACTIVATED:
-                return cls.deactivate
+                action = cls.deactivate
             elif status == cls.STATUS.ACTIVE:
                 if af.status == af.STATUS.DEACTIVATED:
-                    return cls.reactivate
+                    action = cls.reactivate
                 else:
-                    return cls.activate
+                    action = cls.activate
 
-        # check updates for links and validate them
-        try:
-            for key, value in six.iteritems(values):
-                if cls.is_link(key) and value is not None:
-                    cls._validate_link(key, value, context, registry)
-                elif cls.is_link_dict(key) and value:
-                    for l in value:
-                        cls._validate_link(key, value[l], context, registry)
-                elif cls.is_link_list(key) and value:
-                    for l in value:
-                        cls._validate_link(key, l, context, registry)
-        except Exception as e:
-            msg = (_("Broken link in artifact %(af)s: %(msg)s")
-                   % {"af": af.id, "msg": str(e)})
-            raise exception.BadRequest(msg)
+        LOG.debug("Action %(action)s defined to updates %(updates)s.",
+                  {'action': action.__name__, 'updates': values})
 
-        return cls.update
+        return action
 
     @classmethod
-    def _validate_link(cls, key, value, context, registry):
+    def _validate_link(cls, key, value, ctx):
         # check format
         glare_fields.LinkFieldType.coerce(None, key, value)
         # check containment
         if glare_fields.LinkFieldType.is_external(value):
-            # validate external link
             with urlrequest.urlopen(value) as data:
                 data.read(1)
         else:
-            type_name = (glare_fields.LinkFieldType.
-                         get_type_name(value))
-            af_type = registry.get_artifact_type(type_name)
-            af_id = value.split('/')[3]
-            af_type.get(context, af_id)
+            filters = [('id', None, 'eq', None, value.split('/')[3])]
+            if len(cls.db_api.list(ctx, filters, None, 1, [], False)) == 0:
+                raise exception.NotFound
 
     @classmethod
     def get(cls, context, artifact_id):

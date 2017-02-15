@@ -195,24 +195,19 @@ class Engine(object):
                 raise exception.BadRequest(msg)
         lock_key = "%s:%s:" % (type_name, artifact_id)
         with base.BaseArtifact.lock_engine.acquire(context, lock_key):
-            artifact = cls._get_artifact(context, type_name, artifact_id)
-            af_dict = artifact.to_dict()
+            af = cls._get_artifact(context, type_name, artifact_id)
+            af_dict = af.to_dict()
             updates = _get_updates(af_dict, patch)
             LOG.debug("Update diff successfully calculated for artifact "
                       "%(af)s %(diff)s", {'af': artifact_id, 'diff': updates})
-
             if not updates:
                 return af_dict
-            else:
-                action = artifact.get_action_for_updates(
-                    context, artifact, updates, registry.ArtifactRegistry)
-                LOG.debug("Action %(action)s was defined to values %(val)s.",
-                          {'action': action.__name__, 'val': updates})
-                action_name = "artifact:%s" % action.__name__
-                policy.authorize(action_name, af_dict, context)
-                modified_af = action(context, artifact, updates)
-                Notifier.notify(context, action_name, modified_af)
-                return modified_af.to_dict()
+            action = af.get_action_for_updates(context, af, updates)
+            action_name = "artifact:%s" % action.__name__
+            policy.authorize(action_name, af_dict, context)
+            modified_af = action(context, af, updates)
+            Notifier.notify(context, action_name, modified_af)
+            return modified_af.to_dict()
 
     @classmethod
     def get(cls, context, type_name, artifact_id):
