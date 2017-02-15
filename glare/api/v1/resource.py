@@ -218,6 +218,9 @@ class ArtifactsController(api_versioning.VersionedResource):
         :param values: dict with artifact fields
         :return: definition of created artifact
         """
+        if req.context.tenant is None or req.context.read_only:
+            msg = _("It's forbidden to anonymous users to create artifacts.")
+            raise exc.Forbidden(msg)
         return self.engine.create(req.context, type_name, values)
 
     @supported_versions(min_ver='1.0')

@@ -68,52 +68,28 @@ class Engine(object):
         return copy.deepcopy(cls.schemas)
 
     @classmethod
-    def _get_artifact(cls, context, type_name, artifact_id,
-                      read_only=False):
+    def _get_artifact(cls, ctx, type_name, artifact_id, read_only=False):
         """Return artifact requested by user.
         Check access permissions and policies.
 
-        :param context: user context
+        :param ctx: user context
         :param type_name: artifact type name
         :param artifact_id: id of the artifact to be updated
         :param read_only: flag, if set to True only read access is checked,
         if False then engine checks if artifact can be modified by the user
         """
-
-        def _check_read_write_access(ctx, af):
-            """Check if artifact can be modified by user.
-
-            :param ctx: user context
-            :param af: artifact definition
-            :raise: Forbidden if access is not allowed
-            """
-            if not ctx.is_admin and ctx.tenant != af.owner or ctx.read_only:
-                raise exception.Forbidden()
-
-        def _check_read_only_access(ctx, af):
-            """Check if user has read only access to artifact.
-
-            :param ctx: user context
-            :param af: artifact definition
-            :raise: Forbidden if access is not allowed
-            """
-            private = af.visibility != 'public'
-            if (private and
-                    not ctx.is_admin and ctx.tenant != af.owner):
-                # TODO(kairat): check artifact sharing here
-                raise exception.Forbidden()
-
         artifact_type = registry.ArtifactRegistry.get_artifact_type(type_name)
         # only artifact is available for class users
-        artifact = artifact_type.get(context, artifact_id)
-        if read_only:
-            _check_read_only_access(context, artifact)
-            LOG.debug("Artifact %s acquired for read-only access", artifact_id)
-        else:
-            _check_read_write_access(context, artifact)
+        af = artifact_type.get(ctx, artifact_id)
+        if not read_only:
+            if not ctx.is_admin and ctx.tenant != af.owner or ctx.read_only:
+                raise exception.Forbidden()
             LOG.debug("Artifact %s acquired for read-write access",
                       artifact_id)
-        return artifact
+        else:
+            LOG.debug("Artifact %s acquired for read-only access", artifact_id)
+
+        return af
 
     @classmethod
     def list_type_schemas(cls, context):
@@ -193,7 +169,7 @@ class Engine(object):
             except TypeError as e:
                 msg = _("Incorrect type of the element. Reason: %s") % str(e)
                 raise exception.BadRequest(msg)
-        lock_key = "%s:%s:" % (type_name, artifact_id)
+        lock_key = "%s:%s" % (type_name, artifact_id)
         with base.BaseArtifact.lock_engine.acquire(context, lock_key):
             af = cls._get_artifact(context, type_name, artifact_id)
             af_dict = af.to_dict()
