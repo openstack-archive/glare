@@ -15,7 +15,6 @@
 
 """Simple Database API for testing artifact types"""
 
-from oslo_log import log as logging
 from oslo_utils import timeutils
 import semantic_version
 import six
@@ -25,8 +24,6 @@ from glare.common import utils
 from glare.i18n import _
 from glare import locking
 
-
-LOG = logging.getLogger(__name__)
 
 DATA = {
     'artifacts': {},
