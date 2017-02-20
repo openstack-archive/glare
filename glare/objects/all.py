@@ -39,7 +39,7 @@ class All(base.BaseArtifact):
         raise exception.Forbidden("This type is read only.")
 
     @classmethod
-    def get_action_for_updates(cls, context, artifact, updates, registry):
+    def get_action_for_updates(cls, context, artifact, updates):
         raise exception.Forbidden("This type is read only.")
 
     @classmethod
