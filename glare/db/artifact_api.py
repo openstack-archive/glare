@@ -96,10 +96,9 @@ class ArtifactAPI(object):
 
         :param context: user context
         :param artifact_id: id of artifact that needs to be deleted
-        :return: dict for deleted artifact value
         """
         session = api.get_session()
-        return api.delete(context, artifact_id, session)
+        api.delete(context, artifact_id, session)
 
     @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
            stop_max_attempt_number=20)

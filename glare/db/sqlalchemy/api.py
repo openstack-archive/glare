@@ -140,7 +140,7 @@ def _create_or_update(context, artifact_id, values, session):
             artifact.created_at = timeutils.utcnow()
         else:
             # update the existing artifact
-            artifact = _get(context, artifact_id, session, show_deleted=True)
+            artifact = _get(context, artifact_id, session)
 
         if 'version' in values:
             values['version'] = semver_db.parse(values['version'])
@@ -174,13 +174,10 @@ def _create_or_update(context, artifact_id, values, session):
         return artifact.to_dict()
 
 
-def _get(context, artifact_id, session, show_deleted=False):
+def _get(context, artifact_id, session):
     try:
         query = _do_artifacts_query(context, session).filter_by(
             id=artifact_id)
-        if not show_deleted:
-            # Don't show deleted artifacts
-            query = query.filter(models.Artifact.status != 'deleted')
         artifact = query.one()
     except orm.exc.NoResultFound:
         msg = _("Artifact with id=%s not found.") % artifact_id
@@ -302,9 +299,6 @@ def _get_all(context, session, filters=None, marker=None, limit=None,
 
 
 def _do_paginate_query(query, marker=None, limit=None, sort=None):
-    # Don't show deleted artifacts
-    query = query.filter(models.Artifact.status != 'deleted')
-
     # Add sorting
     number_of_custom_props = 0
     for sort_key, sort_dir, sort_type in sort:

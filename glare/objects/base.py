@@ -37,8 +37,8 @@ from glare.objects.meta import validators
 artifact_opts = [
     cfg.BoolOpt('delayed_blob_delete', default=False,
                 help=_("Defines if blob must be deleted immediately "
-                       "or just marked as deleted so it can be cleaned by some"
-                       "other tool in background.")),
+                       "or just marked as pending delete so it can be cleaned "
+                       "by some other tool in the background.")),
 ]
 
 CONF = cfg.CONF
@@ -332,8 +332,7 @@ class BaseArtifact(base.VersionedObject):
         :param is_public: flag that indicates to search artifact globally
         """
         if version is not None and name not in (None, ""):
-            filters = [('name', name), ('version', version),
-                       ('status', 'neq:deleted')]
+            filters = [('name', name), ('version', version)]
             if is_public is False:
                 filters.extend([('owner', context.tenant),
                                 ('visibility', 'private')])
@@ -523,11 +522,12 @@ class BaseArtifact(base.VersionedObject):
         # output format for filters is list of tuples:
         # (field_name, key_name, op, field_type, value)
 
+        new_filters = [('status', None, 'neq', None, cls.STATUS.DELETED)]
         if cls.get_type_name() != 'all':
-            new_filters = [
-                ('type_name', None, 'eq', None, cls.get_type_name())]
-        else:
-            new_filters = []
+            new_filters.append(
+                ('type_name', None, 'eq', None, cls.get_type_name()))
+        if filters is None:
+            return new_filters
 
         for filter_name, filter_value in filters:
             if filter_name in ('tags-any', 'tags'):
@@ -598,10 +598,7 @@ class BaseArtifact(base.VersionedObject):
         else:
             sort = [('created_at', 'desc', None), ('id', 'asc', None)]
 
-        if filters is not None:
-            filters = cls._parse_filter_values(filters)
-        else:
-            filters = []
+        filters = cls._parse_filter_values(filters)
 
         return [cls._init_artifact(context, af)
                 for af in cls.db_api.list(
@@ -609,11 +606,7 @@ class BaseArtifact(base.VersionedObject):
 
     @staticmethod
     def _prepare_blob_delete(b, af, name):
-        if b['status'] == glare_fields.BlobFieldType.PENDING_DELETE:
-            msg = _('Blob %(name)s is already deleting '
-                    'for artifact %(id)s') % {'name': name, 'id': af.id}
-            raise exception.Conflict(msg)
-        elif b['status'] == glare_fields.BlobFieldType.SAVING:
+        if b['status'] == glare_fields.BlobFieldType.SAVING:
             msg = _('Blob %(name)s is saving for artifact %(id)s'
                     ) % {'name': name, 'id': af.id}
             raise exception.Conflict(msg)
@@ -624,13 +617,20 @@ class BaseArtifact(base.VersionedObject):
         for name, blob in six.iteritems(blobs):
             if cls.is_blob(name):
                 if not blob['external']:
-                    store_api.delete_blob(blob['url'], context=context)
+                    try:
+                        store_api.delete_blob(blob['url'], context=context)
+                    except exception.NotFound:
+                        # data has already been remover
+                        pass
                 cls.db_api.update_blob(context, af.id, {name: None})
             elif cls.is_blob_dict(name):
                 upd_blob = deepcopy(blob)
                 for key, val in six.iteritems(blob):
                     if not val['external']:
-                        store_api.delete_blob(val['url'], context=context)
+                        try:
+                            store_api.delete_blob(val['url'], context=context)
+                        except exception.NotFound:
+                            pass
                     del upd_blob[key]
                     cls.db_api.update_blob(context, af.id, {name: upd_blob})
 
@@ -663,12 +663,14 @@ class BaseArtifact(base.VersionedObject):
                   {'artifact': af.id, 'blobs': blobs})
         cls.db_api.update_blob(context, af.id, blobs)
 
-        if blobs and not CONF.delayed_blob_delete:
-            # delete blobs one by one
-            cls._delete_blobs(blobs, context, af)
-            LOG.info(_LI("Blobs successfully deleted for artifact %s"), af.id)
-        # delete artifact itself
-        cls.db_api.delete(context, af.id)
+        if not CONF.delayed_blob_delete:
+            if blobs:
+                # delete blobs one by one
+                cls._delete_blobs(blobs, context, af)
+                LOG.info(_LI("Blobs successfully deleted "
+                             "for artifact %s"), af.id)
+            # delete artifact itself
+            cls.db_api.delete(context, af.id)
 
     @classmethod
     def activate(cls, context, af, values):

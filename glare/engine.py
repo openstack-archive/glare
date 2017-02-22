@@ -455,6 +455,10 @@ class Engine(object):
                     "when it's deactivated")
             raise exception.Forbidden(message=msg)
 
+        if af.status == af.STATUS.DELETED:
+            msg = _("Cannot download data when artifact is deleted")
+            raise exception.Forbidden(message=msg)
+
         # get blob info from dict or directly
         if blob_key is None:
             blob = getattr(af, field_name)
