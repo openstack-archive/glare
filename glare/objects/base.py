@@ -845,9 +845,13 @@ class BaseArtifact(base.VersionedObject):
         pass
 
     @classmethod
-    def get_default_store(cls, context, af, field_name, blob_key):
+    def get_default_store(cls, context=None, af=None,
+                          field_name=None, blob_key=None):
         """Return a default store type for artifact type."""
-        pass
+        for t in CONF.enabled_artifact_types:
+            type_name, __, store_name = t.partition(':')
+            if type_name == cls.get_type_name():
+                return store_name
 
     def to_notification(self):
         """Return notification body that can be send to listeners.
