@@ -24,6 +24,7 @@ from sqlalchemy.ext import declarative
 from sqlalchemy import ForeignKey
 from sqlalchemy import Index
 from sqlalchemy import Integer
+from sqlalchemy import LargeBinary
 from sqlalchemy import Numeric
 from sqlalchemy.orm import backref
 from sqlalchemy.orm import composite
@@ -244,6 +245,14 @@ class ArtifactLock(BASE, ArtifactBase):
     id = Column(String(255), primary_key=True, nullable=False)
     acquired_at = Column(
         DateTime, nullable=False, default=lambda: timeutils.utcnow())
+
+
+class ArtifactBlobData(BASE, ArtifactBase):
+    __tablename__ = 'glare_blob_data'
+    __table_args__ = (
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8'},)
+    id = Column(String(255), primary_key=True, nullable=False)
+    data = Column(LargeBinary, nullable=False)
 
 
 def register_models(engine):
