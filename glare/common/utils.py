@@ -216,6 +216,7 @@ class LimitingReader(object):
         self.data = data
         self.limit = limit
         self.bytes_read = 0
+        self.md5 = hashlib.md5()
         self.sha1 = hashlib.sha1()
         self.sha256 = hashlib.sha256()
 
@@ -232,6 +233,7 @@ class LimitingReader(object):
         len_result = len(result)
         self.bytes_read += len_result
         if len_result:
+            self.md5.update(result)
             self.sha1.update(result)
             self.sha256.update(result)
         if self.bytes_read > self.limit:
@@ -642,3 +644,22 @@ class DictDiffer(object):
         msg += "\tChanged keys: %s\n" % ', '.join(self.changed())
         msg += "\tUnchanged keys: %s\n" % ', '.join(self.unchanged())
         return msg
+
+
+class BlobIterator(object):
+    """
+    Reads data from a blob, one chunk at a time.
+    """
+
+    def __init__(self, data, chunk_size=65536):
+        self.chunk_size = chunk_size
+        self.data = data
+
+    def __iter__(self):
+        bytes_left = len(self.data)
+        i = 0
+        while bytes_left > 0:
+            data = self.data[i * self.chunk_size:(i + 1) * self.chunk_size]
+            bytes_left -= len(data)
+            yield data
+        raise StopIteration()

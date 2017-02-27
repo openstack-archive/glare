@@ -25,7 +25,7 @@ from glare.common import exception
 from glare.common import policy
 from glare.common import store_api
 from glare.common import utils
-from glare.i18n import _, _LI, _LW
+from glare.i18n import _, _LI
 from glare.notification import Notifier
 from glare.objects import base
 from glare.objects.meta import fields as glare_fields
@@ -329,14 +329,9 @@ class Engine(object):
             try:
                 default_store = af.get_default_store(
                     context, af, field_name, blob_key)
-                if default_store not in set(CONF.glance_store.stores):
-                    LOG.warning(_LW('Incorrect backend configuration - scheme '
-                                    '"%s" is not supported. Fallback to '
-                                    'default store.'), default_store)
-                    default_store = None
                 location_uri, size, checksums = store_api.save_blob_to_store(
                     blob_id, fd, context, af.get_max_blob_size(field_name),
-                    default_store)
+                    store_type=default_store)
             except Exception:
                 # if upload failed remove blob from db and storage
                 with excutils.save_and_reraise_exception(logger=LOG):
