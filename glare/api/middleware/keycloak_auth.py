@@ -16,6 +16,7 @@
 import memcache
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_middleware import base as base_middleware
 import pprint
 import requests
 import webob.dec
@@ -53,10 +54,10 @@ CONF = cfg.CONF
 CONF.register_opts(keycloak_oidc_opts, group="keycloak_oidc")
 
 
-class KeycloakAuthMiddleware(object):
+class KeycloakAuthMiddleware(base_middleware.Middleware):
     def __init__(self, app):
-        self.app = app
-        mcserv_url = CONF.memcached_server
+        super(KeycloakAuthMiddleware, self).__init__(application=app)
+        mcserv_url = CONF.keycloak_oidc.memcached_server
         self.mcclient = memcache.Client(mcserv_url) if mcserv_url else None
 
     def authenticate(self, request):
@@ -82,7 +83,7 @@ class KeycloakAuthMiddleware(object):
             resp.raise_for_status()
             if self.mcclient:
                 self.mcclient.set(access_token, resp.json(),
-                                  time=CONF.token_cache_time)
+                                  time=CONF.keycloak_oidc.token_cache_time)
             info = resp.json()
 
         LOG.debug(
@@ -114,7 +115,7 @@ class KeycloakAuthMiddleware(object):
             roles = [role['name'] for role in resp.json()]
             if self.mcclient:
                 self.mcclient.set(realm_name, roles,
-                                  time=CONF.token_cache_time)
+                                  time=CONF.keycloak_oidc.token_cache_time)
 
         LOG.debug(
             "Roles for realm %s: %s" %
@@ -131,4 +132,4 @@ class KeycloakAuthMiddleware(object):
         roles = ','.join(self.get_roles(request))
         request.headers["X-Identity-Status"] = "Confirmed"
         request.headers["X-Roles"] = roles
-        return request.get_response(self.app)
+        return request.get_response(self.application)

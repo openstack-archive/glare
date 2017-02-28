@@ -315,10 +315,7 @@ default_store = %(default_store)s
 connection = %(sql_connection)s
 """
         self.paste_conf_base = """[pipeline:glare-api]
-pipeline = faultwrapper versionnegotiation unauthenticated-context glarev1api
-
-[pipeline:glare-api-fakeauth]
-pipeline = faultwrapper versionnegotiation fakeauth context glarev1api
+pipeline = faultwrapper versionnegotiation trustedauth glarev1api
 
 [pipeline:glare-api-noauth]
 pipeline = faultwrapper versionnegotiation context glarev1api
@@ -339,12 +336,9 @@ paste.filter_factory =
 [filter:context]
 paste.filter_factory = glare.api.middleware.context:ContextMiddleware.factory
 
-[filter:unauthenticated-context]
+[filter:trustedauth]
 paste.filter_factory =
-glare.api.middleware.context:UnauthenticatedContextMiddleware.factory
-
-[filter:fakeauth]
-paste.filter_factory = glare.tests.utils:FakeAuthMiddleware.factory
+ glare.api.middleware.context:TrustedAuthMiddleware.factory
 """
 
 

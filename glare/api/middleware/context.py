@@ -83,14 +83,9 @@ class ContextMiddleware(base_middleware.ConfigurableMiddleware):
         if req.headers.get('X-Identity-Status') == 'Confirmed':
             req.context = ContextMiddleware._get_authenticated_context(req)
         elif CONF.allow_anonymous_access:
-            req.context = ContextMiddleware._get_anonymous_context()
+            req.context = RequestContext(read_only=True, is_admin=False)
         else:
             raise exception.Unauthorized()
-
-    @staticmethod
-    def _get_anonymous_context():
-        """Anonymous user has only Read-Only grants."""
-        return RequestContext(read_only=True, is_admin=False)
 
     @staticmethod
     def _get_authenticated_context(req):
@@ -110,14 +105,31 @@ class ContextMiddleware(base_middleware.ConfigurableMiddleware):
         return RequestContext.from_environ(req.environ, **kwargs)
 
 
-class UnauthenticatedContextMiddleware(base_middleware.ConfigurableMiddleware):
-    """Process requests and responses when auth is turned off at all."""
+class TrustedAuthMiddleware(base_middleware.ConfigurableMiddleware):
 
     @staticmethod
     def process_request(req):
-        """Create a context without an authorized user.
+        auth_token = req.headers.get('X-Auth-Token')
+        if not auth_token:
+            msg = _("Auth token must be provided")
+            raise exception.Unauthorized(msg)
+        try:
+            user, tenant, roles = auth_token.split(':')
+        except ValueError:
+            msg = _("Wrong auth token format. It must be 'user:tenant:roles'")
+            raise exception.Unauthorized(msg)
+        if tenant.lower() == 'none':
+            tenant = None
+        req.headers['X-User-Id'] = user
+        req.headers['X-Tenant-Id'] = tenant
+        req.headers['X-Roles'] = roles.split(',')
+        req.headers['X-Identity-Status'] = 'Confirmed'
+        kwargs = {
+            'user': user,
+            'tenant': tenant,
+            'roles': roles,
+            'is_admin': 'admin' in req.headers['X-Roles'],
+            'auth_token': auth_token,
+        }
 
-        When glare deployed as public repo everybody is admin
-        without any credentials.
-        """
-        req.context = RequestContext(is_admin=True)
+        req.context = context.RequestContext(**kwargs)

@@ -26,12 +26,8 @@ import fixtures
 from oslo_config import cfg
 from oslo_config import fixture as cfg_fixture
 from oslo_log import log
-from oslo_middleware import base as base_middleware
-import six
 import testtools
-import webob
 
-from glare.api.middleware import context
 from glare.common import config
 from glare.common import utils
 
@@ -371,103 +367,3 @@ def xattr_writes_supported(path):
             os.unlink(fake_filepath)
 
     return result
-
-
-class FakeAuthMiddleware(base_middleware.ConfigurableMiddleware):
-
-    @staticmethod
-    def process_request(req):
-        auth_token = req.headers.get('X-Auth-Token')
-        user = None
-        tenant = None
-        roles = []
-        if auth_token:
-            user, tenant, role = auth_token.split(':')
-            if tenant.lower() == 'none':
-                tenant = None
-            roles = [role]
-            req.headers['X-User-Id'] = user
-            req.headers['X-Tenant-Id'] = tenant
-            req.headers['X-Roles'] = role
-            req.headers['X-Identity-Status'] = 'Confirmed'
-        kwargs = {
-            'user': user,
-            'tenant': tenant,
-            'roles': roles,
-            'is_admin': False,
-            'auth_token': auth_token,
-        }
-
-        req.context = context.RequestContext(**kwargs)
-
-
-class FakeHTTPResponse(object):
-    def __init__(self, status=200, headers=None, data=None, *args, **kwargs):
-        data = data or b'I am a teapot, short and stout\n'
-        self.data = six.BytesIO(data)
-        self.read = self.data.read
-        self.status = status
-        self.headers = headers or {'content-length': len(data)}
-
-    def getheader(self, name, default=None):
-        return self.headers.get(name.lower(), default)
-
-    def getheaders(self):
-        return self.headers or {}
-
-    def read(self, amt):
-        self.data.read(amt)
-
-
-class Httplib2WsgiAdapter(object):
-    def __init__(self, app):
-        self.app = app
-
-    def request(self, uri, method="GET", body=None, headers=None):
-        req = webob.Request.blank(uri, method=method, headers=headers)
-        req.body = body
-        resp = req.get_response(self.app)
-        return Httplib2WebobResponse(resp), resp.body
-
-
-class Httplib2WebobResponse(object):
-    def __init__(self, webob_resp):
-        self.webob_resp = webob_resp
-
-    @property
-    def status(self):
-        return self.webob_resp.status_code
-
-    def __getitem__(self, key):
-        return self.webob_resp.headers[key]
-
-    def get(self, key):
-        return self.webob_resp.headers[key]
-
-    @property
-    def allow(self):
-        return self.webob_resp.allow
-
-    @allow.setter
-    def allow(self, allowed):
-        if type(allowed) is not str:
-            raise TypeError('Allow header should be a str')
-
-        self.webob_resp.allow = allowed
-
-
-class HttplibWsgiAdapter(object):
-    def __init__(self, app):
-        self.app = app
-        self.req = None
-
-    def request(self, method, url, body=None, headers=None):
-        if headers is None:
-            headers = {}
-        self.req = webob.Request.blank(url, method=method, headers=headers)
-        self.req.body = body
-
-    def getresponse(self):
-        response = self.req.get_response(self.app)
-        return FakeHTTPResponse(response.status_code, response.headers,
-                                response.body)
