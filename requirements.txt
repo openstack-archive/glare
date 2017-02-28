@@ -20,6 +20,7 @@ oslo.utils>=3.18.0 # Apache-2.0
 futurist!=0.15.0,>=0.11.0 # Apache-2.0
 keystoneauth1>=2.18.0 # Apache-2.0
 keystonemiddleware>=4.12.0 # Apache-2.0
+python-memcached>=1.56 # PSF
 WSME>=0.8 # MIT
 
 # For paste.util.template used in keystone.common.template

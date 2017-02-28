@@ -22,6 +22,7 @@ import itertools
 from osprofiler import opts as profiler
 
 import glare.api.middleware.context
+import glare.api.middleware.keycloak_auth
 import glare.api.v1.resource
 import glare.api.versions
 import glare.common.config
@@ -33,6 +34,7 @@ import glare.objects.meta.registry
 _artifacts_opts = [
     (None, list(itertools.chain(
         glare.api.middleware.context.context_opts,
+        glare.api.middleware.keycloak_auth.keycloak_oidc_opts,
         glare.api.v1.resource.list_configs,
         glare.api.versions.versions_opts,
         glare.common.config.common_opts,

@@ -21,6 +21,7 @@ from oslo_middleware import base as base_middleware
 from oslo_middleware import request_id
 from oslo_serialization import jsonutils
 
+from glare.common import exception
 from glare.common import policy
 from glare.i18n import _
 
@@ -84,7 +85,7 @@ class ContextMiddleware(base_middleware.ConfigurableMiddleware):
         elif CONF.allow_anonymous_access:
             req.context = ContextMiddleware._get_anonymous_context()
         else:
-            raise webob.exc.HTTPUnauthorized()
+            raise exception.Unauthorized()
 
     @staticmethod
     def _get_anonymous_context():
