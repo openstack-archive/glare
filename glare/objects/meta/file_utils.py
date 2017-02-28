@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Contains additional file utils that may be useful for upload hooks"""
+"""Contains additional file utils that may be useful for upload hooks."""
 
 import os
 import tempfile
@@ -31,7 +31,11 @@ LOG = logging.getLogger(__name__)
 
 
 def create_temporary_file(stream, suffix=''):
-    """Create a temporary local file from a stream"""
+    """Create a temporary local file from a stream.
+
+    :param stream: stream of bytes to be stored in a temporary file
+    :param suffix: (optional) file name suffix
+    """
     tfd, path = tempfile.mkstemp(suffix=suffix)
     while True:
         data = stream.read(100000)
@@ -42,8 +46,11 @@ def create_temporary_file(stream, suffix=''):
     return tfile, path
 
 
-def extract_file_to_temporary_folder(tfile):
-    """Create temporary folder and extract all file contents there"""
+def extract_zip_to_temporary_folder(tfile):
+    """Create temporary folder and extract all file contents there.
+
+    :param tfile: zip archive to be extracted
+    """
     zip_ref = zipfile.ZipFile(tfile, 'r')
     tdir = tempfile.mkdtemp()
     zip_ref.extractall(tdir)
@@ -53,14 +60,22 @@ def extract_file_to_temporary_folder(tfile):
 
 def upload_content_file(context, af, data, blob_dict, key_name,
                         content_type='application/octet-stream'):
-    """Upload file to blob dictionary"""
+    """Upload a file to a blob dictionary.
+
+    :param context: user context
+    :param af: artifact object
+    :param data: bytes that need to be stored in the blob dictionary
+    :param blob_dict: name of the blob_dictionary field
+    :param key_name: name of key in the dictionary
+    :param content_type: (optional) specifies mime type of uploading data
+    """
     # create an an empty blob instance in db with 'saving' status
     blob = {'url': None, 'size': None, 'md5': None, 'sha1': None,
             'sha256': None, 'status': glare_fields.BlobFieldType.SAVING,
             'external': False, 'content_type': content_type}
 
     getattr(af, blob_dict)[key_name] = blob
-    af = af.update_blob(context, af.id, {blob_dict: getattr(af, blob_dict)})
+    af = af.update_blob(context, af.id, blob_dict, getattr(af, blob_dict))
 
     blob_id = getattr(af, blob_dict)[key_name]['id']
 
@@ -81,11 +96,11 @@ def upload_content_file(context, af, data, blob_dict, key_name,
         with excutils.save_and_reraise_exception(logger=LOG):
             del getattr(af, blob_dict)[key_name]
             af = af.update_blob(context, af.id,
-                                {blob_dict: getattr(af, blob_dict)})
+                                blob_dict, getattr(af, blob_dict))
     # update blob info and activate it
     blob.update({'url': location_uri,
                  'status': glare_fields.BlobFieldType.ACTIVE,
                  'size': size})
     blob.update(checksums)
     getattr(af, blob_dict)[key_name] = blob
-    af.update_blob(context, af.id, {blob_dict: getattr(af, blob_dict)})
+    af.update_blob(context, af.id, blob_dict, getattr(af, blob_dict))
