@@ -34,7 +34,6 @@ import glare.objects.meta.registry
 _artifacts_opts = [
     (None, list(itertools.chain(
         glare.api.middleware.context.context_opts,
-        glare.api.middleware.keycloak_auth.keycloak_oidc_opts,
         glare.api.v1.resource.list_configs,
         glare.api.versions.versions_opts,
         glare.common.config.common_opts,
@@ -45,7 +44,8 @@ _artifacts_opts = [
         glare.objects.base.artifact_opts,
         glare.objects.meta.registry.registry_options))),
     profiler.list_opts()[0],
-    ('paste_deploy', glare.common.config.paste_deploy_opts)
+    ('paste_deploy', glare.common.config.paste_deploy_opts),
+    ('keycloak_oidc', glare.api.middleware.keycloak_auth.keycloak_oidc_opts)
 ]
 
 
