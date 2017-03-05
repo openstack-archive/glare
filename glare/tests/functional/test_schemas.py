@@ -15,7 +15,6 @@
 
 import jsonschema
 
-from glare.common import utils
 from glare.tests.functional import base
 
 fixture_base_props = {
@@ -939,15 +938,11 @@ class TestSchemas(base.TestArtifact):
         # Get schemas for specific artifact type
         for at in self.enabled_types:
             result = self.get(url='/schemas/%s' % at)
-            self.assertEqual(fixtures[at], result['schemas'][at],
-                             utils.DictDiffer(
-                                 fixtures[at]['properties'],
-                                 result['schemas'][at]['properties']))
+            self.assertEqual(fixtures[at], result['schemas'][at])
 
         # Get list schemas of artifacts
         result = self.get(url='/schemas')
-        self.assertEqual(fixtures, result['schemas'], utils.DictDiffer(
-            fixtures, result['schemas']))
+        self.assertEqual(fixtures, result['schemas'])
 
         # Validation of schemas
         result = self.get(url='/schemas')['schemas']

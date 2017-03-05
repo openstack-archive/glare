@@ -48,23 +48,8 @@ class ArtifactAPI(object):
 
     @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
            stop_max_attempt_number=20)
-    def create(self, context, values, type):
-        """Create new artifact in db and return dict of values to the user
-
-        :param context: user context
-        :param values: dict of values that needs to be saved to db
-        :param type: string indicates artifact of what type to create
-        :return: dict of created values
-        """
-        values = self._serialize_values(values)
-        values['type_name'] = type
-        session = api.get_session()
-        return api.create(context, values, session)
-
-    @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
-           stop_max_attempt_number=20)
-    def update(self, context, artifact_id, values):
-        """Update artifact values in database
+    def save(self, context, artifact_id, values):
+        """Save artifact values in database
 
         :param artifact_id: id of artifact that needs to be updated
         :param context: user context
@@ -72,9 +57,11 @@ class ArtifactAPI(object):
         :return: dict of updated artifact values
         """
         session = api.get_session()
-        return api.update(context, artifact_id,
-                          self._serialize_values(values), session)
+        return api.create_or_update(
+            context, artifact_id, self._serialize_values(values), session)
 
+    @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
+           stop_max_attempt_number=20)
     def update_blob(self, context, artifact_id, values):
         """Create and update blob records in db
 
@@ -84,8 +71,8 @@ class ArtifactAPI(object):
         :return: dict of updated artifact values
         """
         session = api.get_session()
-        return api.update(context, artifact_id,
-                          {'blobs': values}, session)
+        return api.create_or_update(
+            context, artifact_id, {'blobs': values}, session)
 
     @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
            stop_max_attempt_number=20)

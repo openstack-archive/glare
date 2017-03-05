@@ -65,21 +65,6 @@ class TestUtils(base.BaseTestCase):
         self.assertRaises(exc.BadRequest, test_func,
                           **{'param': bad_char})
 
-    def test_str_repr(self):
-        past_dict = {"a": 1, "b": 2, "d": 4}
-        current_dic = {"b": 2, "d": "different value!", "e": "new!"}
-        dict_diff = utils.DictDiffer(current_dic, past_dict)
-
-        self.assertEqual({'a'}, dict_diff.removed())
-        self.assertEqual({'b'}, dict_diff.unchanged())
-        self.assertEqual({'d'}, dict_diff.changed())
-        self.assertEqual({'e'}, dict_diff.added())
-
-        expected_dict_str = "\nResult output:\n\tAdded keys: " \
-                            "e\n\tRemoved keys:" \
-                            " a\n\tChanged keys: d\n\tUnchanged keys: b\n"
-        self.assertEqual(str(dict_diff), expected_dict_str)
-
 
 class TestReaders(base.BaseTestCase):
     """Test various readers in glare.common.utils"""

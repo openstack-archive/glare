@@ -48,10 +48,6 @@ class BadRequest(GlareException):
     message = _("Bad request")
 
 
-class InvalidStatusTransition(BadRequest):
-    message = _("Transition status from %(orig)s to %(new)s was not valid")
-
-
 class InvalidParameterValue(BadRequest):
     message = _("Invalid filter value ")
 

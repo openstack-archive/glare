@@ -99,14 +99,6 @@ def drop_db():
     models.unregister_models(engine)
 
 
-def create(context, values, session):
-    return _create_or_update(context, None, values, session)
-
-
-def update(context, artifact_id, values, session):
-    return _create_or_update(context, artifact_id, values, session)
-
-
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
 def delete(context, artifact_id, session):
@@ -126,14 +118,13 @@ def _drop_protected_attrs(model_class, values):
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
 @utils.no_4byte_params
-def _create_or_update(context, artifact_id, values, session):
+def create_or_update(context, artifact_id, values, session):
     with session.begin():
         _drop_protected_attrs(models.Artifact, values)
         if artifact_id is None:
             # create new artifact
             artifact = models.Artifact()
             artifact.id = values.pop('id')
-            artifact.created_at = timeutils.utcnow()
         else:
             # update the existing artifact
             artifact = _get(context, artifact_id, session)
@@ -601,6 +592,7 @@ def _do_blobs(artifact, new_blobs):
 
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
+@utils.no_4byte_params
 def create_lock(context, lock_key, session):
     """Try to create lock record."""
     with session.begin():

@@ -502,44 +502,6 @@ def _get_element_type(element_type):
     return 'String'
 
 
-class DictDiffer(object):
-    """Calculate the difference between two dictionaries as:
-    (1) items added
-    (2) items removed
-    (3) keys same in both but changed values
-    (4) keys same in both and unchanged values
-    """
-
-    def __init__(self, current_dict, past_dict):
-        self.current_dict, self.past_dict = current_dict, past_dict
-        self.current_keys, self.past_keys = [
-            set(d.keys()) for d in (current_dict, past_dict)]
-        self.intersect = self.current_keys.intersection(
-            self.past_keys)
-
-    def added(self):
-        return self.current_keys - self.intersect
-
-    def removed(self):
-        return self.past_keys - self.intersect
-
-    def changed(self):
-        return set(o for o in self.intersect
-                   if self.past_dict[o] != self.current_dict[o])
-
-    def unchanged(self):
-        return set(o for o in self.intersect
-                   if self.past_dict[o] == self.current_dict[o])
-
-    def __str__(self):
-        msg = "\nResult output:\n"
-        msg += "\tAdded keys: %s\n" % ', '.join(self.added())
-        msg += "\tRemoved keys: %s\n" % ', '.join(self.removed())
-        msg += "\tChanged keys: %s\n" % ', '.join(self.changed())
-        msg += "\tUnchanged keys: %s\n" % ', '.join(self.unchanged())
-        return msg
-
-
 class BlobIterator(object):
     """Reads data from a blob, one chunk at a time.
     """
@@ -556,3 +518,65 @@ class BlobIterator(object):
             bytes_left -= len(data)
             yield data
         raise StopIteration()
+
+
+def validate_status_transition(af, from_status, to_status):
+    if from_status == 'deleted':
+        msg = _("Cannot change status if artifact is deleted.")
+        raise exception.Forbidden(msg)
+    if to_status == 'active':
+        if from_status == 'drafted':
+            for name, type_obj in af.fields.items():
+                if type_obj.required_on_activate and getattr(af, name) is None:
+                    msg = _("'%s' field value must be set before "
+                            "activation.") % name
+                    raise exception.Forbidden(msg)
+    elif to_status == 'drafted':
+        if from_status != 'drafted':
+            msg = _("Cannot change status to 'drafted'") % from_status
+            raise exception.Forbidden(msg)
+    elif to_status == 'deactivated':
+        if from_status not in ('active', 'deactivated'):
+            msg = _("Cannot deactivate artifact if it's not active.")
+            raise exception.Forbidden(msg)
+    elif to_status == 'deleted':
+        msg = _("Cannot delete artifact with PATCH requests. Use special "
+                "API to do this.")
+        raise exception.Forbidden(msg)
+    else:
+        msg = _("Unknown artifact status: %s.") % to_status
+        raise exception.BadRequest(msg)
+
+
+def validate_visibility_transition(af, from_visibility, to_visibility):
+    if to_visibility == 'private':
+        if from_visibility != 'private':
+            msg = _("Cannot make artifact private again.")
+            raise exception.Forbidden()
+    elif to_visibility == 'public':
+        if af.status != 'active':
+            msg = _("Cannot change visibility to 'public' if artifact"
+                    " is not active.")
+            raise exception.Forbidden(msg)
+    else:
+        msg = _("Unknown artifact visibility: %s.") % to_visibility
+        raise exception.BadRequest(msg)
+
+
+def validate_change_allowed(af, field_name):
+    """Validate if fields can be set for the artifact."""
+    if field_name not in af.fields:
+        msg = _("Cannot add new field '%s' to artifact.") % field_name
+        raise exception.BadRequest(msg)
+    if af.status not in ('active', 'drafted'):
+        msg = _("Forbidden to change fields "
+                "if artifact is not active or drafted.")
+        raise exception.Forbidden(message=msg)
+    if af.fields[field_name].system is True:
+        msg = _("Forbidden to specify system field %s. It is not "
+                "available for modifying by users.") % field_name
+        raise exception.Forbidden(msg)
+    if af.status == 'active' and not af.fields[field_name].mutable:
+        msg = (_("Forbidden to change field '%s' after activation.")
+               % field_name)
+        raise exception.Forbidden(message=msg)

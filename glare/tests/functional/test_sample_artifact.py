@@ -1052,25 +1052,23 @@ class TestArtifactOps(base.TestArtifact):
                   "version": "0.0.1"})
         # cannot activate artifact without required for activate attributes
         url = '/sample_artifact/%s' % private_art['id']
-        self.patch(url=url, data=self.make_active, status=400)
+        self.patch(url=url, data=self.make_active, status=403)
         add_required = [{
             "op": "replace",
             "path": "/string_required",
             "value": "string"
         }]
         self.patch(url=url, data=add_required)
-        # cannot activate if body contains non status changes
-        incorrect = self.make_active + [{"op": "replace",
-                                         "path": "/name",
-                                         "value": "test"}]
-        self.patch(url=url, data=incorrect, status=400)
-        # can activate if body contains only status changes
-        make_active_without_updates = self.make_active + add_required
-        active_art = self.patch(url=url, data=make_active_without_updates)
+        # can activate if body contains non status changes
+        make_active_with_updates = self.make_active + [{"op": "replace",
+                                                        "path": "/description",
+                                                        "value": "test"}]
+        active_art = self.patch(url=url, data=make_active_with_updates)
         private_art['status'] = 'active'
         private_art['activated_at'] = active_art['activated_at']
         private_art['updated_at'] = active_art['updated_at']
         private_art['string_required'] = 'string'
+        private_art['description'] = 'test'
         self.assertEqual(private_art, active_art)
         # check that active artifact is not available for other user
         self.set_user("user2")
@@ -1091,19 +1089,31 @@ class TestArtifactOps(base.TestArtifact):
                   "version": "0.0.1"})
 
         url = '/sample_artifact/%s' % private_art['id']
+        # test that we cannot publish drafted artifact
+        self.patch(url=url, data=self.make_public, status=403)
+
         self.patch(url=url, data=self.make_active)
 
-        # test that only visibility must be specified in the request
-        incorrect = self.make_public + [{"op": "replace",
-                                         "path": "/string_mutable",
-                                         "value": "test"}]
-        self.patch(url=url, data=incorrect, status=400)
+        # test that cannot publish deactivated artifact
+        self.patch(url, data=self.make_deactivated)
+        self.patch(url, data=self.make_public, status=403)
+
+        self.patch(url=url, data=self.make_active)
+
+        # test that visibility can be specified in the request with
+        # other updates
+        make_public_with_updates = self.make_public + [
+            {"op": "replace",
+             "path": "/string_mutable",
+             "value": "test"}]
+        self.patch(url=url, data=make_public_with_updates)
         # check public artifact
         public_art = self.patch(url=url, data=self.make_public)
         private_art['activated_at'] = public_art['activated_at']
         private_art['visibility'] = 'public'
         private_art['status'] = 'active'
         private_art['updated_at'] = public_art['updated_at']
+        private_art['string_mutable'] = 'test'
         self.assertEqual(private_art, public_art)
         # check that public artifact available for simple user
         self.set_user("user1")
@@ -1114,14 +1124,9 @@ class TestArtifactOps(base.TestArtifact):
             data={"name": "test_af", "string_required": "test_str",
                   "version": "0.0.1"})
         dup_url = '/sample_artifact/%s' % duplicate_art['id']
-        # test that we cannot publish drafted artifact
-        self.patch(url=dup_url, data=self.make_public, status=400)
         # proceed with duplicate testing
         self.patch(url=dup_url, data=self.make_active)
         self.patch(url=dup_url, data=self.make_public, status=409)
-        # test that cannot publish deactivated artifact
-        self.patch(dup_url, data=self.make_deactivated)
-        self.patch(dup_url, data=self.make_public, status=400)
 
     def test_delete(self):
         # try ro delete not existing artifact
@@ -1189,20 +1194,19 @@ class TestArtifactOps(base.TestArtifact):
             data={"name": "test_af", "string_required": "test_str",
                   "version": "0.0.1"})
         url = '/sample_artifact/%s' % private_art['id']
-        self.admin_action(private_art['id'], self.make_deactivated,
-                          status=400)
+        self.admin_action(private_art['id'], self.make_deactivated, 403)
         self.patch(url, self.make_active)
         self.set_user('admin')
-        # test cannot deactivate if there is something else in request
-        incorrect = self.make_deactivated + [{"op": "replace",
-                                              "path": "/name",
-                                              "value": "test"}]
-        self.patch(url, incorrect, 400)
-        self.set_user('user1')
+        # test can deactivate if there is something else in request
+        make_deactived_with_updates = [
+            {"op": "replace",
+             "path": "/description",
+             "value": "test"}] + self.make_deactivated
         # test artifact deactivate success
-        deactive_art = self.admin_action(private_art['id'],
-                                         self.make_deactivated)
-        self.assertEqual("deactivated", deactive_art["status"])
+        deactivated_art = self.admin_action(
+            private_art['id'], make_deactived_with_updates)
+        self.assertEqual("deactivated", deactivated_art["status"])
+        self.assertEqual("test", deactivated_art["description"])
         # test deactivate is idempotent
         self.patch(url, self.make_deactivated)
 
@@ -1214,14 +1218,16 @@ class TestArtifactOps(base.TestArtifact):
         url = '/sample_artifact/%s' % private_art['id']
         self.patch(url, self.make_active)
         self.admin_action(private_art['id'], self.make_deactivated)
-        # test cannot reactivate if there is something else in request
-        incorrect = self.make_active + [{"op": "replace",
-                                         "path": "/name",
-                                         "value": "test"}]
-        self.patch(url, incorrect, 400)
-        # test artifact reactivate success
-        deactive_art = self.patch(url, self.make_active)
-        self.assertEqual("active", deactive_art["status"])
+        # test can reactivate if there is something else in request
+        make_reactived_with_updates = self.make_active + [
+            {"op": "replace",
+             "path": "/description",
+             "value": "test"}]
+        # test artifact deactivate success
+        reactivated_art = self.admin_action(
+            private_art['id'], make_reactived_with_updates)
+        self.assertEqual("active", reactivated_art["status"])
+        self.assertEqual("test", reactivated_art["description"])
 
 
 class TestUpdate(base.TestArtifact):
@@ -1379,7 +1385,7 @@ class TestUpdate(base.TestArtifact):
         self.admin_action(private_art['id'], self.make_deactivated)
         # test that nobody(even admin) can publish deactivated artifact
         self.set_user("admin")
-        self.patch(url, self.make_public, 400)
+        self.patch(url, self.make_public, 403)
         self.set_user("user1")
         self.patch(url, upd_mutable, 403)
         self.admin_action(private_art['id'], self.make_active)
@@ -2135,6 +2141,78 @@ class TestUpdate(base.TestArtifact):
         data = [{'op': 'replace',
                  'path': '/blob',
                  'value': None}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
+    def test_update_malformed_json_patch(self):
+        data = {'name': 'ttt'}
+        art1 = self.create_artifact(data=data)
+
+        data = [{'op': 'replace', 'path': None, 'value': 'aaa'}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
+        data = [{'op': 'replace', 'path': '/', 'value': 'aaa'}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
+        data = [{'op': 'replace', 'path': '//', 'value': 'aaa'}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
+        data = [{'op': 'replace', 'path': 'name/', 'value': 'aaa'}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
+        data = [{'op': 'replace', 'path': '*/*', 'value': 'aaa'}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
+        data = [{'op': 'add', 'path': None, 'value': 'aaa'}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
+        data = [{'op': 'add', 'path': '/', 'value': 'aaa'}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
+        data = [{'op': 'add', 'path': '//', 'value': 'aaa'}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
+        data = [{'op': 'add', 'path': 'name/', 'value': 'aaa'}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
+        data = [{'op': 'add', 'path': '*/*', 'value': 'aaa'}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
+        data = [{'op': 'add', 'path': '/name'}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
+        data = [{'op': 'replace', 'path': None}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
+        data = [{'op': 'replace', 'path': '/'}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
+        data = [{'op': 'replace', 'path': '//'}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
+        data = [{'op': 'replace', 'path': 'name/'}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
+        data = [{'op': 'replace', 'path': '*/*'}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
+        data = [{'op': 'no-op', 'path': '/name', 'value': 'aaa'}]
         url = '/sample_artifact/%s' % art1['id']
         self.patch(url=url, data=data, status=400)
 

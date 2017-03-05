@@ -22,6 +22,7 @@ import zipfile
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
+from oslo_utils import uuidutils
 
 from glare.common import store_api
 from glare.objects.meta import fields as glare_fields
@@ -69,15 +70,14 @@ def upload_content_file(context, af, data, blob_dict, key_name,
     :param key_name: name of key in the dictionary
     :param content_type: (optional) specifies mime type of uploading data
     """
+    blob_id = uuidutils.generate_uuid()
     # create an an empty blob instance in db with 'saving' status
     blob = {'url': None, 'size': None, 'md5': None, 'sha1': None,
             'sha256': None, 'status': glare_fields.BlobFieldType.SAVING,
-            'external': False, 'content_type': content_type}
+            'external': False, 'content_type': content_type, 'id': blob_id}
 
     getattr(af, blob_dict)[key_name] = blob
     af = af.update_blob(context, af.id, blob_dict, getattr(af, blob_dict))
-
-    blob_id = getattr(af, blob_dict)[key_name]['id']
 
     # try to perform blob uploading to storage backend
     try:

@@ -103,8 +103,7 @@ class Field(object):
 
     @staticmethod
     def get_allowed_filter_ops(field):
-        if field in (fields.StringField, fields.String,
-                     glare_fields.ArtifactStatusField):
+        if field in (fields.StringField, fields.String):
             return [FILTER_EQ, FILTER_NEQ, FILTER_IN]
         elif field in (fields.IntegerField, fields.Integer, fields.FloatField,
                        fields.Float, glare_fields.VersionField):

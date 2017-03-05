@@ -101,7 +101,7 @@ class TestArtifactUpdate(base.BaseTestArtifactAPI):
 
     def test_delete_deleted_artifact(self):
         # Change status of the artifact to 'deleted'
-        artifact_api.ArtifactAPI().update(
+        artifact_api.ArtifactAPI().save(
             self.req.context, self.artifact['id'], {'status': 'deleted'})
         # Delete should work properly
         self.controller.delete(self.req, 'sample_artifact',

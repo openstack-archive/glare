@@ -86,14 +86,6 @@ class TestLocations(base.BaseTestArtifactAPI):
             self.req, 'sample_artifact', self.sample_artifact['id'],
             'dict_of_blobs/blob', body, self.ct)
 
-    def test_add_location_no_md5(self):
-        body = {'url': 'https://FAKE_LOCATION.com',
-                "sha1": "fake_sha", "sha256": "fake_sha256"}
-        self.assertRaises(
-            exc.BadRequest, self.controller.upload_blob,
-            self.req, 'sample_artifact', self.sample_artifact['id'],
-            'dict_of_blobs/blob', body, self.ct)
-
     def test_add_location_saving_blob(self):
         body = {'url': 'https://FAKE_LOCATION.com',
                 'md5': "fake", 'sha1': "fake_sha", "sha256": "fake_sha256"}
