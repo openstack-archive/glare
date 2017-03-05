@@ -80,7 +80,11 @@ class KeycloakAuthMiddleware(base_middleware.Middleware):
                 headers={"Authorization": "Bearer %s" % access_token},
                 verify=not CONF.keycloak_oidc.insecure
             )
-            resp.raise_for_status()
+            if resp.status_code == 401:
+                raise exception.Unauthorized(message=resp.text)
+            elif resp.status_code >= 400:
+                raise exception.GlareException(message=resp.text)
+
             if self.mcclient:
                 self.mcclient.set(access_token, resp.json(),
                                   time=CONF.keycloak_oidc.token_cache_time)
@@ -97,7 +101,7 @@ class KeycloakAuthMiddleware(base_middleware.Middleware):
         realm_name = request.headers.get('X-Project-Id')
 
         user_roles_endpoint = (
-            "%s/realms/%s/roles" %
+            "%s/admin/realms/%s/roles" %
             (CONF.keycloak_oidc.auth_url, realm_name)
         )
 
@@ -112,7 +116,12 @@ class KeycloakAuthMiddleware(base_middleware.Middleware):
                 user_roles_endpoint,
                 headers={"Authorization": "Bearer %s" % access_token}
             )
-            roles = [role['name'] for role in resp.json()]
+
+            if resp.status_code >= 400:
+                roles = []
+            else:
+                roles = ['admin']
+
             if self.mcclient:
                 self.mcclient.set(realm_name, roles,
                                   time=CONF.keycloak_oidc.token_cache_time)
