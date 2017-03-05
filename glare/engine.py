@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import copy
 import os
 
 import jsonpatch
@@ -54,18 +53,12 @@ class Engine(object):
         # register all artifact types
         registry.ArtifactRegistry.register_all_artifacts()
 
-    @classmethod
-    def _get_schemas(cls, reg):
-        if getattr(cls, 'schemas', None):
-            pass
-        else:
-            schemas = {}
-            for name, type_list in reg.obj_classes().items():
-                type_name = type_list[0].get_type_name()
-                schemas[type_name] = \
-                    reg.get_artifact_type(type_name).gen_schemas()
-            setattr(cls, 'schemas', schemas)
-        return copy.deepcopy(cls.schemas)
+        # generate all schemas
+        self.schemas = {}
+        for name, type_list in registry.ArtifactRegistry.obj_classes().items():
+            type_name = type_list[0].get_type_name()
+            self.schemas[type_name] = registry.ArtifactRegistry.\
+                get_artifact_type(type_name).gen_schemas()
 
     @classmethod
     def _get_artifact(cls, ctx, type_name, artifact_id, read_only=False):
@@ -91,19 +84,14 @@ class Engine(object):
 
         return af
 
-    @classmethod
-    def list_type_schemas(cls, context):
+    def show_type_schemas(self, context, type_name=None):
         policy.authorize("artifact:type_list", {}, context)
-        return cls._get_schemas(registry.ArtifactRegistry)
-
-    @classmethod
-    def show_type_schema(cls, context, type_name):
-        policy.authorize("artifact:type_list", {}, context)
-        schemas = cls._get_schemas(registry.ArtifactRegistry)
-        if type_name not in schemas:
+        if type_name is None:
+            return self.schemas
+        if type_name not in self.schemas:
             msg = _("Artifact type %s does not exist") % type_name
             raise exception.NotFound(message=msg)
-        return schemas[type_name]
+        return self.schemas[type_name]
 
     @classmethod
     def create(cls, context, type_name, values):

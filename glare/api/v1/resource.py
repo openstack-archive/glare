@@ -192,20 +192,21 @@ class ArtifactsController(api_versioning.VersionedResource):
     def list_type_schemas(self, req):
         """List of detailed descriptions of enabled artifact types.
 
+        :param req: user request
         :return: list of json-schemas of all enabled artifact types.
         """
-        type_schemas = self.engine.list_type_schemas(req.context)
-        return type_schemas
+        return self.engine.show_type_schemas(req.context)
 
     @supported_versions(min_ver='1.0')
     @log_request_progress
     def show_type_schema(self, req, type_name):
         """Get detailed artifact type description.
 
+        :param req: user request
         :param type_name: artifact type name
         :return: json-schema representation of artifact type
         """
-        type_schema = self.engine.show_type_schema(req.context, type_name)
+        type_schema = self.engine.show_type_schemas(req.context, type_name)
         return {type_name: type_schema}
 
     @supported_versions(min_ver='1.0')
