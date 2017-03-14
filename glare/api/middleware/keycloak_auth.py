@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import jwt
 import memcache
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -60,15 +61,11 @@ class KeycloakAuthMiddleware(base_middleware.Middleware):
         mcserv_url = CONF.keycloak_oidc.memcached_server
         self.mcclient = memcache.Client(mcserv_url) if mcserv_url else None
 
-    def authenticate(self, request):
-        realm_name = request.headers.get('X-Project-Id')
-
+    def authenticate(self, access_token, realm_name):
         user_info_endpoint = (
             "%s/realms/%s/protocol/openid-connect/userinfo" %
             (CONF.keycloak_oidc.auth_url, realm_name)
         )
-
-        access_token = request.headers.get('X-Auth-Token')
 
         info = None
         if self.mcclient:
@@ -97,48 +94,16 @@ class KeycloakAuthMiddleware(base_middleware.Middleware):
 
         return info
 
-    def get_roles(self, request):
-        realm_name = request.headers.get('X-Project-Id')
-
-        user_roles_endpoint = (
-            "%s/admin/realms/%s/roles" %
-            (CONF.keycloak_oidc.auth_url, realm_name)
-        )
-
-        access_token = request.headers.get('X-Auth-Token')
-
-        roles = None
-        if self.mcclient:
-            roles = self.mcclient.get(realm_name)
-
-        if roles is None:
-            resp = requests.get(
-                user_roles_endpoint,
-                headers={"Authorization": "Bearer %s" % access_token}
-            )
-
-            if resp.status_code >= 400:
-                roles = []
-            else:
-                roles = ['admin']
-
-            if self.mcclient:
-                self.mcclient.set(realm_name, roles,
-                                  time=CONF.keycloak_oidc.token_cache_time)
-
-        LOG.debug(
-            "Roles for realm %s: %s" %
-            (realm_name, pprint.pformat(roles))
-        )
-
-        return roles
-
     @webob.dec.wsgify
     def __call__(self, request):
         if 'X-Project-Id' not in request.headers:
             raise exception.Unauthorized()
-        self.authenticate(request)
-        roles = ','.join(self.get_roles(request))
+        access_token = request.headers.get('X-Auth-Token')
+        realm_name = request.headers.get('X-Project-Id')
+        self.authenticate(access_token, realm_name)
+        decoded = jwt.decode(access_token, algorithms=['RS256'], verify=False)
+        roles = ','.join(decoded['realm_access']['roles']) \
+            if 'realm_access' in decoded else ''
         request.headers["X-Identity-Status"] = "Confirmed"
         request.headers["X-Roles"] = roles
         return request.get_response(self.application)
