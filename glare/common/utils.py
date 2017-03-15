@@ -228,17 +228,17 @@ class LimitingReader(object):
             else:
                 yield chunk
 
-    def read(self, i):
-        result = self.data.read(i)
-        len_result = len(result)
+    def read(self, length=None):
+        res = self.data.read() if length is None else self.data.read(length)
+        len_result = len(res)
         self.bytes_read += len_result
         if len_result:
-            self.md5.update(result)
-            self.sha1.update(result)
-            self.sha256.update(result)
+            self.md5.update(res)
+            self.sha1.update(res)
+            self.sha256.update(res)
         if self.bytes_read > self.limit:
             raise exception.RequestEntityTooLarge()
-        return result
+        return res
 
 
 def safe_mkdirs(path):

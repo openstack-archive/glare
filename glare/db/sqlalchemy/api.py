@@ -639,7 +639,7 @@ def save_blob_data(context, blob_data_id, data, session):
 
     blob_data = models.ArtifactBlobData()
     blob_data.id = blob_data_id
-    blob_data.data = data
+    blob_data.data = data.read()
     blob_data.save(session=session)
     return "sql://" + blob_data.id
 

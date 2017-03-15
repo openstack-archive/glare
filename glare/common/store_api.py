@@ -76,7 +76,7 @@ def save_blob_to_store(blob_id, blob, context, max_size,
     data = utils.LimitingReader(utils.CooperativeReader(blob), max_size)
     if store_type == 'database':
         location = database_api.add_to_backend(
-            blob_id, data.read(None), context, verifier)
+            blob_id, data, context, verifier)
     else:
         (location, size, md5checksum, __) = backend.add_to_backend(
             CONF, blob_id, data, 0, store_type, context, verifier)
