@@ -23,6 +23,7 @@ import requests
 import webob.dec
 
 from glare.common import exception
+from glare.i18n import _
 
 LOG = logging.getLogger(__name__)
 
@@ -96,14 +97,30 @@ class KeycloakAuthMiddleware(base_middleware.Middleware):
 
     @webob.dec.wsgify
     def __call__(self, request):
-        if 'X-Project-Id' not in request.headers:
+        if 'X-Auth-Token' not in request.headers:
+            msg = _("Auth token must be provided in 'X-Auth-Token' header.")
+            LOG.error(msg)
             raise exception.Unauthorized()
         access_token = request.headers.get('X-Auth-Token')
-        realm_name = request.headers.get('X-Project-Id')
-        self.authenticate(access_token, realm_name)
-        decoded = jwt.decode(access_token, algorithms=['RS256'], verify=False)
+        try:
+            decoded = jwt.decode(access_token, algorithms=['RS256'],
+                                 verify=False)
+        except Exception:
+            msg = _("Token can't be decoded because of wrong format.")
+            LOG.error(msg)
+            raise exception.Unauthorized()
+
+        # Get user realm from parsed token
+        # Format is "iss": "http://<host>:<port>/auth/realms/<realm_name>",
+        __, __, realm_name = decoded['iss'].rpartition('/realms/').strip()
+
+        # Get roles from from parsed token
         roles = ','.join(decoded['realm_access']['roles']) \
             if 'realm_access' in decoded else ''
+
+        self.authenticate(access_token, realm_name)
+
         request.headers["X-Identity-Status"] = "Confirmed"
+        request.headers["X-Project-Id"] = realm_name
         request.headers["X-Roles"] = roles
         return request.get_response(self.application)
