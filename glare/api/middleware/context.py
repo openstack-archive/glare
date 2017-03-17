@@ -13,17 +13,16 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import webob
-
 from oslo_config import cfg
 from oslo_context import context
+from oslo_log import log as logging
 from oslo_middleware import base as base_middleware
 from oslo_middleware import request_id
 from oslo_serialization import jsonutils
 
 from glare.common import exception
 from glare.common import policy
-from glare.i18n import _
+from glare.i18n import _, _LW
 
 context_opts = [
     cfg.BoolOpt('allow_anonymous_access', default=False,
@@ -34,6 +33,8 @@ context_opts = [
 
 CONF = cfg.CONF
 CONF.register_opts(context_opts)
+
+LOG = logging.getLogger(__name__)
 
 
 class RequestContext(context.RequestContext):
@@ -64,8 +65,26 @@ class RequestContext(context.RequestContext):
         return values
 
 
-class ContextMiddleware(base_middleware.ConfigurableMiddleware):
+class BaseContextMiddleware(base_middleware.ConfigurableMiddleware):
+    @staticmethod
+    def process_response(resp, request=None):
+        try:
+            request_id = resp.request.context.request_id
+        except AttributeError:
+            LOG.warn(_LW('Unable to retrieve request id from context'))
+        else:
+            # For python 3 compatibility need to use bytes type
+            prefix = b'req-' if isinstance(request_id, bytes) else 'req-'
 
+            if not request_id.startswith(prefix):
+                request_id = prefix + request_id
+
+            resp.headers['x-openstack-request-id'] = request_id
+
+        return resp
+
+
+class ContextMiddleware(BaseContextMiddleware):
     @staticmethod
     def process_request(req):
         """Convert authentication information into a request context.
@@ -96,7 +115,7 @@ class ContextMiddleware(base_middleware.ConfigurableMiddleware):
             try:
                 service_catalog = jsonutils.loads(catalog_header)
             except ValueError:
-                raise webob.exc.HTTPInternalServerError(
+                raise exception.GlareException(
                     _('Invalid service catalog json.'))
         kwargs = {
             'service_catalog': service_catalog,
@@ -105,8 +124,7 @@ class ContextMiddleware(base_middleware.ConfigurableMiddleware):
         return RequestContext.from_environ(req.environ, **kwargs)
 
 
-class TrustedAuthMiddleware(base_middleware.ConfigurableMiddleware):
-
+class TrustedAuthMiddleware(BaseContextMiddleware):
     @staticmethod
     def process_request(req):
         auth_token = req.headers.get('X-Auth-Token')
