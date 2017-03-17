@@ -23,6 +23,7 @@ from glance_store import location
 import jsonpatch
 from oslo_config import cfg
 from oslo_config import fixture as cfg_fixture
+from oslo_policy import policy as os_policy
 import testtools
 
 from glare.api.middleware import context
@@ -82,6 +83,11 @@ class BaseTestCase(testtools.TestCase):
         self.policy_file = self._copy_data_file("policy.json", self.conf_dir)
         self.config(policy_file=self.policy_file, group='oslo_policy')
 
+        enf = policy.init(use_conf=False)
+        for default in enf.registered_rules.values():
+            if default.name not in enf.rules:
+                enf.rules[default.name] = default.check
+
         location.SCHEME_TO_CLS_MAP = {}
         self._create_stores()
         self.addCleanup(setattr, location, 'SCHEME_TO_CLS_MAP', dict())
@@ -110,6 +116,13 @@ class BaseTestCase(testtools.TestCase):
         test by the fixtures cleanup process.
         """
         self._config_fixture.config(**kw)
+
+    @staticmethod
+    def policy(**new_rules):
+        enf = policy.init(use_conf=False)
+        for rule_name, rule_check_str in new_rules.items():
+            enf.rules[rule_name] = os_policy.RuleDefault(
+                rule_name, rule_check_str).check
 
     @staticmethod
     def get_fake_request(path='', method='POST', is_admin=False,

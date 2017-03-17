@@ -78,13 +78,13 @@ def list_rules():
     return artifact_policy_rules
 
 
-def _get_enforcer():
+def init(use_conf=True):
     """Init an Enforcer class.
     """
 
     global _ENFORCER
     if not _ENFORCER:
-        _ENFORCER = policy.Enforcer(CONF)
+        _ENFORCER = policy.Enforcer(CONF, use_conf=use_conf)
         _ENFORCER.register_defaults(list_rules())
     return _ENFORCER
 
@@ -106,7 +106,7 @@ def authorize(policy_name, target, context, do_raise=True):
     :return: True if check passed
     """
     creds = context.to_policy_values()
-    result = _get_enforcer().authorize(
+    result = init().authorize(
         policy_name, target, creds, do_raise=do_raise,
         exc=exception.PolicyException, policy_name=policy_name)
     LOG.debug("Policy %(policy)s check %(result)s for request %(request_id)s",
