@@ -112,7 +112,7 @@ class KeycloakAuthMiddleware(base_middleware.Middleware):
 
         # Get user realm from parsed token
         # Format is "iss": "http://<host>:<port>/auth/realms/<realm_name>",
-        __, __, realm_name = decoded['iss'].rpartition('/realms/').strip()
+        __, __, realm_name = decoded['iss'].strip().rpartition('/realms/')
 
         # Get roles from from parsed token
         roles = ','.join(decoded['realm_access']['roles']) \
