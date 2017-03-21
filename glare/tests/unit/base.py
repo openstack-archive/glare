@@ -31,9 +31,8 @@ from glare.common import config
 from glare.common import policy
 from glare.common import utils
 from glare.common import wsgi
-from glare import locking
-from glare.objects import base
-from glare.tests.unit import simple_db_api
+from glare.db.sqlalchemy import api as db_api
+
 
 CONF = cfg.CONF
 
@@ -76,9 +75,8 @@ class BaseTestCase(testtools.TestCase):
         self.conf_dir = os.path.join(self.test_dir, 'etc')
         utils.safe_mkdirs(self.conf_dir)
 
-        base.BaseArtifact.db_api = simple_db_api.SimpleAPI()
-        base.BaseArtifact.lock_engine = locking.LockEngine(
-            simple_db_api.SimpleLockApi())
+        CONF.set_default('connection', 'sqlite://', group='database')
+        db_api.setup_db()
 
         self.policy_file = self._copy_data_file("policy.json", self.conf_dir)
         self.config(policy_file=self.policy_file, group='oslo_policy')
@@ -92,7 +90,7 @@ class BaseTestCase(testtools.TestCase):
         self._create_stores()
         self.addCleanup(setattr, location, 'SCHEME_TO_CLS_MAP', dict())
 
-        self.addCleanup(simple_db_api.reset)
+        self.addCleanup(db_api.drop_db)
         self.addCleanup(policy.reset)
 
     @staticmethod
@@ -156,10 +154,6 @@ class BaseTestCase(testtools.TestCase):
                     group="glance_store")
 
         store.create_stores(CONF)
-
-    @staticmethod
-    def init_database(data):
-        simple_db_api.init_artifacts(data)
 
     @staticmethod
     def generate_json_patch(values):
