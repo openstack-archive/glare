@@ -110,8 +110,11 @@ class BaseArtifact(base.VersionedObject):
                           required_on_activate=False,
                           # tags are filtered without any operators
                           filter_ops=[],
-                          element_validators=[validators.ForbiddenChars(
-                              [',', '/'])],
+                          validators=[validators.Unique(convert_to_set=True)],
+                          element_validators=[
+                              validators.ForbiddenChars([',', '/']),
+                              validators.MinStrLen(1)
+                          ],
                           description="List of tags added to Artifact."),
         'metadata': DictField(fields.String, required_on_activate=False,
                               element_validators=[validators.MinStrLen(1)],
@@ -250,8 +253,7 @@ class BaseArtifact(base.VersionedObject):
         :return: created artifact object
         """
         name = values.get('name')
-        ver = values.setdefault(
-            'version', cls.DEFAULT_ARTIFACT_VERSION)
+        ver = str(values.setdefault('version', cls.DEFAULT_ARTIFACT_VERSION))
         scope_id = "%s:%s:%s" % (cls.get_type_name(), name, ver)
         with cls.lock_engine.acquire(context, scope_id):
             cls._validate_versioning(context, name, ver)

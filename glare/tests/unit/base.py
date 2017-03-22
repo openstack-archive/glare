@@ -13,8 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import os
-import shutil
 import uuid
 
 import fixtures
@@ -29,39 +27,10 @@ import testtools
 from glare.api.middleware import context
 from glare.common import config
 from glare.common import policy
-from glare.common import utils
 from glare.common import wsgi
 from glare.db.sqlalchemy import api as db_api
 
-
 CONF = cfg.CONF
-
-users = {
-    'user1': {
-        'id': str(uuid.uuid4()),
-        'tenant_id': str(uuid.uuid4()),
-        'token': str(uuid.uuid4()),
-        'role': 'member'
-    },
-    'user2': {
-        'id': str(uuid.uuid4()),
-        'tenant_id': str(uuid.uuid4()),
-        'token': str(uuid.uuid4()),
-        'role': 'member'
-    },
-    'admin': {
-        'id': str(uuid.uuid4()),
-        'tenant_id': str(uuid.uuid4()),
-        'token': str(uuid.uuid4()),
-        'role': 'admin'
-    },
-    'anonymous': {
-        'id': None,
-        'tenant_id': None,
-        'token': None,
-        'role': None
-    }
-}
 
 
 class BaseTestCase(testtools.TestCase):
@@ -71,20 +40,49 @@ class BaseTestCase(testtools.TestCase):
         self._config_fixture = self.useFixture(cfg_fixture.Config())
         config.parse_args(args=[])
 
+        self.users = {
+            'user1': {
+                'id': str(uuid.uuid4()),
+                'tenant_id': str(uuid.uuid4()),
+                'token': str(uuid.uuid4()),
+                'role': 'member'
+            },
+            'user2': {
+                'id': str(uuid.uuid4()),
+                'tenant_id': str(uuid.uuid4()),
+                'token': str(uuid.uuid4()),
+                'role': 'member'
+            },
+            'admin': {
+                'id': str(uuid.uuid4()),
+                'tenant_id': str(uuid.uuid4()),
+                'token': str(uuid.uuid4()),
+                'role': 'admin'
+            },
+            'anonymous': {
+                'id': None,
+                'tenant_id': None,
+                'token': None,
+                'role': None
+            }
+        }
+
         self.test_dir = self.useFixture(fixtures.TempDir()).path
-        self.conf_dir = os.path.join(self.test_dir, 'etc')
-        utils.safe_mkdirs(self.conf_dir)
 
         CONF.set_default('connection', 'sqlite://', group='database')
         db_api.setup_db()
-
-        self.policy_file = self._copy_data_file("policy.json", self.conf_dir)
-        self.config(policy_file=self.policy_file, group='oslo_policy')
 
         enf = policy.init(use_conf=False)
         for default in enf.registered_rules.values():
             if default.name not in enf.rules:
                 enf.rules[default.name] = default.check
+
+        self.config(
+            custom_artifact_types_modules=['glare.tests.sample_artifact'],
+            enabled_artifact_types=[
+                'sample_artifact', 'images', 'heat_templates',
+                'heat_environments', 'murano_packages', 'tosca_templates']
+        )
 
         location.SCHEME_TO_CLS_MAP = {}
         self._create_stores()
@@ -92,13 +90,6 @@ class BaseTestCase(testtools.TestCase):
 
         self.addCleanup(db_api.drop_db)
         self.addCleanup(policy.reset)
-
-    @staticmethod
-    def _copy_data_file(file_name, dst_dir):
-        src_file_name = os.path.join('glare/tests/etc', file_name)
-        shutil.copy(src_file_name, dst_dir)
-        dst_file_name = os.path.join(dst_dir, file_name)
-        return dst_file_name
 
     def config(self, **kw):
         """

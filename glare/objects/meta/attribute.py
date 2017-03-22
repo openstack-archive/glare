@@ -184,6 +184,7 @@ class DictAttribute(CompoundAttribute):
             super(DictAttribute, self).get_element_validators())
         default_vals.append(elem_val)
         default_vals.append(val_lib.MaxDictKeyLen(255))
+        default_vals.append(val_lib.MinDictKeyLen(1))
         return default_vals
 
 

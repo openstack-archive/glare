@@ -65,7 +65,7 @@ class TestArtifact(functional.FunctionalTest):
         self.glare_server.enabled_artifact_types = ','.join(
             self.enabled_types)
         self.glare_server.custom_artifact_types_modules = (
-            'glare.tests.functional.sample_artifact')
+            'glare.tests.sample_artifact')
         self.start_servers(**self.__dict__.copy())
 
     def tearDown(self):
