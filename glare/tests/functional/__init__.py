@@ -33,6 +33,7 @@ import sys
 import tempfile
 import time
 
+import eventlet
 import fixtures
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
@@ -51,6 +52,8 @@ from glare.tests import utils as test_utils
 
 execute, get_unused_port = test_utils.execute, test_utils.get_unused_port
 tracecmd_osmap = {'Linux': 'strace', 'FreeBSD': 'truss'}
+
+eventlet.patcher.monkey_patch()
 
 
 class Server(object):
