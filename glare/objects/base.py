@@ -342,8 +342,13 @@ class BaseArtifact(base.VersionedObject):
         with cls._get_scoped_lock(af, values):
             # validate version
             if 'name' in values or 'version' in values:
-                new_name = values.get('name') or af.name
-                new_version = values.get('version') or af.version
+                new_name = values.get('name') if 'name' in values else af.name
+                if not isinstance(new_name, six.string_types):
+                    new_name = str(new_name)
+                new_version = values.get('version') \
+                    if 'version' in values else af.version
+                if not isinstance(new_version, six.string_types):
+                    new_version = str(new_version)
                 cls._validate_versioning(context, new_name, new_version)
 
             # validate other values
@@ -400,6 +405,11 @@ class BaseArtifact(base.VersionedObject):
                     action = cls.reactivate
                 else:
                     action = cls.activate
+            else:
+                msg = (_("Incorrect status value. You may specify only %s "
+                         "statuses.") % ' and '.join(
+                    [af.STATUS.ACTIVE, af.STATUS.DEACTIVATED]))
+                raise exception.BadRequest(message=msg)
 
         LOG.debug("Action %(action)s defined to updates %(updates)s.",
                   {'action': action.__name__, 'updates': values})

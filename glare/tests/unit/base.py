@@ -45,25 +45,25 @@ class BaseTestCase(testtools.TestCase):
                 'id': str(uuid.uuid4()),
                 'tenant_id': str(uuid.uuid4()),
                 'token': str(uuid.uuid4()),
-                'role': 'member'
+                'roles': ['member']
             },
             'user2': {
                 'id': str(uuid.uuid4()),
                 'tenant_id': str(uuid.uuid4()),
                 'token': str(uuid.uuid4()),
-                'role': 'member'
+                'roles': ['member']
             },
             'admin': {
                 'id': str(uuid.uuid4()),
                 'tenant_id': str(uuid.uuid4()),
                 'token': str(uuid.uuid4()),
-                'role': 'admin'
+                'roles': ['admin']
             },
             'anonymous': {
                 'id': None,
                 'tenant_id': None,
                 'token': None,
-                'role': None
+                'roles': []
             }
         }
 
@@ -114,21 +114,15 @@ class BaseTestCase(testtools.TestCase):
                 rule_name, rule_check_str).check
 
     @staticmethod
-    def get_fake_request(path='', method='POST', is_admin=False,
-                         user=None, roles=None):
-        if roles is None:
-            roles = ['member']
-
-        req = wsgi.Request.blank(path)
-        req.method = method
-
+    def get_fake_request(user):
+        req = wsgi.Request.blank('')
+        req.method = 'POST'
         kwargs = {
             'user': user['id'],
             'tenant': user['tenant_id'],
-            'roles': roles,
-            'is_admin': is_admin,
+            'roles': user['roles'],
+            'is_admin': 'admin' in user['roles'],
         }
-
         req.context = context.RequestContext(**kwargs)
         return req
 

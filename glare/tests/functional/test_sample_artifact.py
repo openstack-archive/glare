@@ -2122,7 +2122,7 @@ class TestUpdate(base.TestArtifact):
                  'path': '/name',
                  'value': None}]
         url = '/sample_artifact/%s' % art1['id']
-        self.patch(url=url, data=data, status=409)
+        self.patch(url=url, data=data, status=400)
 
         headers = {'Content-Type': 'application/octet-stream'}
         self.put(url=url + '/blob', data="d" * 1000, headers=headers)
