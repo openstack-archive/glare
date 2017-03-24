@@ -52,7 +52,7 @@ def import_submodules(module):
     """Import all submodules of a module.
 
     :param module: Package name
-    :return list of imported modules
+    :return: list of imported modules
     """
     package = sys.modules[module]
     return [

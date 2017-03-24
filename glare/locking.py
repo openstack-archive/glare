@@ -25,9 +25,9 @@ class LockApiBase(object):
     def create_lock(self, context, lock_key):
         """Acquire lock for current user.
 
-        :param context user context
+        :param context: user context
         :param lock_key: unique lock identifier that defines lock scope
-        :return lock internal identifier
+        :return: lock internal identifier
         """
         raise NotImplementedError()
 

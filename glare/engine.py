@@ -132,7 +132,7 @@ class Engine(object):
 
             :param af_dict: current artifact definition as dict
             :param patch_with_upd: json-patch object
-            :return dict of updated attributes and their values
+            :return: dict of updated attributes and their values
             """
             try:
                 af_dict_patched = patch_with_upd.apply(af_dict)
@@ -237,7 +237,7 @@ class Engine(object):
         :param location: external blob url
         :param blob_meta: dictionary containing blob metadata like md5 checksum
         :param blob_key: if field_name is blob dict it specifies key
-        in this dict
+         in this dict
         :return: dict representation of updated artifact
         """
         af = cls._get_artifact(context, type_name, artifact_id)
@@ -283,7 +283,7 @@ class Engine(object):
         :param fd: file descriptor that Glare uses to upload the file
         :param content_type: data content-type
         :param blob_key: if field_name is blob dict it specifies key
-        in this dictionary
+         in this dictionary
         :return: dict representation of updated artifact
         """
         af = cls._get_artifact(context, type_name, artifact_id)
@@ -361,7 +361,7 @@ class Engine(object):
         :param blob: blob representation in dict format
         :param field_name: name of blob or blob dict field
         :param blob_key: if field_name is blob dict it specifies key
-        in this dict
+         in this dict
         :param validate: enable validation of possibility of blob uploading
 
         :return: dict representation of updated artifact
@@ -391,7 +391,7 @@ class Engine(object):
         :param artifact_id: id of the artifact to be updated
         :param field_name: name of blob or blob dict field
         :param blob_key: if field_name is blob dict it specifies key
-        in this dict
+         in this dict
         :return: file iterator for requested file
         """
         af = cls._get_artifact(context, type_name, artifact_id,

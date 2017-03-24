@@ -62,9 +62,9 @@ class Controller(object):
         """Respond to a request for all OpenStack API versions.
 
         :param is_multi: defines if multiple choices should be response status
-        or not
+         or not
         :param req: user request object
-        :return list of supported API versions
+        :return: list of supported API versions
         """
         def build_version_object(max_version, min_version, status, path=None):
             url = CONF.public_endpoint or req.host_url
