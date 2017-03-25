@@ -76,8 +76,8 @@ class BaseTestCase(testtools.TestCase):
         return dst_file_name
 
     def config(self, **kw):
-        """
-        Override some configuration values.
+        """Override some configuration values.
+
         The keyword arguments are the names of configuration options to
         override and their values.
         If a group argument is supplied, the overrides are applied to
@@ -142,8 +142,8 @@ def fork_exec(cmd,
               exec_env=None,
               logfile=None,
               pass_fds=None):
-    """
-    Execute a command using fork/exec.
+    """Execute a command using fork/exec.
+
     This is needed for programs system executions that need path
     searching but cannot have a shell as their parent process, for
     example: glare.  When glare starts it sets itself as
@@ -151,6 +151,7 @@ def fork_exec(cmd,
     a Popen process would have is not the right pid to use for killing
     the process group.  This patch gives the test env direct access
     to the actual pid.
+
     :param cmd: Command to execute as an array of arguments.
     :param exec_env: A dictionary representing the environment with
                      which to run the command.
@@ -192,8 +193,8 @@ def fork_exec(cmd,
 def wait_for_fork(pid,
                   raise_error=True,
                   expected_exitcode=0):
-    """
-    Wait for a process to complete
+    """Wait for a process to complete
+
     This function will wait for the given pid to complete.  If the
     exit code does not match that of the expected_exitcode an error
     is raised.
@@ -220,11 +221,12 @@ def execute(cmd,
             expect_exit=True,
             expected_exitcode=0,
             context=None):
-    """
-    Executes a command in a subprocess. Returns a tuple
-    of (exitcode, out, err), where out is the string output
-    from stdout and err is the string output from stderr when
+    """Executes a command in a subprocess.
+
+    Returns a tuple of (exitcode, out, err), where out is the string
+    output from stdout and err is the string output from stderr when
     executing the command.
+
     :param cmd: Command string to execute
     :param raise_error: If returncode is not 0 (success), then
                         raise a RuntimeError? Default: True)
@@ -291,10 +293,11 @@ def execute(cmd,
 
 
 def find_executable(cmdname):
-    """
-    Searches the path for a given cmdname.  Returns an absolute
-    filename if an executable with the given name exists in the path,
-    or None if one does not.
+    """Searches the path for a given cmdname.
+
+    Returns an absolute filename if an executable with the given
+    name exists in the path, or None if one does not.
+
     :param cmdname: The bare name of the executable to search for
     """
 
@@ -317,8 +320,7 @@ def find_executable(cmdname):
 
 
 def get_unused_port():
-    """
-    Returns an unused port on localhost.
+    """Returns an unused port on localhost.
     """
     port, s = get_unused_port_and_socket()
     s.close()
@@ -326,8 +328,7 @@ def get_unused_port():
 
 
 def get_unused_port_and_socket():
-    """
-    Returns an unused port on localhost and the open socket
+    """Returns an unused port on localhost and the open socket
     from which it was created.
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -337,8 +338,7 @@ def get_unused_port_and_socket():
 
 
 def xattr_writes_supported(path):
-    """
-    Returns True if the we can write a file to the supplied
+    """Returns True if the we can write a file to the supplied
     path and subsequently write a xattr to that file.
     """
     try:

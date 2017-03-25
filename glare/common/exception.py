@@ -23,8 +23,7 @@ LOG = logging.getLogger(__name__)
 
 
 class GlareException(Exception):
-    """
-    Base Glare Exception class.
+    """Base Glare Exception class.
 
     To correctly use this class, inherit from it and define
     a 'message' property. That message will get printf'd

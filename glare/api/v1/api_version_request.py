@@ -40,7 +40,7 @@ class APIVersionRequest(object):
         """Create an API version request object.
 
         :param version_string: String representation of APIVersionRequest.
-        Correct format is 'X.Y', where 'X' and 'Y' are int values.
+         Correct format is 'X.Y', where 'X' and 'Y' are int values.
         """
         match = re.match(r"^([1-9]\d*)\.([1-9]\d*|0)$", version_string)
         if match:

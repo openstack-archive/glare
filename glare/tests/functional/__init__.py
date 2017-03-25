@@ -57,13 +57,11 @@ eventlet.patcher.monkey_patch()
 
 
 class Server(object):
-    """
-    Class used to easily manage starting and stopping
+    """Class used to easily manage starting and stopping
     a server during functional test runs.
     """
     def __init__(self, test_dir, port, sock=None):
-        """
-        Creates a new Server object.
+        """Creates a new Server object.
 
         :param test_dir: The directory where all test stuff is kept. This is
                          passed from the FunctionalTestCase.
@@ -87,8 +85,7 @@ class Server(object):
         self.stop_kill = False
 
     def write_conf(self, **kwargs):
-        """
-        Writes the configuration file for the server to its intended
+        """Writes the configuration file for the server to its intended
         destination.  Returns the name of the configuration file and
         the over-ridden config content (may be useful for populating
         error messages).
@@ -132,8 +129,7 @@ class Server(object):
         return self.conf_file_name, overridden
 
     def start(self, expect_exit=True, expected_exitcode=0, **kwargs):
-        """
-        Starts the server.
+        """Starts the server.
 
         Any kwargs passed to this method will override the configuration
         value in the conf file used in starting the servers.
@@ -190,8 +186,7 @@ class Server(object):
         return (rc, '', '')
 
     def reload(self, expect_exit=True, expected_exitcode=0, **kwargs):
-        """
-        Start and stop the service to reload
+        """Start and stop the service to reload
 
         Any kwargs passed to this method will override the configuration
         value in the conf file used in starting the servers.
@@ -240,9 +235,7 @@ class Server(object):
                 atexit.register(_delete_cached_db)
 
     def stop(self):
-        """
-        Spin down the server.
-        """
+        """Spin down the server."""
         if not self.process_pid:
             raise Exception('why is this being called? %s' % self.server_name)
 
@@ -262,9 +255,7 @@ class Server(object):
 
 class GlareServer(Server):
 
-    """
-    Server object that starts/stops/manages Glare server
-    """
+    """Server object that starts/stops/manages Glare server"""
 
     def __init__(self, test_dir, port, policy_file, delayed_delete=False,
                  pid_file=None, sock=None, **kwargs):
@@ -347,8 +338,7 @@ paste.filter_factory =
 
 class FunctionalTest(test_utils.BaseTestCase):
 
-    """
-    Base test class for any test that wants to test the actual
+    """Base test class for any test that wants to test the actual
     servers and clients and not just the stubbed out interfaces
     """
 
@@ -424,8 +414,7 @@ class FunctionalTest(test_utils.BaseTestCase):
             self.assertEqual(0, exitcode)
 
     def cleanup(self):
-        """
-        Makes sure anything we created or started up in the
+        """Makes sure anything we created or started up in the
         tests are destroyed or spun down
         """
 
@@ -451,8 +440,7 @@ class FunctionalTest(test_utils.BaseTestCase):
                      expect_exit=True,
                      expected_exitcode=0,
                      **kwargs):
-        """
-        Starts a server on an unused port.
+        """Starts a server on an unused port.
 
         Any kwargs passed to this method will override the configuration
         value in the conf file used in starting the server.
@@ -483,8 +471,7 @@ class FunctionalTest(test_utils.BaseTestCase):
     def start_with_retry(self, server, port_name, max_retries,
                          expect_launch=True,
                          **kwargs):
-        """
-        Starts a server, with retries if the server launches but
+        """Starts a server, with retries if the server launches but
         fails to start listening on the expected port.
 
         :param server: the server to launch
@@ -514,8 +501,7 @@ class FunctionalTest(test_utils.BaseTestCase):
         self.assertTrue(launch_msg is None, launch_msg)
 
     def start_servers(self, **kwargs):
-        """
-        Starts the Glare server on unused port.
+        """Starts the Glare server on unused port.
 
         Any kwargs passed to this method will override the configuration
         value in the conf file used in starting the servers.
@@ -525,8 +511,7 @@ class FunctionalTest(test_utils.BaseTestCase):
         self.start_with_retry(self.glare_server, 'glare_port', 3, **kwargs)
 
     def ping_server(self, port):
-        """
-        Simple ping on the port. If responsive, return True, else
+        """Simple ping on the port. If responsive, return True, else
         return False.
 
         :note We use raw sockets, not ping here, since ping uses ICMP and
@@ -542,8 +527,7 @@ class FunctionalTest(test_utils.BaseTestCase):
             s.close()
 
     def wait_for_servers(self, servers, expect_launch=True, timeout=30):
-        """
-        Tight loop, waiting for the given server port(s) to be available.
+        """Tight loop, waiting for the given server port(s) to be available.
         Returns when all are pingable. There is a timeout on waiting
         for the servers to come up.
 
@@ -597,8 +581,7 @@ class FunctionalTest(test_utils.BaseTestCase):
         return msg if expect_launch else None
 
     def stop_server(self, server, name):
-        """
-        Called to stop a single server in a normal fashion.
+        """Called to stop a single server in a normal fashion.
 
         :param server: the server to stop
         """
@@ -611,9 +594,8 @@ class FunctionalTest(test_utils.BaseTestCase):
         self._reset_database(self.glare_server.sql_connection)
 
     def run_sql_cmd(self, sql):
-        """
-        Provides a crude mechanism to run manual SQL commands for backend
-        DB verification within the functional tests.
+        """Provides a crude mechanism to run manual SQL commands
+        for backend DB verification within the functional tests.
         The raw result set is returned.
         """
         engine = db_api.get_engine()

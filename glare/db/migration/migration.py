@@ -38,6 +38,7 @@ def version(engine=None):
 
 def upgrade(revision, config=None):
     """Used for upgrading database.
+
     :param revision: Desired database version
     :type revision: string
     """
@@ -49,6 +50,7 @@ def upgrade(revision, config=None):
 
 def downgrade(revision, config=None):
     """Used for downgrading database.
+
     :param revision: Desired database version7
     :type revision: string
     """
@@ -59,7 +61,9 @@ def downgrade(revision, config=None):
 
 def stamp(revision, config=None):
     """Stamps database with provided revision.
+
     Don't run any migrations.
+
     :param revision: Should match one from repository or head - to stamp
                      database with most recent revision
     :type revision: string
@@ -70,6 +74,7 @@ def stamp(revision, config=None):
 
 def revision(message=None, autogenerate=False, config=None):
     """Creates template for migration.
+
     :param message: Text that will be used for migration title
     :type message: string
     :param autogenerate: If True - generates diff based on current database

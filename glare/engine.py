@@ -37,14 +37,16 @@ LOG = logging.getLogger(__name__)
 class Engine(object):
     """Engine is responsible for executing different helper operations when
     processing incoming requests from Glare API.
+
     Engine receives incoming data and does the following:
-    - check basic policy permissions;
-    - requests artifact definition from artifact type registry;
-    - check access permission(ro, rw);
-    - lock artifact for update if needed;
-    - pass data to base artifact to execute all business logic operations
-      with database;
-    - notify other users about finished operation.
+     - check basic policy permissions;
+     - requests artifact definition from artifact type registry;
+     - check access permission(ro, rw);
+     - lock artifact for update if needed;
+     - pass data to base artifact to execute all business logic operations
+       with database;
+     - notify other users about finished operation.
+
     Engine should not include any business logic and validation related
     to Artifacts. Engine should not know any internal details of artifact
     type, because this part of the work is done by Base artifact type.
@@ -63,13 +65,14 @@ class Engine(object):
     @classmethod
     def _get_artifact(cls, ctx, type_name, artifact_id, read_only=False):
         """Return artifact requested by user.
+
         Check access permissions and policies.
 
         :param ctx: user context
         :param type_name: artifact type name
         :param artifact_id: id of the artifact to be updated
         :param read_only: flag, if set to True only read access is checked,
-        if False then engine checks if artifact can be modified by the user
+         if False then engine checks if artifact can be modified by the user
         """
         artifact_type = registry.ArtifactRegistry.get_artifact_type(type_name)
         # only artifact is available for class users
@@ -196,12 +199,12 @@ class Engine(object):
         :param type_name: Artifact type name
         :param filters: filters that need to be applied to artifact
         :param marker: the artifact that considered as begin of the list
-        so all artifacts before marker (including marker itself) will not be
-        added to artifact list
+         so all artifacts before marker (including marker itself) will not be
+         added to artifact list
         :param limit: maximum number of items in list
         :param sort: sorting options
         :param latest: flag that indicates, that only artifacts with highest
-        versions should be returned in output
+         versions should be returned in output
         :return: list of artifact definitions
         """
         policy.authorize("artifact:list", {}, context)

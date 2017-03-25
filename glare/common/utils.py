@@ -56,8 +56,7 @@ GLARE_TEST_SOCKET_FD_STR = 'GLARE_TEST_SOCKET_FD'
 
 
 def chunkreadable(iter, chunk_size=65536):
-    """
-    Wrap a readable iterator with a reader yielding chunks of
+    """Wrap a readable iterator with a reader yielding chunks of
     a preferred size, otherwise leave iterator unchanged.
 
     :param iter: an iter which may also be readable
@@ -67,8 +66,7 @@ def chunkreadable(iter, chunk_size=65536):
 
 
 def chunkiter(fp, chunk_size=65536):
-    """
-    Return an iterator to a file-like obj which yields fixed size chunks.
+    """Return an iterator to a file-like obj which yields fixed size chunks.
 
     :param fp: a file-like object
     :param chunk_size: maximum size of chunk
@@ -82,8 +80,7 @@ def chunkiter(fp, chunk_size=65536):
 
 
 def cooperative_iter(iter):
-    """
-    Return an iterator which schedules after each
+    """Return an iterator which schedules after each
     iteration. This can prevent eventlet thread starvation.
 
     :param iter: an iterator to wrap
@@ -99,8 +96,7 @@ def cooperative_iter(iter):
 
 
 def cooperative_read(fd):
-    """
-    Wrap a file descriptor's read with a partial function which schedules
+    """Wrap a file descriptor's read with a partial function which schedules
     after each read. This can prevent eventlet thread starvation.
 
     :param fd: a file descriptor to wrap
@@ -116,8 +112,7 @@ MAX_COOP_READER_BUFFER_SIZE = 134217728  # 128M seems like a sane buffer limit
 
 
 class CooperativeReader(object):
-    """
-    An eventlet thread friendly class for reading in blob data.
+    """An eventlet thread friendly class for reading in blob data.
 
     When accessing data either through the iterator or the read method
     we perform a sleep to allow a co-operative yield. When there is more than
@@ -126,8 +121,7 @@ class CooperativeReader(object):
     having the same thread be continuously active.
     """
     def __init__(self, fd):
-        """
-        :param fd: Underlying blob file object
+        """:param fd: Underlying blob file object
         """
         self.fd = fd
         self.iterator = None
@@ -204,8 +198,7 @@ class CooperativeReader(object):
 
 
 class LimitingReader(object):
-    """
-    Reader designed to fail when reading blob data past the configured
+    """Reader designed to fail when reading blob data past the configured
     allowable amount.
     """
     def __init__(self, data, limit):
@@ -361,8 +354,7 @@ except re.error:
 
 
 def no_4byte_params(f):
-    """
-    Checks that no 4 byte unicode characters are allowed
+    """Checks that no 4 byte unicode characters are allowed
     in dicts' keys/values and string's parameters.
     """
     def wrapper(*args, **kwargs):
@@ -400,8 +392,7 @@ def no_4byte_params(f):
 
 
 def stash_conf_values():
-    """
-    Make a copy of some of the current global CONF's settings.
+    """Make a copy of some of the current global CONF's settings.
     Allows determining if any of these values have changed
     when the config is reloaded.
     """
@@ -608,8 +599,7 @@ def _get_element_type(element_type):
 
 
 class DictDiffer(object):
-    """
-    Calculate the difference between two dictionaries as:
+    """Calculate the difference between two dictionaries as:
     (1) items added
     (2) items removed
     (3) keys same in both but changed values
@@ -647,8 +637,7 @@ class DictDiffer(object):
 
 
 class BlobIterator(object):
-    """
-    Reads data from a blob, one chunk at a time.
+    """Reads data from a blob, one chunk at a time.
     """
 
     def __init__(self, data, chunk_size=65536):

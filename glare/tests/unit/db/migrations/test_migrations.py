@@ -76,6 +76,7 @@ class WalkVersionsMixin(object):
 
     def _migrate_up(self, engine, config, version, with_data=False):
         """migrate up to a new version of the db.
+
         We allow for data insertion and post checks at every
         migration version with special _pre_upgrade_### and
         _check_### functions in the main test.

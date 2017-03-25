@@ -129,8 +129,7 @@ def get_bind_addr(default_port=None):
 
 
 def ssl_wrap_socket(sock):
-    """
-    Wrap an existing socket in SSL
+    """Wrap an existing socket in SSL
 
     :param sock: non-SSL socket to wrap
 
@@ -153,8 +152,7 @@ def ssl_wrap_socket(sock):
 
 
 def get_socket(default_port):
-    """
-    Bind socket to bind ip:port in conf
+    """Bind socket to bind ip:port in conf
 
     :param default_port: port to bind to if none is specified in conf
 
@@ -260,8 +258,7 @@ class Server(object):
             self.pgid = 0
 
     def hup(self, *args):
-        """
-        Reloads configuration files with zero down time
+        """Reloads configuration files with zero down time
         """
         signal.signal(signal.SIGHUP, signal.SIG_IGN)
         raise glare_exc.SIGHUPInterrupt
@@ -274,8 +271,7 @@ class Server(object):
         os.killpg(self.pgid, signal.SIGTERM)
 
     def start(self, application, default_port):
-        """
-        Run a WSGI server with the given application.
+        """Run a WSGI server with the given application.
 
         :param application: The application to be run in the WSGI server
         :param default_port: Port to bind to if none is specified in conf
@@ -348,8 +344,7 @@ class Server(object):
         LOG.debug('Exited')
 
     def configure(self, old_conf=None, has_changed=None):
-        """
-        Apply configuration settings
+        """Apply configuration settings
 
         :param old_conf: Cached old configuration settings (if any)
         :param has_changed: callable to determine if a parameter has changed
@@ -370,8 +365,7 @@ class Server(object):
             initialize_glance_store()
 
     def reload(self):
-        """
-        Reload and re-apply configuration settings
+        """Reload and re-apply configuration settings
 
         Existing child processes are sent a SIGHUP signal
         and will exit after completing existing requests.
@@ -466,8 +460,7 @@ class Server(object):
                              socket_timeout=self.client_socket_timeout)
 
     def configure_socket(self, old_conf=None, has_changed=None):
-        """
-        Ensure a socket exists and is appropriately configured.
+        """Ensure a socket exists and is appropriately configured.
 
         This function is called on start up, and can also be
         called in the event of a configuration reload.
@@ -536,8 +529,7 @@ class Server(object):
 
 
 class APIMapper(routes.Mapper):
-    """
-    Handle route matching when url is '' because routes.Mapper returns
+    """Handle route matching when url is '' because routes.Mapper returns
     an error in this case.
     """
 
@@ -557,13 +549,11 @@ class RejectMethodController(object):
 
 
 class Router(object):
-    """
-    WSGI middleware that maps incoming requests to WSGI apps.
+    """WSGI middleware that maps incoming requests to WSGI apps.
     """
 
     def __init__(self, mapper):
-        """
-        Create a router for the given routes.Mapper.
+        """Create a router for the given routes.Mapper.
 
         Each route in `mapper` must specify a 'controller', which is a
         WSGI app to call.  You'll probably want to specify an 'action' as
@@ -596,8 +586,7 @@ class Router(object):
 
     @webob.dec.wsgify
     def __call__(self, req):
-        """
-        Route the incoming request to a controller based on self.map.
+        """Route the incoming request to a controller based on self.map.
         If no match, return either a 404(Not Found) or 501(Not Implemented).
         """
         return self._router
@@ -605,8 +594,7 @@ class Router(object):
     @staticmethod
     @webob.dec.wsgify
     def _dispatch(req):
-        """
-        Called by self._router after matching the incoming request to a route
+        """Called by self._router after matching the incoming request to a route
         and putting the information into req.environ.  Either returns 404,
         501, or the routed WSGI app's response.
         """
@@ -658,8 +646,7 @@ class JSONRequestDeserializer(object):
                                          'gzip', 'identity'])
 
     def has_body(self, request):
-        """
-        Returns whether a Webob.Request object will possess an entity body.
+        """Returns whether a Webob.Request object will possess an entity body.
 
         :param request:  Webob.Request object
         """
@@ -735,8 +722,7 @@ def translate_exception(req, e):
 
 
 class Resource(object):
-    """
-    WSGI app that handles (de)serialization and controller dispatch.
+    """WSGI app that handles (de)serialization and controller dispatch.
 
     Reads routing information supplied by RoutesMiddleware and calls
     the requested action method upon its deserializer, controller,

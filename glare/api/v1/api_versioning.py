@@ -133,7 +133,7 @@ class VersionedResource(object):
 
             :returns: Returns the result of the method called
             :raises: VersionNotFoundForAPIMethod if there is no method which
-            matches the name and version constraints
+             matches the name and version constraints
             """
             # versioning is used in 3 classes: request deserializer and
             # controller have request as first argument

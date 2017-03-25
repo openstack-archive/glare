@@ -103,8 +103,7 @@ class BaseTestCase(testtools.TestCase):
         return dst_file_name
 
     def config(self, **kw):
-        """
-        Override some configuration values.
+        """Override some configuration values.
 
         The keyword arguments are the names of configuration options to
         override and their values.

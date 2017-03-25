@@ -27,15 +27,14 @@ MAX_NUMERIC_PRERELEASE_LENGTH = 6
 
 class DBVersion(object):
     def __init__(self, components_long, prerelease, build):
-        """
-        Creates a DBVersion object out of 3 component fields. This initializer
+        """Creates a DBVersion object out of 3 component fields. This initializer
         is supposed to be called from SQLAlchemy if 3 database columns are
         mapped to this composite field.
 
         :param components_long: a 64-bit long value, containing numeric
-        components of the version
+         components of the version
         :param prerelease: a prerelease label of the version, optionally
-        preformatted with leading zeroes in numeric-only parts of the label
+         preformatted with leading zeroes in numeric-only parts of the label
         :param build: a build label of the version
         """
         version_string = '%s.%s.%s' % _long_to_components(components_long)
@@ -80,8 +79,7 @@ def _check_limit(value):
 
 
 def _version_to_long(version):
-    """
-    Converts the numeric part of the semver version into the 64-bit long value
+    """Converts the numeric part of the semver version into the 64-bit long value
     using the following logic:
 
     * major version is stored in first 16 bits of the value

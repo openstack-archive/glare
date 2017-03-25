@@ -91,8 +91,7 @@ def get_session(autocommit=True, expire_on_commit=False):
 
 
 def clear_db_env():
-    """
-    Unset global configuration variables for database.
+    """Unset global configuration variables for database.
     """
     global _FACADE
     _FACADE = None
@@ -113,8 +112,7 @@ def delete(context, artifact_id, session):
 
 
 def _drop_protected_attrs(model_class, values):
-    """
-    Removed protected attributes from values dictionary using the models
+    """Removed protected attributes from values dictionary using the models
     __protected_attributes__ field.
     """
     for attr in model_class.__protected_attributes__:
@@ -193,15 +191,16 @@ def get(context, artifact_id, session):
 def get_all(context, session, filters=None, marker=None, limit=None,
             sort=None, latest=False):
     """List all visible artifacts
+
     :param filters: dict of filter keys and values.
     :param marker: artifact id after which to start page
     :param limit: maximum number of artifacts to return
     :param sort: a tuple (key, dir, type) where key is an attribute by
-    which results should be sorted, dir is a direction: 'asc' or 'desc',
-    and type is type of the attribute: 'bool', 'string', 'numeric' or 'int' or
-    None if attribute is base.
+     which results should be sorted, dir is a direction: 'asc' or 'desc',
+     and type is type of the attribute: 'bool', 'string', 'numeric' or 'int' or
+     None if attribute is base.
     :param latest: flag that indicates, that only artifacts with highest
-    versions should be returned in output
+     versions should be returned in output
     """
     artifacts = _get_all(
         context, session, filters, marker, limit, sort, latest)
