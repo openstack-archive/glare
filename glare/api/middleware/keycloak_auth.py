@@ -72,11 +72,18 @@ class KeycloakAuthMiddleware(base_middleware.Middleware):
             info = self.mcclient.get(access_token)
 
         if info is None:
-            resp = requests.get(
-                user_info_endpoint,
-                headers={"Authorization": "Bearer %s" % access_token},
-                verify=not CONF.keycloak_oidc.insecure
-            )
+            try:
+                resp = requests.get(
+                    user_info_endpoint,
+                    headers={"Authorization": "Bearer %s" % access_token},
+                    verify=not CONF.keycloak_oidc.insecure
+                )
+            except requests.ConnectionError:
+                msg = _("Can't connect to keycloak server with address '%s'."
+                        ) % CONF.keycloak_oidc.auth_url
+                LOG.error(msg)
+                raise exception.GlareException(message=msg)
+
             if resp.status_code == 401:
                 raise exception.Unauthorized(message=resp.text)
             elif resp.status_code >= 400:
