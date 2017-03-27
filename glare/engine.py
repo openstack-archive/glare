@@ -246,6 +246,7 @@ class Engine(object):
         af = cls._get_artifact(context, type_name, artifact_id)
         action_name = 'artifact:set_location'
         policy.authorize(action_name, af.to_dict(), context)
+        af.validate_upload_allowed(af, field_name, blob_key)
 
         blob_name = "%s[%s]" % (field_name, blob_key)\
             if blob_key else field_name
@@ -264,8 +265,7 @@ class Engine(object):
             blob["sha1"] = blob_meta.pop("sha1", None)
             blob["sha256"] = blob_meta.pop("sha256", None)
         modified_af = cls.update_blob(
-            context, type_name, artifact_id, blob, field_name, blob_key,
-            validate=True)
+            context, type_name, artifact_id, blob, field_name, blob_key)
         LOG.info(_LI("External location %(location)s has been created "
                      "successfully for artifact %(artifact)s blob %(blob)s"),
                  {'location': location, 'artifact': af.id,
@@ -292,6 +292,7 @@ class Engine(object):
         af = cls._get_artifact(context, type_name, artifact_id)
         action_name = "artifact:upload"
         policy.authorize(action_name, af.to_dict(), context)
+        af.validate_upload_allowed(af, field_name, blob_key)
 
         try:
             # call upload hook
@@ -308,8 +309,7 @@ class Engine(object):
                     'status': glare_fields.BlobFieldType.SAVING,
                     'external': False, 'content_type': content_type}
             modified_af = cls.update_blob(
-                context, type_name, artifact_id, blob, field_name, blob_key,
-                validate=True)
+                context, type_name, artifact_id, blob, field_name, blob_key)
 
             if blob_key is None:
                 blob_id = getattr(modified_af, field_name)['id']
@@ -355,7 +355,7 @@ class Engine(object):
 
     @classmethod
     def update_blob(cls, context, type_name, artifact_id, blob,
-                    field_name, blob_key=None, validate=False):
+                    field_name, blob_key=None):
         """Update blob info.
 
         :param context: user context
@@ -365,15 +365,12 @@ class Engine(object):
         :param field_name: name of blob or blob dict field
         :param blob_key: if field_name is blob dict it specifies key
          in this dict
-        :param validate: enable validation of possibility of blob uploading
 
         :return: dict representation of updated artifact
         """
         lock_key = "%s:%s" % (type_name, artifact_id)
         with base.BaseArtifact.lock_engine.acquire(context, lock_key):
             af = cls._get_artifact(context, type_name, artifact_id)
-            if validate:
-                af.validate_upload_allowed(af, field_name, blob_key)
             if blob_key is None:
                 setattr(af, field_name, blob)
                 return af.update_blob(
