@@ -132,22 +132,28 @@ class TrustedAuthMiddleware(BaseContextMiddleware):
             msg = _("Auth token must be provided")
             raise exception.Unauthorized(msg)
         try:
-            user, tenant, roles = auth_token.split(':')
+            user, tenant, roles = auth_token.strip().split(':', 3)
         except ValueError:
             msg = _("Wrong auth token format. It must be 'user:tenant:roles'")
             raise exception.Unauthorized(msg)
-        if tenant.lower() == 'none':
+        if not tenant:
+            msg = _("Tenant must be specified in auth token. "
+                    "Format of the token is 'user:tenant:roles'")
+            raise exception.Unauthorized(msg)
+        elif tenant.lower() == 'none':
             tenant = None
+            req.headers['X-Identity-Status'] = 'Nope'
+        else:
+            req.headers['X-Identity-Status'] = 'Confirmed'
+
         req.headers['X-User-Id'] = user
         req.headers['X-Tenant-Id'] = tenant
-        req.headers['X-Roles'] = roles.split(',')
-        req.headers['X-Identity-Status'] = 'Confirmed'
-        kwargs = {
-            'user': user,
-            'tenant': tenant,
-            'roles': roles,
-            'is_admin': 'admin' in req.headers['X-Roles'],
-            'auth_token': auth_token,
-        }
+        req.headers['X-Roles'] = roles
 
-        req.context = context.RequestContext(**kwargs)
+        if req.headers.get('X-Identity-Status') == 'Confirmed':
+            kwargs = {'request_id': req.environ.get(request_id.ENV_REQUEST_ID)}
+            req.context = RequestContext.from_environ(req.environ, **kwargs)
+        elif CONF.allow_anonymous_access:
+            req.context = RequestContext(read_only=True, is_admin=False)
+        else:
+            raise exception.Unauthorized()
