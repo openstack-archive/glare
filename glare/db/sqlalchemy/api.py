@@ -18,6 +18,7 @@ import uuid
 
 from oslo_config import cfg
 from oslo_db import exception as db_exception
+from oslo_db import options
 from oslo_db.sqlalchemy import session
 from oslo_log import log as os_logging
 from oslo_utils import timeutils
@@ -44,6 +45,7 @@ LOG = os_logging.getLogger(__name__)
 
 CONF = cfg.CONF
 CONF.import_group("profiler", "glare.common.wsgi")
+options.set_defaults(CONF)
 
 
 BASE_ARTIFACT_PROPERTIES = ('id', 'visibility', 'created_at', 'updated_at',
@@ -88,6 +90,16 @@ def get_session(autocommit=True, expire_on_commit=False):
     facade = _create_facade_lazily()
     return facade.get_session(autocommit=autocommit,
                               expire_on_commit=expire_on_commit)
+
+
+def setup_db():
+    engine = get_engine()
+    models.register_models(engine)
+
+
+def drop_db():
+    engine = get_engine()
+    models.unregister_models(engine)
 
 
 def clear_db_env():
