@@ -984,7 +984,7 @@ class TestArtifactOps(base.TestArtifact):
         new_af = self.create_artifact(
             data={"name": "test_af", "version": "0.0.1",
                   "tags": ["tag1", "tag2"]})
-        self.assertEqual(["tag1", "tag2"], new_af["tags"])
+        self.assertEqual({"tag1", "tag2"}, set(new_af["tags"]))
         # check that we cannot create artifact with visibility
         self.create_artifact(data={"name": "test_af", "version": "0.0.2",
                                    "visibility": "private"}, status=400)
@@ -1826,8 +1826,7 @@ class TestUpdate(base.TestArtifact):
                  'path': '/dict_of_str/',
                  'value': 'val1'}]
         url = '/sample_artifact/%s' % art1['id']
-        result = self.patch(url=url, data=data)
-        self.assertEqual('val1', result['dict_of_str'][''])
+        self.patch(url=url, data=data, status=400)
 
         # replace element
         data = [{'op': 'replace',

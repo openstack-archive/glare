@@ -215,11 +215,16 @@ class MinNumberSize(SizeValidator):
 
 
 class Unique(Validator):
+    def __init__(self, convert_to_set=False):
+        self.convert_to_set = convert_to_set
+
     def get_allowed_types(self):
         return glare_fields.List,
 
     def validate(self, value):
-        if len(value) != len(set(value)):
+        if self.convert_to_set:
+            value[:] = list(set(value))
+        elif len(value) != len(set(value)):
             raise ValueError(_("List items %s must be unique.") % value)
 
     def to_jsonschema(self):
@@ -298,6 +303,18 @@ class MaxDictKeyLen(SizeValidator):
                 raise ValueError(_("Dict key length %(key)s must be less than "
                                    "%(size)s.") % {'key': key,
                                                    'size': self.size})
+
+
+class MinDictKeyLen(SizeValidator):
+    def get_allowed_types(self):
+        return glare_fields.Dict,
+
+    def validate(self, value):
+        for key in value:
+            if len(str(key)) < self.size:
+                raise ValueError(_("Dict key length %(key)s must be bigger "
+                                   "than %(size)s.") % {'key': key,
+                                                        'size': self.size})
 
 
 class ElementValidator(Validator):
