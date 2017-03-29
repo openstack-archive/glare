@@ -278,51 +278,6 @@ using Representational State Transfer concept (ReST).
                         "null"
                     ]
                 },
-                "icon": {
-                    "additionalProperties": false,
-                    "description": "Artifact icon.",
-                    "filter_ops": [],
-                    "glareType": "Blob",
-                    "properties": {
-                        "md5": {
-                            "type": ["string", "null"]
-                        },
-                        "sha1": {
-                            "type": ["string", "null"]
-                        },
-                        "sha256": {
-                            "type": ["string", "null"]
-                        },
-                        "content_type": {
-                            "type": "string"
-                        },
-                        "external": {
-                            "type": "boolean"
-                        },
-                        "size": {
-                            "type": ["number",
-                                "null"
-                            ]
-                        },
-                        "status": {
-                            "enum": ["saving",
-                                "active",
-                                "pending_delete"
-                            ],
-                            "type": "string"
-                        }
-                    },
-                    "required": ["size",
-                        "md5", "sha1", "sha256",
-                        "external",
-                        "status",
-                        "content_type"
-                    ],
-                    "required_on_activate": false,
-                    "type": ["object",
-                        "null"
-                    ]
-                },
                 "id": {
                     "description": "Artifact UUID.",
                     "filter_ops": ["eq",
@@ -335,32 +290,6 @@ using Representational State Transfer concept (ReST).
                     "readOnly": true,
                     "sortable": true,
                     "type": "string"
-                },
-                "license": {
-                    "description": "Artifact license type.",
-                    "filter_ops": ["eq",
-                        "neq",
-                        "in"
-                    ],
-                    "glareType": "String",
-                    "maxLength": 255,
-                    "required_on_activate": false,
-                    "type": ["string",
-                        "null"
-                    ]
-                },
-                "license_url": {
-                    "description": "URL to artifact license.",
-                    "filter_ops": ["eq",
-                        "neq",
-                        "in"
-                    ],
-                    "glareType": "String",
-                    "maxLength": 255,
-                    "required_on_activate": false,
-                    "type": ["string",
-                        "null"
-                    ]
                 },
                 "metadata": {
                     "additionalProperties": {
@@ -403,49 +332,6 @@ using Representational State Transfer concept (ReST).
                     "sortable": true,
                     "type": "string"
                 },
-                "provided_by": {
-                    "additionalProperties": false,
-                    "description": "Info about artifact authors.",
-                    "filter_ops": ["eq",
-                        "neq",
-                        "in"
-                    ],
-                    "glareType": "StringDict",
-                    "maxProperties": 255,
-                    "properties": {
-                        "company": {
-                            "type": "string"
-                        },
-                        "href": {
-                            "type": "string"
-                        },
-                        "name": {
-                            "type": "string"
-                        }
-                    },
-                    "required_on_activate": false,
-                    "type": ["object",
-                        "null"
-                    ]
-                },
-                "release": {
-                    "default": [],
-                    "description": "Target OpenStack release for artifact. It is usually the same when artifact was uploaded.",
-                    "filter_ops": ["eq",
-                        "neq",
-                        "in"
-                    ],
-                    "glareType": "StringList",
-                    "items": {
-                        "type": "string"
-                    },
-                    "maxItems": 255,
-                    "required_on_activate": false,
-                    "type": ["array",
-                        "null"
-                    ],
-                    "unique": true
-                },
                 "status": {
                     "default": "drafted",
                     "description": "Artifact status.",
@@ -461,23 +347,6 @@ using Representational State Transfer concept (ReST).
                     "glareType": "String",
                     "sortable": true,
                     "type": "string"
-                },
-                "supported_by": {
-                    "additionalProperties": {
-                        "type": "string"
-                    },
-                    "description": "Info about persons who responsible for artifact support",
-                    "filter_ops": ["eq",
-                        "neq",
-                        "in"
-                    ],
-                    "glareType": "StringDict",
-                    "maxProperties": 255,
-                    "required": ["name"],
-                    "required_on_activate": false,
-                    "type": ["object",
-                        "null"
-                    ]
                 },
                 "tags": {
                     "default": [],
@@ -736,7 +605,7 @@ enabled artifact types.
        .. code-block:: javascript
 
             {
-                "<type_name>": [<JSON_list_with_artifacts'_data>],
+                "<type_name>": [<JSON_list_with_artifacts_data>],
                 "first": "/artifacts/<type_name>",
                 "schema": "/schemas/<type_name>",
                 "next": "<url_to_the_next_page>"
