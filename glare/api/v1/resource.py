@@ -158,6 +158,10 @@ class RequestDeserializer(api_versioning.VersionedResource,
                 raise exc.BadRequest(msg)
         else:
             data = req.body_file
+
+        if self.is_valid_encoding(req) and self.is_valid_method(req):
+            req.is_body_readable = True
+
         return {'data': data, 'content_type': content_type}
 
 
@@ -346,8 +350,8 @@ class ResponseSerializer(api_versioning.VersionedResource,
     def _prepare_json_response(response, result,
                                content_type='application/json'):
         body = json.dumps(result, ensure_ascii=False)
-        response.unicode_body = six.text_type(body)
-        response.content_type = content_type
+        response.text = six.text_type(body)
+        response.content_type = content_type + '; charset=UTF-8'
 
     def list_type_schemas(self, response, type_schemas):
         self._prepare_json_response(response,

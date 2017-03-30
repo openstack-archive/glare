@@ -645,19 +645,29 @@ class JSONRequestDeserializer(object):
     valid_transfer_encoding = frozenset(['chunked', 'compress', 'deflate',
                                          'gzip', 'identity'])
 
+    httpverb_may_have_body = frozenset({'POST', 'PUT', 'PATCH'})
+
+    @classmethod
+    def is_valid_encoding(cls, request):
+        request_encoding = request.headers.get('transfer-encoding', '').lower()
+        return request_encoding in cls.valid_transfer_encoding
+
+    @classmethod
+    def is_valid_method(cls, request):
+        return request.method.upper() in cls.httpverb_may_have_body
+
     def has_body(self, request):
         """Returns whether a Webob.Request object will possess an entity body.
 
         :param request:  Webob.Request object
         """
-        request_encoding = request.headers.get('transfer-encoding', '').lower()
-        is_valid_encoding = request_encoding in self.valid_transfer_encoding
-        if is_valid_encoding and request.is_body_readable:
-            return True
-        elif request.content_length is not None and request.content_length > 0:
+
+        if self.is_valid_encoding(request) and self.is_valid_method(request):
+            request.is_body_readable = True
             return True
 
-        return False
+        if request.content_length is not None and request.content_length > 0:
+            return True
 
     @staticmethod
     def _sanitizer(obj):
