@@ -803,7 +803,7 @@ class BaseArtifact(base.VersionedObject):
         :param af_id: id of modified artifact
         :param field_name: blob or blob dict field name
         :param values: updated blob values
-        :return updated artifact definition in Glare
+        :return: updated artifact definition in Glare
         """
         af_upd = cls.db_api.update_blob(context, af_id, {field_name: values})
         return cls._init_artifact(context, af_upd)
