@@ -20,9 +20,9 @@ CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 notifier_opts = [
-    cfg.StrOpt('glare_publisher_id', default="artifact.localhost",
-               help='Default publisher_id for outgoing '
-                    'Glare notifications.')]
+    cfg.HostAddressOpt('glare_publisher_id', default="artifact.localhost",
+                       help='Default publisher_id for outgoing '
+                            'Glare notifications.')]
 CONF.register_opts(notifier_opts)
 
 
