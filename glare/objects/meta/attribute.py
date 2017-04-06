@@ -55,13 +55,16 @@ class Attribute(object):
         self.required_on_activate = required_on_activate
         self.system = system
         self.sortable = sortable
-        if field_class is not glare_fields.BlobField:
-            self.filter_ops = filter_ops or [FILTER_EQ, FILTER_NEQ, FILTER_IN]
-        else:
+
+        if field_class is glare_fields.BlobField:
             if filter_ops:
                 raise exc.IncorrectArtifactType(
                     "Cannot specify filters for blobs")
             self.filter_ops = []
+        else:
+            self.filter_ops = [FILTER_EQ, FILTER_NEQ, FILTER_IN] \
+                if filter_ops is None else filter_ops
+
         self.field_attrs = ['mutable', 'required_on_activate', 'system',
                             'sortable', 'filter_ops', 'description']
         self.description = description

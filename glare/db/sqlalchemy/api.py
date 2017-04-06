@@ -462,7 +462,12 @@ def _do_query_filters(filters):
         else:
             conds = [models.ArtifactProperty.name == field_name]
             if key_name is not None:
-                conds.extend([models.ArtifactProperty.key_name == key_name])
+                if op == 'eq' or value is not None:
+                    conds.extend(
+                        [models.ArtifactProperty.key_name == key_name])
+                elif op == 'in':
+                    conds.extend(
+                        [models.ArtifactProperty.key_name.in_(key_name)])
             if value is not None:
                 if op != 'in':
                     fn = op_mappings[op]

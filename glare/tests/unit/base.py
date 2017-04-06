@@ -144,3 +144,13 @@ class BaseTestCase(testtools.TestCase):
         patch = jsonpatch.JsonPatch(values)
         tuple(map(patch._get_operation, patch.patch))
         return patch
+
+    def update_with_values(self, values, exc_class=None,
+                           art_type='sample_artifact', art_id=None):
+        patch = self.generate_json_patch(values)
+        art_id = art_id or self.sample_artifact['id']
+        if exc_class is None:
+            return self.controller.update(self.req, art_type, art_id, patch)
+        else:
+            self.assertRaises(exc_class, self.controller.update, self.req,
+                              art_type, art_id, patch)

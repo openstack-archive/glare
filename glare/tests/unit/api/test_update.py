@@ -26,16 +26,6 @@ class TestArtifactUpdate(base.BaseTestArtifactAPI):
         self.sample_artifact = self.controller.create(
             self.req, 'sample_artifact', values)
 
-    def update_with_values(self, values, exc_class=None,
-                           art_type='sample_artifact'):
-        patch = self.generate_json_patch(values)
-        if exc_class is None:
-            return self.controller.update(
-                self.req, art_type, self.sample_artifact['id'], patch)
-        else:
-            self.assertRaises(exc_class, self.controller.update, self.req,
-                              art_type, self.sample_artifact['id'], patch)
-
     def test_basic_update(self):
         changes = [
             {'op': 'replace', 'path': '/name', 'value': 'new_name'},

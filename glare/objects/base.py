@@ -87,17 +87,20 @@ class BaseArtifact(base.VersionedObject):
                         nullable=False, sortable=True,
                         description="Artifact status."),
         'created_at': Field(fields.DateTimeField, system=True,
-                            filter_ops=attribute.FILTERS,
+                            filter_ops=[attribute.FILTER_GT,
+                                        attribute.FILTER_LT],
                             nullable=False, sortable=True,
                             description="Datetime when artifact has "
                                         "been created."),
         'updated_at': Field(fields.DateTimeField, system=True,
-                            filter_ops=attribute.FILTERS,
+                            filter_ops=[attribute.FILTER_GT,
+                                        attribute.FILTER_LT],
                             nullable=False, sortable=True,
                             description="Datetime when artifact has "
                                         "been updated last time."),
         'activated_at': Field(fields.DateTimeField, system=True,
-                              filter_ops=attribute.FILTERS,
+                              filter_ops=[attribute.FILTER_GT,
+                                          attribute.FILTER_LT],
                               required_on_activate=False, sortable=True,
                               description="Datetime when artifact has became "
                                           "active."),
@@ -119,6 +122,7 @@ class BaseArtifact(base.VersionedObject):
         'metadata': DictField(fields.String, required_on_activate=False,
                               element_validators=[validators.MinStrLen(1)],
                               filter_ops=(attribute.FILTER_EQ,
+                                          attribute.FILTER_IN,
                                           attribute.FILTER_NEQ),
                               description="Key-value dict with useful "
                                           "information about an artifact."),
@@ -472,7 +476,7 @@ class BaseArtifact(base.VersionedObject):
     def _validate_filter_ops(cls, filter_name, op):
         field = cls.fields.get(filter_name)
         if op not in field.filter_ops:
-            msg = (_("Unsupported filter type '%s(key)'."
+            msg = (_("Unsupported filter type '%(key)s'."
                      "The following filters are supported "
                      "%(filters)s") % {
                 'key': op, 'filters': str(field.filter_ops)})
@@ -503,7 +507,7 @@ class BaseArtifact(base.VersionedObject):
 
             key_name = None
             if '.' in filter_name:
-                filter_name, key_name = filter_name.split('.', 1)
+                filter_name, key_name = filter_name.rsplit('.', 1)
                 if not isinstance(cls.fields.get(filter_name),
                                   glare_fields.Dict):
                     msg = _("Field %s is not Dict") % filter_name
@@ -514,16 +518,25 @@ class BaseArtifact(base.VersionedObject):
                 raise exception.BadRequest(msg)
 
             field_type = cls.fields.get(filter_name)
-
             if isinstance(field_type, glare_fields.List) or isinstance(
                     field_type, glare_fields.Dict) and key_name is not None:
                 field_type = field_type.element_type
+
             try:
+                op, val = utils.split_filter_op(filter_value)
                 if isinstance(field_type, glare_fields.Dict):
-                    new_filters.append((
-                        filter_name, filter_value, None, None, None))
+                    if op not in ['eq', 'in']:
+                        msg = (_("Unsupported filter type '%s'. The following "
+                                 "filters are supported: eq, in") % op)
+                        raise exception.BadRequest(message=msg)
+                    if op == 'in':
+                        new_filters.append((
+                            filter_name, utils.split_filter_value_for_quotes(
+                                val), op, None, None))
+                    else:
+                        new_filters.append((
+                            filter_name, val, op, None, None))
                 else:
-                    op, val = utils.split_filter_op(filter_value)
                     cls._validate_filter_ops(filter_name, op)
                     if op == 'in':
                         value = [field_type.coerce(cls(), filter_name, value)

@@ -367,7 +367,7 @@ class TestList(base.TestArtifact):
         result = sort_results(self.get(url=url)['sample_artifact'])
         self.assertEqual([], result)
 
-        for op in ['in', 'gt', 'gte', 'lt', 'lte', 'neq']:
+        for op in ['gt', 'gte', 'lt', 'lte', 'neq']:
             url = '/sample_artifact?dict_of_str.pr3=%s:val3' % op
             self.get(url=url, status=400)
 
