@@ -210,18 +210,21 @@ class TestList(base.TestArtifact):
         result = sort_results(self.get(url=url)['sample_artifact'])
         self.assertEqual(art_list[5:], result)
 
-        # visibility=neq:private
         url = '/sample_artifact?visibility=neq:private'
-        self.get(url=url, status=400)
+        result = sort_results(self.get(url=url)['sample_artifact'])
+        self.assertEqual(art_list[5:], result)
 
         url = '/sample_artifact?visibility=neq:public'
-        self.get(url=url, status=400)
+        result = sort_results(self.get(url=url)['sample_artifact'])
+        self.assertEqual(art_list[:5], result)
 
         url = '/sample_artifact?visibility=blabla'
-        self.get(url=url, status=200)
+        result = sort_results(self.get(url=url)['sample_artifact'])
+        self.assertEqual([], result)
 
         url = '/sample_artifact?visibility=neq:blabla'
-        self.get(url=url, status=400)
+        result = sort_results(self.get(url=url)['sample_artifact'])
+        self.assertEqual(art_list, result)
 
         url = '/sample_artifact?name=eq:name0&name=name1&tags=tag1'
         result = self.get(url=url)['sample_artifact']
@@ -367,7 +370,7 @@ class TestList(base.TestArtifact):
         result = sort_results(self.get(url=url)['sample_artifact'])
         self.assertEqual([], result)
 
-        for op in ['gt', 'gte', 'lt', 'lte', 'neq']:
+        for op in ['gt', 'gte', 'lt', 'lte']:
             url = '/sample_artifact?dict_of_str.pr3=%s:val3' % op
             self.get(url=url, status=400)
 

@@ -87,20 +87,14 @@ class BaseArtifact(base.VersionedObject):
                         nullable=False, sortable=True,
                         description="Artifact status."),
         'created_at': Field(fields.DateTimeField, system=True,
-                            filter_ops=[attribute.FILTER_GT,
-                                        attribute.FILTER_LT],
                             nullable=False, sortable=True,
                             description="Datetime when artifact has "
                                         "been created."),
         'updated_at': Field(fields.DateTimeField, system=True,
-                            filter_ops=[attribute.FILTER_GT,
-                                        attribute.FILTER_LT],
                             nullable=False, sortable=True,
                             description="Datetime when artifact has "
                                         "been updated last time."),
         'activated_at': Field(fields.DateTimeField, system=True,
-                              filter_ops=[attribute.FILTER_GT,
-                                          attribute.FILTER_LT],
                               required_on_activate=False, sortable=True,
                               description="Datetime when artifact has became "
                                           "active."),
@@ -121,20 +115,15 @@ class BaseArtifact(base.VersionedObject):
                           description="List of tags added to Artifact."),
         'metadata': DictField(fields.String, required_on_activate=False,
                               element_validators=[validators.MinStrLen(1)],
-                              filter_ops=(attribute.FILTER_EQ,
-                                          attribute.FILTER_IN,
-                                          attribute.FILTER_NEQ),
                               description="Key-value dict with useful "
                                           "information about an artifact."),
         'visibility': Field(fields.StringField, default='private',
-                            nullable=False, filter_ops=(attribute.FILTER_EQ,),
-                            sortable=True,
+                            nullable=False, sortable=True,
                             description="Artifact visibility that defines "
                                         "if artifact can be available to "
                                         "other users."),
         'version': Field(glare_fields.VersionField, required_on_activate=False,
-                         default=DEFAULT_ARTIFACT_VERSION,
-                         filter_ops=attribute.FILTERS, nullable=False,
+                         default=DEFAULT_ARTIFACT_VERSION, nullable=False,
                          sortable=True, validators=[validators.Version()],
                          description="Artifact version(semver).")
     }
@@ -769,8 +758,7 @@ class BaseArtifact(base.VersionedObject):
         :param field_name: blob or blob dict field name
         :return: maximum blob size in bytes
         """
-        return getattr(cls.fields[field_name], 'max_blob_size',
-                       attribute.BlobAttribute.DEFAULT_MAX_BLOB_SIZE)
+        return getattr(cls.fields[field_name], 'max_blob_size')
 
     @classmethod
     def validate_upload_allowed(cls, af, field_name, blob_key=None):

@@ -24,6 +24,8 @@ FILTERS = (
     FILTER_EQ, FILTER_NEQ, FILTER_IN, FILTER_GT, FILTER_GTE, FILTER_LT,
     FILTER_LTE) = ('eq', 'neq', 'in', 'gt', 'gte', 'lt', 'lte')
 
+DEFAULT_MAX_BLOB_SIZE = 10485760
+
 
 class Attribute(object):
     def __init__(self, field_class, mutable=False, required_on_activate=True,
@@ -56,18 +58,40 @@ class Attribute(object):
         self.system = system
         self.sortable = sortable
 
-        if field_class is glare_fields.BlobField:
-            if filter_ops:
-                raise exc.IncorrectArtifactType(
-                    "Cannot specify filters for blobs")
-            self.filter_ops = []
+        try:
+            default_ops = self.get_allowed_filter_ops(self.element_type)
+        except AttributeError:
+            default_ops = self.get_allowed_filter_ops(field_class)
+
+        if filter_ops is None:
+            self.filter_ops = default_ops
         else:
-            self.filter_ops = [FILTER_EQ, FILTER_NEQ, FILTER_IN] \
-                if filter_ops is None else filter_ops
+            for op in filter_ops:
+                if op not in default_ops:
+                    raise exc.IncorrectArtifactType(
+                        "Incorrect filter operator '%s'. "
+                        "Only %s are allowed" % (op, ', '.join(default_ops)))
+            self.filter_ops = filter_ops
 
         self.field_attrs = ['mutable', 'required_on_activate', 'system',
                             'sortable', 'filter_ops', 'description']
         self.description = description
+
+    @staticmethod
+    def get_allowed_filter_ops(field):
+        if field in (fields.StringField, fields.String,
+                     glare_fields.ArtifactStatusField):
+            return [FILTER_EQ, FILTER_NEQ, FILTER_IN]
+        elif field in (fields.IntegerField, fields.Integer, fields.FloatField,
+                       fields.Float, glare_fields.VersionField):
+            return FILTERS
+        elif field in (fields.FlexibleBooleanField, fields.FlexibleBoolean,
+                       glare_fields.Link, glare_fields.LinkFieldType):
+            return [FILTER_EQ, FILTER_NEQ]
+        elif field in (glare_fields.BlobField, glare_fields.BlobFieldType):
+            return []
+        elif field is fields.DateTimeField:
+            return [FILTER_LT, FILTER_GT]
 
     def get_default_validators(self):
         default = []
@@ -125,19 +149,20 @@ class Attribute(object):
 class CompoundAttribute(Attribute):
     def __init__(self, field_class, element_type, element_validators=None,
                  **kwargs):
-        super(CompoundAttribute, self).__init__(field_class, **kwargs)
-        if self.sortable:
-            raise exc.IncorrectArtifactType("'sortable' must be False for "
-                                            "compound type.")
-
         if element_type is None:
             raise exc.IncorrectArtifactType("'element_type' must be set for "
                                             "compound type.")
         self.element_type = element_type
+
+        super(CompoundAttribute, self).__init__(field_class, **kwargs)
+
         self.vo_attrs.append('element_type')
         self.field_attrs.append('element_type')
 
         self.element_validators = element_validators or []
+        if self.sortable:
+            raise exc.IncorrectArtifactType("'sortable' must be False for "
+                                            "compound type.")
 
     def get_element_validators(self):
         default_vals = []
@@ -178,8 +203,6 @@ class DictAttribute(CompoundAttribute):
         super(DictAttribute, self).__init__(glare_fields.Dict, element_type,
                                             **kwargs)
         self.validators.append(val_lib.MaxDictSize(max_size))
-        if element_type is glare_fields.BlobFieldType:
-            self.filter_ops = []
 
     def get_default_validators(self):
         default_vals = []
@@ -192,8 +215,6 @@ class DictAttribute(CompoundAttribute):
 
 
 class BlobAttribute(Attribute):
-    DEFAULT_MAX_BLOB_SIZE = 10485760
-
     def __init__(self, max_blob_size=DEFAULT_MAX_BLOB_SIZE, **kwargs):
         super(BlobAttribute, self).__init__(
             field_class=glare_fields.BlobField, **kwargs)
@@ -202,8 +223,7 @@ class BlobAttribute(Attribute):
 
 
 class BlobDictAttribute(DictAttribute):
-    def __init__(self, max_blob_size=BlobAttribute.DEFAULT_MAX_BLOB_SIZE,
-                 **kwargs):
+    def __init__(self, max_blob_size=DEFAULT_MAX_BLOB_SIZE, **kwargs):
         super(BlobDictAttribute, self).__init__(
             element_type=glare_fields.BlobFieldType, **kwargs)
         self.max_blob_size = int(max_blob_size)
