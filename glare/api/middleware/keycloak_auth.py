@@ -29,7 +29,13 @@ LOG = logging.getLogger(__name__)
 keycloak_oidc_opts = [
     cfg.StrOpt(
         'auth_url',
+        default='http://127.0.0.1:8080/auth',
         help='Keycloak base url (e.g. https://my.keycloak:8443/auth)'
+    ),
+    cfg.StrOpt(
+        'user_info_endpoint_url',
+        default='/realms/%s/protocol/openid-connect/userinfo',
+        help='Endpoint against which authorization will be performed'
     ),
     cfg.StrOpt(
         'insecure',
@@ -62,19 +68,15 @@ class KeycloakAuthMiddleware(base_middleware.Middleware):
         self.mcclient = memcache.Client(mcserv_url) if mcserv_url else None
 
     def authenticate(self, access_token, realm_name):
-        user_info_endpoint = (
-            "%s/realms/%s/protocol/openid-connect/userinfo" %
-            (CONF.keycloak_oidc.auth_url, realm_name)
-        )
-
         info = None
         if self.mcclient:
             info = self.mcclient.get(access_token)
 
-        if info is None:
+        if info is None and CONF.keycloak_oidc.user_info_endpoint_url:
             try:
                 resp = requests.get(
-                    user_info_endpoint,
+                    CONF.keycloak_oidc.auth_url +
+                    (CONF.keycloak_oidc.user_info_endpoint_url % realm_name),
                     headers={"Authorization": "Bearer %s" % access_token},
                     verify=not CONF.keycloak_oidc.insecure
                 )

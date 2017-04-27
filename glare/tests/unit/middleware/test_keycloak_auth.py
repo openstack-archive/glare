@@ -50,6 +50,7 @@ class TestKeycloakAuthMiddleware(base.BaseTestCase):
         self.assertEqual("Confirmed", req.headers["X-Identity-Status"])
         self.assertEqual("my_realm", req.headers["X-Project-Id"])
         self.assertEqual("role1,role2", req.headers["X-Roles"])
+        self.assertEqual(1, mocked_get.call_count)
 
     def test_no_auth_token(self):
         req = webob.Request.blank("/")
@@ -116,3 +117,22 @@ class TestKeycloakAuthMiddleware(base.BaseTestCase):
         with mock.patch("jwt.decode", return_value=token):
             self.assertRaises(
                 exc.GlareException, self._build_middleware(), req)
+
+    @mock.patch("requests.get")
+    def test_userinfo_endpoint_empty(self, mocked_get):
+        self.config(user_info_endpoint_url='',
+                    group='keycloak_oidc')
+        token = {
+            "iss": "http://localhost:8080/auth/realms/my_realm",
+            "realm_access": {
+                "roles": ["role1", "role2"]
+            }
+        }
+
+        req = self._build_request(token)
+        with mock.patch("jwt.decode", return_value=token):
+            self._build_middleware()(req)
+        self.assertEqual("Confirmed", req.headers["X-Identity-Status"])
+        self.assertEqual("my_realm", req.headers["X-Project-Id"])
+        self.assertEqual("role1,role2", req.headers["X-Roles"])
+        self.assertEqual(0, mocked_get.call_count)
