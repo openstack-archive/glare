@@ -92,6 +92,20 @@ class TestKeycloakAuthMiddleware(base.BaseTestCase):
             self.assertRaises(exc.Unauthorized, self._build_middleware(), req)
 
     @mock.patch("requests.get")
+    def test_server_forbidden(self, mocked_get):
+        token = {
+            "iss": "http://localhost:8080/auth/realms/my_realm",
+        }
+        mocked_resp = mock.Mock()
+        mocked_resp.status_code = 403
+        mocked_resp.json.return_value = '{"user": "mike"}'
+        mocked_get.return_value = mocked_resp
+
+        req = self._build_request(token)
+        with mock.patch("jwt.decode", return_value=token):
+            self.assertRaises(exc.Forbidden, self._build_middleware(), req)
+
+    @mock.patch("requests.get")
     def test_server_exception(self, mocked_get):
         token = {
             "iss": "http://localhost:8080/auth/realms/my_realm",
