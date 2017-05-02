@@ -25,6 +25,7 @@ from oslo_policy import policy as os_policy
 import testtools
 
 from glare.api.middleware import context
+from glare.api.v1 import resource
 from glare.common import config
 from glare.common import policy
 from glare.common import wsgi
@@ -154,3 +155,11 @@ class BaseTestCase(testtools.TestCase):
         else:
             self.assertRaises(exc_class, self.controller.update, self.req,
                               art_type, art_id, patch)
+
+
+class BaseTestArtifactAPI(BaseTestCase):
+
+    def setUp(self):
+        super(BaseTestArtifactAPI, self).setUp()
+        self.controller = resource.ArtifactsController()
+        self.req = self.get_fake_request(user=self.users['user1'])

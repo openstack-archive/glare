@@ -13,7 +13,7 @@
 #    limitations under the License.
 
 from glare.common import exception as exc
-from glare.tests.unit.api import base
+from glare.tests.unit import base
 
 
 class TestArtifactCreate(base.BaseTestArtifactAPI):
