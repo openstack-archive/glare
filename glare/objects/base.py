@@ -35,9 +35,9 @@ from glare.objects.meta import fields as glare_fields
 from glare.objects.meta import validators
 
 artifact_opts = [
-    cfg.BoolOpt('delayed_blob_delete', default=False,
-                help=_("Defines if blob must be deleted immediately "
-                       "or just marked as pending delete so it can be cleaned "
+    cfg.BoolOpt('delayed_delete', default=False,
+                help=_("Defines if artifact must be deleted immediately "
+                       "or just marked as deleted so it can be cleaned "
                        "by some other tool in the background.")),
 ]
 
@@ -585,7 +585,7 @@ class BaseArtifact(base.VersionedObject):
                     try:
                         store_api.delete_blob(blob['url'], context=context)
                     except exception.NotFound:
-                        # data has already been remover
+                        # data has already been removed
                         pass
                 cls.db_api.update_blob(context, af.id, {name: None})
             elif cls.is_blob_dict(name):
@@ -628,7 +628,7 @@ class BaseArtifact(base.VersionedObject):
                   {'artifact': af.id, 'blobs': blobs})
         cls.db_api.update_blob(context, af.id, blobs)
 
-        if not CONF.delayed_blob_delete:
+        if not CONF.delayed_delete:
             if blobs:
                 # delete blobs one by one
                 cls._delete_blobs(blobs, context, af)

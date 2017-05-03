@@ -81,7 +81,7 @@ class BaseTestCase(testtools.TestCase):
         self.config(
             custom_artifact_types_modules=['glare.tests.sample_artifact'],
             enabled_artifact_types=[
-                'sample_artifact', 'images', 'heat_templates',
+                'sample_artifact:database', 'images', 'heat_templates',
                 'heat_environments', 'murano_packages', 'tosca_templates']
         )
 
