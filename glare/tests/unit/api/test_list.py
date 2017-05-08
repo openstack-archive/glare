@@ -143,6 +143,84 @@ class TestArtifactList(base.BaseTestArtifactAPI):
         self. assertRaises(exc.BadRequest, self.controller.list,
                            self.req, 'sample_artifact', filters)
 
+    def test_list_version(self):
+        values = [
+            {'name': 'art1', 'version': '0.0.1'},
+            {'name': 'art1', 'version': '1-beta'},
+            {'name': 'art1', 'version': '1'},
+            {'name': 'art1', 'version': '10-rc1'},
+            {'name': 'art1', 'version': '10'},
+            {'name': 'art2', 'version': '1'},
+            {'name': 'art3', 'version': '1'},
+        ]
+
+        arts = [self.controller.create(self.req, 'sample_artifact', val)
+                for val in values]
+
+        # List all artifacts
+        res = self.controller.list(self.req, 'sample_artifact', [])
+        self.assertEqual(7, len(res['artifacts']))
+        self.assertEqual('sample_artifact', res['type_name'])
+
+        # Get latest artifacts
+        res = self.controller.list(self.req, 'sample_artifact', [],
+                                   latest=True)
+        self.assertEqual(3, len(res['artifacts']))
+        for i in (4, 5, 6):
+            self.assertIn(arts[i], res['artifacts'])
+
+        # Various version filters
+        filters = [('version', '1')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(3, len(res['artifacts']))
+        for i in (2, 5, 6):
+            self.assertIn(arts[i], res['artifacts'])
+
+        filters = [('version', '1'), ('name', 'art1')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(1, len(res['artifacts']))
+        self.assertIn(arts[2], res['artifacts'])
+
+        filters = [('version', 'gt:1')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(2, len(res['artifacts']))
+        for i in (3, 4):
+            self.assertIn(arts[i], res['artifacts'])
+
+        filters = [('version', 'gte:1')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(5, len(res['artifacts']))
+        for i in (2, 3, 4, 5, 6):
+            self.assertIn(arts[i], res['artifacts'])
+
+        filters = [('version', 'lte:1')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(5, len(res['artifacts']))
+        for i in (0, 1, 2, 5, 6):
+            self.assertIn(arts[i], res['artifacts'])
+
+        filters = [('version', 'gt:1-beta'), ('version', 'lt:10')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(4, len(res['artifacts']))
+        for i in (2, 3, 5, 6):
+            self.assertIn(arts[i], res['artifacts'])
+
+        filters = [('version', 'in:0.0.1,10-rc1')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(2, len(res['artifacts']))
+        for i in (0, 3):
+            self.assertIn(arts[i], res['artifacts'])
+
+        # Filter by invalid version
+        filters = [('version', 'INVALID_VERSION')]
+        self. assertRaises(exc.BadRequest, self.controller.list,
+                           self.req, 'sample_artifact', filters)
+
+        # Filter by invalid operator
+        filters = [('version', 'INVALID_op:1')]
+        self. assertRaises(exc.BadRequest, self.controller.list,
+                           self.req, 'sample_artifact', filters)
+
     def test_list_compound_fields(self):
         # Create a bunch of artifacts for list testing
         values = [
