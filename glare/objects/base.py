@@ -119,6 +119,8 @@ class BaseArtifact(base.VersionedObject):
                                           "information about an artifact."),
         'visibility': Field(fields.StringField, default='private',
                             nullable=False, sortable=True,
+                            validators=[validators.AllowedValues(
+                                ['private', 'public'])],
                             description="Artifact visibility that defines "
                                         "if artifact can be available to "
                                         "other users."),

@@ -88,7 +88,7 @@ class AllowedValues(Validator):
                              ', '.join(self.allowed_values))
 
     def to_jsonschema(self):
-        return {'enum': self.allowed_values + [None]}
+        return {'enum': self.allowed_values}
 
 
 class Version(Validator):
