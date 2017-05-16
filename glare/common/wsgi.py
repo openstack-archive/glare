@@ -668,6 +668,7 @@ class JSONRequestDeserializer(object):
 
         if request.content_length is not None and request.content_length > 0:
             return True
+        return False
 
     @staticmethod
     def _sanitizer(obj):
