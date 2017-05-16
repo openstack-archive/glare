@@ -289,19 +289,11 @@ class Engine(object):
          in this dictionary
         :return: dict representation of updated artifact
         """
+        path = None
         af = cls._get_artifact(context, type_name, artifact_id)
         action_name = "artifact:upload"
         policy.authorize(action_name, af.to_dict(), context)
         af.validate_upload_allowed(af, field_name, blob_key)
-
-        try:
-            # call upload hook
-            lock_key = "%s:%s" % (type_name, artifact_id)
-            with base.BaseArtifact.lock_engine.acquire(context, lock_key):
-                fd, path = af.validate_upload(context, af, field_name, fd)
-        except Exception as e:
-            raise exception.BadRequest(message=str(e))
-
         try:
             # create an an empty blob instance in db with 'saving' status
             blob = {'url': None, 'size': None, 'md5': None, 'sha1': None,
@@ -318,6 +310,12 @@ class Engine(object):
 
             # try to perform blob uploading to storage backend
             try:
+                try:
+                    # call upload hook first
+                    fd, path = af.validate_upload(context, af, field_name, fd)
+                except Exception as e:
+                    raise exception.BadRequest(message=str(e))
+
                 default_store = af.get_default_store(
                     context, af, field_name, blob_key)
                 location_uri, size, checksums = store_api.save_blob_to_store(
@@ -329,7 +327,7 @@ class Engine(object):
                     if blob_key is None:
                         af.update_blob(context, af.id, field_name, None)
                     else:
-                        blob_dict_attr = modified_af[field_name]
+                        blob_dict_attr = getattr(modified_af, field_name)
                         del blob_dict_attr[blob_key]
                         af.update_blob(context, af.id,
                                        field_name, blob_dict_attr)
