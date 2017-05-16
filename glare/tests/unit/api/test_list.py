@@ -120,28 +120,28 @@ class TestArtifactList(base.BaseTestArtifactAPI):
 
         # Filter by description leads to BadRequest
         filters = [('description', 'ggg')]
-        self. assertRaises(exc.BadRequest, self.controller.list,
-                           self.req, 'sample_artifact', filters)
+        self.assertRaises(exc.BadRequest, self.controller.list,
+                          self.req, 'sample_artifact', filters)
 
         # Filter by created_at with eq operator leads to BadRequest
         filters = [('created_at', arts[4]['created_at'])]
-        self. assertRaises(exc.BadRequest, self.controller.list,
-                           self.req, 'sample_artifact', filters)
+        self.assertRaises(exc.BadRequest, self.controller.list,
+                          self.req, 'sample_artifact', filters)
 
         # Filter by updated_at with eq operator leads to BadRequest
         filters = [('updated_at', arts[4]['updated_at'])]
-        self. assertRaises(exc.BadRequest, self.controller.list,
-                           self.req, 'sample_artifact', filters)
+        self.assertRaises(exc.BadRequest, self.controller.list,
+                          self.req, 'sample_artifact', filters)
 
         # Filter by activated_at with eq operator leads to BadRequest
         filters = [('activated_at', arts[4]['activated_at'])]
-        self. assertRaises(exc.BadRequest, self.controller.list,
-                           self.req, 'sample_artifact', filters)
+        self.assertRaises(exc.BadRequest, self.controller.list,
+                          self.req, 'sample_artifact', filters)
 
         # Filter by any blob leads to BadRequest
         filters = [('blob', 'something')]
-        self. assertRaises(exc.BadRequest, self.controller.list,
-                           self.req, 'sample_artifact', filters)
+        self.assertRaises(exc.BadRequest, self.controller.list,
+                          self.req, 'sample_artifact', filters)
 
     def test_list_compound_fields(self):
         # Create a bunch of artifacts for list testing
@@ -201,8 +201,8 @@ class TestArtifactList(base.BaseTestArtifactAPI):
 
         # Filter with invalid operator leads to BadRequest
         filters = [('dict_of_str', 'invalid:a')]
-        self. assertRaises(exc.BadRequest, self.controller.list,
-                           self.req, 'sample_artifact', filters)
+        self.assertRaises(exc.BadRequest, self.controller.list,
+                          self.req, 'sample_artifact', filters)
 
         # Return artifacts that contain key one in 'dict_of_int'
         filters = [('dict_of_int', 'eq:one')]
@@ -235,8 +235,8 @@ class TestArtifactList(base.BaseTestArtifactAPI):
 
         # Filter with invalid operator leads to BadRequest
         filters = [('dict_of_str.a', 'invalid:aa')]
-        self. assertRaises(exc.BadRequest, self.controller.list,
-                           self.req, 'sample_artifact', filters)
+        self.assertRaises(exc.BadRequest, self.controller.list,
+                          self.req, 'sample_artifact', filters)
 
         # Return artifacts that contain value '2' in 'dict_of_int[two]'
         filters = [('dict_of_int.two', 'eq:2')]
@@ -254,8 +254,8 @@ class TestArtifactList(base.BaseTestArtifactAPI):
 
         # Filter with invalid operator leads to BadRequest
         filters = [('dict_of_int.one', 'invalid:1')]
-        self. assertRaises(exc.BadRequest, self.controller.list,
-                           self.req, 'sample_artifact', filters)
+        self.assertRaises(exc.BadRequest, self.controller.list,
+                          self.req, 'sample_artifact', filters)
 
         # Return artifacts that contain key 'aa' in 'list_of_str'
         filters = [('list_of_str', 'eq:aa')]
