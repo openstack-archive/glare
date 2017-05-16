@@ -117,8 +117,8 @@ ASYNC_EVENTLET_THREAD_POOL_LIST = []
 
 def get_num_workers():
     """Return the configured number of workers."""
-    if not CONF.workers:
-        # None implies the number of CPUs
+    if CONF.workers == 0:
+        # 0 implies the number of CPUs
         return processutils.get_worker_count()
     return CONF.workers
 
@@ -283,7 +283,7 @@ class Server(object):
 
     def start_wsgi(self):
         workers = get_num_workers()
-        if workers == 0:
+        if workers is None:
             # Useful for profiling, test, debug etc.
             self.pool = self.create_pool()
             self.pool.spawn_n(self._single_run, self.application, self.sock)
