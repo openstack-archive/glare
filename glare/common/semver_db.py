@@ -73,9 +73,9 @@ def parse(version_string):
 
 def _check_limit(value):
     if value > MAX_COMPONENT_LENGTH:
-        reason = _("Version component is too "
-                   "large (%d max)") % MAX_COMPONENT_LENGTH
-        raise exception.InvalidVersion(reason=reason)
+        message = _("Version component is too "
+                    "large (%d max)") % MAX_COMPONENT_LENGTH
+        raise exception.InvalidVersion(message)
 
 
 def _version_to_long(version):
@@ -120,10 +120,10 @@ def _add_leading_zeroes_to_prerelease(label_tuple):
     for component in label_tuple:
         if component.isdigit():
             if len(component) > MAX_NUMERIC_PRERELEASE_LENGTH:
-                reason = _("Prerelease numeric component is too large "
-                           "(%d characters "
-                           "max)") % MAX_NUMERIC_PRERELEASE_LENGTH
-                raise exception.InvalidVersion(reason=reason)
+                message = _("Prerelease numeric component is too large "
+                            "(%d characters "
+                            "max)") % MAX_NUMERIC_PRERELEASE_LENGTH
+                raise exception.InvalidVersion(message)
             res.append(component.rjust(MAX_NUMERIC_PRERELEASE_LENGTH, '0'))
         else:
             res.append(component)
