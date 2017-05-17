@@ -219,12 +219,10 @@ class TestList(base.TestArtifact):
         self.assertEqual(art_list[:5], result)
 
         url = '/sample_artifact?visibility=blabla'
-        result = sort_results(self.get(url=url)['sample_artifact'])
-        self.assertEqual([], result)
+        self.get(url=url, status=400)
 
         url = '/sample_artifact?visibility=neq:blabla'
-        result = sort_results(self.get(url=url)['sample_artifact'])
-        self.assertEqual(art_list, result)
+        self.get(url=url, status=400)
 
         url = '/sample_artifact?name=eq:name0&name=name1&tags=tag1'
         result = self.get(url=url)['sample_artifact']
