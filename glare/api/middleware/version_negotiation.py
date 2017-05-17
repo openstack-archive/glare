@@ -31,21 +31,6 @@ from glare.common import exception
 LOG = logging.getLogger(__name__)
 
 
-def get_version_from_accept(accept_header, vnd_mime_type):
-        """Try to parse accept header to extract api version.
-
-        :param accept_header: accept header
-        :return: version string in the request or None if not specified
-        """
-        accept = str(accept_header)
-        if accept.startswith(vnd_mime_type):
-            LOG.debug("Using media-type versioning")
-            token_loc = len(vnd_mime_type)
-            return accept[token_loc:]
-        else:
-            return None
-
-
 class GlareVersionNegotiationFilter(base_middleware.ConfigurableMiddleware):
     """Middleware that defines API version in request and redirects it
     to correct Router.
@@ -53,6 +38,20 @@ class GlareVersionNegotiationFilter(base_middleware.ConfigurableMiddleware):
 
     SERVICE_TYPE = 'artifact'
     MIME_TYPE = 'application/vnd.openstack.artifacts-'
+
+    @staticmethod
+    def get_version_from_accept(accept_header):
+        """Try to parse accept header to extract api version.
+
+        :param accept_header: accept header
+        :return: version string in the request or None if not specified
+        """
+        accept = str(accept_header)
+        if accept.startswith(GlareVersionNegotiationFilter.MIME_TYPE):
+            LOG.debug("Using media-type versioning")
+            return accept[len(GlareVersionNegotiationFilter.MIME_TYPE):]
+
+        return None
 
     @staticmethod
     def process_request(req):
@@ -73,8 +72,8 @@ class GlareVersionNegotiationFilter(base_middleware.ConfigurableMiddleware):
                 req, is_multi=is_multi)
 
         # determine api version from request
-        req_version = get_version_from_accept(
-            req.accept, GlareVersionNegotiationFilter.MIME_TYPE)
+        req_version = GlareVersionNegotiationFilter.get_version_from_accept(
+            req.accept)
         if req_version is None:
             # determine api version from microversion header
             LOG.debug("Determine version from microversion header.")
