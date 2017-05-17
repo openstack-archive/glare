@@ -52,6 +52,10 @@ class InvalidStatusTransition(BadRequest):
     message = _("Transition status from %(orig)s to %(new)s was not valid")
 
 
+class InvalidVersion(GlareException):
+    message = _("Provided version is invalid")
+
+
 class NotAcceptable(GlareException):
     message = _("Not acceptable")
 
