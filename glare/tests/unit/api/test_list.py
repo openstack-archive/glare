@@ -14,6 +14,7 @@
 
 from glare.common import exception as exc
 from glare.tests.unit import base
+import random
 
 
 class TestArtifactList(base.BaseTestArtifactAPI):
@@ -289,3 +290,29 @@ class TestArtifactList(base.BaseTestArtifactAPI):
         self.assertEqual(4, len(res['artifacts']))
         for i in (0, 1, 2, 3):
             self.assertIn(arts[i], res['artifacts'])
+
+    def test_list_and_sort_fields(self):
+        amount = 7
+        # Create a bunch of artifacts for list sorting tests
+        names = random.sample(["art%d" % i for i in range(amount)], amount)
+        floats = random.sample([0.01 * i for i in range(amount)], amount)
+        ints = random.sample([1 * i for i in range(amount)], amount)
+        strings = random.sample(["str%d" % i for i in range(amount)], amount)
+        versions = random.sample(["0.%d" % i for i in range(amount)], amount)
+        for i in range(amount):
+            val = {'name': names[i], 'float1': floats[i], 'int1': ints[i],
+                   'str1': strings[i], 'version': versions[i]}
+            self.controller.create(self.req, 'sample_artifact', val)
+
+        fields = ['name', 'id', 'visibility', 'version', 'float1', 'int1',
+                  'str1']
+
+        for sort_name in fields:
+            for sort_dir in ['asc', 'desc']:
+                arts = self.controller.list(
+                    self.req, 'sample_artifact', [],
+                    sort=[(sort_name, sort_dir)])['artifacts']
+                self.assertEqual(amount, len(arts))
+                sorted_arts = sorted(arts, key=lambda x: x[sort_name],
+                                     reverse=sort_dir == 'desc')
+                self.assertEqual(sorted_arts, arts)
