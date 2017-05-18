@@ -144,6 +144,63 @@ class TestArtifactList(base.BaseTestArtifactAPI):
         self.assertRaises(exc.BadRequest, self.controller.list,
                           self.req, 'sample_artifact', filters)
 
+    def test_list_marker_and_limit(self):
+        # Create artifacts
+        art_list = [
+            self.controller.create(
+                self.req, 'sample_artifact',
+                {'name': 'name%s' % i,
+                 'version': '1.0',
+                 'tags': ['tag%s' % i],
+                 'int1': 1024 + i,
+                 'float1': 123.456,
+                 'str1': 'bugaga',
+                 'bool1': True})
+            for i in range(5)]
+
+        # sort with 'next_marker'
+        sort = [('int1', 'asc'), ('name', 'desc')]
+        result = self.controller.list(self.req, 'sample_artifact', filters=(),
+                                      limit=1, sort=sort)
+        self.assertEqual([art_list[0]], result['artifacts'])
+        marker = result['next_marker']
+        result = self.controller.list(self.req, 'sample_artifact', filters=(),
+                                      marker=marker, limit=1, sort=sort)
+        self.assertEqual([art_list[1]], result['artifacts'])
+
+        # sort by custom marker
+        sort = [('int1', 'asc')]
+        marker = art_list[1]['id']
+        result = self.controller.list(self.req, 'sample_artifact', filters=(),
+                                      marker=marker, sort=sort)
+        self.assertEqual(art_list[2:], result['artifacts'])
+
+        sort = [('int1', 'desc')]
+        result = self.controller.list(self.req, 'sample_artifact', filters=(),
+                                      marker=marker, sort=sort)
+        self.assertEqual(art_list[:1], result['artifacts'])
+
+        sort = [('float1', 'asc'), ('name', 'desc')]
+        result = self.controller.list(self.req, 'sample_artifact', filters=(),
+                                      marker=marker, sort=sort)
+        self.assertEqual([art_list[0]], result['artifacts'])
+
+        # paginate by name in desc order with limit 2
+        sort = [('name', 'desc')]
+        result = self.controller.list(self.req, 'sample_artifact', filters=(),
+                                      limit=2, sort=sort)
+        self.assertEqual(art_list[4:2:-1], result['artifacts'])
+
+        marker = result['next_marker']
+        result = self.controller.list(self.req, 'sample_artifact', filters=(),
+                                      marker=marker, limit=2, sort=sort)
+        self.assertEqual(art_list[2:0:-1], result['artifacts'])
+
+        marker = result['next_marker']
+        result = self.controller.list(self.req, 'sample_artifact', filters=(),
+                                      marker=marker, limit=2, sort=sort)
+        self.assertEqual([art_list[0]], result['artifacts'])
+
     def test_list_compound_fields(self):
         # Create a bunch of artifacts for list testing
         values = [
