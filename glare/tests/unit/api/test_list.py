@@ -13,7 +13,9 @@
 #    limitations under the License.
 
 from glare.common import exception as exc
+from glare.tests import sample_artifact
 from glare.tests.unit import base
+
 import random
 
 
@@ -373,3 +375,17 @@ class TestArtifactList(base.BaseTestArtifactAPI):
                 sorted_arts = sorted(arts, key=lambda x: x[sort_name],
                                      reverse=sort_dir == 'desc')
                 self.assertEqual(sorted_arts, arts)
+
+    def test_list_and_sort_negative(self):
+        # sort by non-existent field
+        self.assertRaises(exc.BadRequest, self.controller.list,
+                          self.req, 'sample_artifact',
+                          [], sort=[("NONEXISTENT", "desc")])
+        # sort with non-sortable fields
+        for name, field in sample_artifact.SampleArtifact.fields.items():
+            for sort_dir in ['asc', 'desc']:
+                if not field.sortable:
+                    self.assertRaises(
+                        exc.BadRequest, self.controller.list,
+                        self.req, 'sample_artifact',
+                        [], sort=[(field, sort_dir)])
