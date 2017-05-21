@@ -457,8 +457,12 @@ def _do_query_filters(filters):
             else:
                 if field_name == 'version':
                     value = [semver_db.parse(val) for val in value]
-                basic_conds.append(
-                    [getattr(models.Artifact, field_name).in_(value)])
+                    basic_conds.append(
+                        [or_(*[
+                            models.Artifact.version == ver for ver in value])])
+                else:
+                    basic_conds.append(
+                        [getattr(models.Artifact, field_name).in_(value)])
         else:
             conds = [models.ArtifactProperty.name == field_name]
             if key_name is not None:
