@@ -323,11 +323,11 @@ def no_4byte_params(f):
                 else:
                     if _is_match(key):
                         msg = _("Property names can't contain 4 byte unicode.")
-                        raise exception.Invalid(msg)
+                        raise exception.BadRequest(msg)
                     if _is_match(value):
                         msg = (_("%s can't contain 4 byte unicode characters.")
                                % key.title())
-                        raise exception.Invalid(msg)
+                        raise exception.BadRequest(msg)
 
         for data_dict in [arg for arg in args if isinstance(arg, dict)]:
             _check_dict(data_dict)
@@ -335,7 +335,7 @@ def no_4byte_params(f):
         for arg in args:
             if _is_match(arg):
                 msg = _("Param values can't contain 4 byte unicode.")
-                raise exception.Invalid(msg)
+                raise exception.BadRequest(msg)
         # check kwargs as well, as params are passed as kwargs via
         # registry calls
         _check_dict(kwargs)

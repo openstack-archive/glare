@@ -134,6 +134,7 @@ def _drop_protected_attrs(model_class, values):
 
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
+@utils.no_4byte_params
 def _create_or_update(context, artifact_id, values, session):
     with session.begin():
         _drop_protected_attrs(models.Artifact, values)

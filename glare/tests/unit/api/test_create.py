@@ -184,3 +184,13 @@ class TestArtifactCreate(base.BaseTestArtifactAPI):
         self.assertEqual(description, res['description'])
         self.assertEqual(metadata, res['metadata'])
         self.assertEqual(tags, res['tags'])
+
+    def test_create_artifact_4_byte_unicode(self):
+        bad_name = u'A name with forbidden symbol \U0001f62a'
+        values = {
+            'name': bad_name,
+            'version': '1.0',
+        }
+
+        self.assertRaises(exc.BadRequest, self.controller.create,
+                          self.req, 'images', values)
