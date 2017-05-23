@@ -107,7 +107,7 @@ class Server(object):
         paste_conf_filepath = conf_filepath.replace(".conf", "-paste.ini")
         if os.path.exists(paste_conf_filepath):
             os.unlink(paste_conf_filepath)
-        utils.safe_mkdirs(conf_dir)
+        test_utils.safe_mkdirs(conf_dir)
 
         def override_conf(filepath, overridden):
             with open(filepath, 'w') as conf_file:
@@ -199,7 +199,7 @@ class Server(object):
         """Create database if required for this server"""
         if self.needs_database:
             conf_dir = os.path.join(self.test_dir, 'etc')
-            utils.safe_mkdirs(conf_dir)
+            test_utils.safe_mkdirs(conf_dir)
             conf_filepath = os.path.join(conf_dir, 'glare.conf')
 
             glare_db_env = 'GLARE_DB_TEST_SQLITE_FILE'
@@ -356,7 +356,7 @@ class FunctionalTest(test_utils.BaseTestCase):
         self.tracecmd = tracecmd_osmap.get(platform.system())
 
         conf_dir = os.path.join(self.test_dir, 'etc')
-        utils.safe_mkdirs(conf_dir)
+        test_utils.safe_mkdirs(conf_dir)
         self.copy_data_file('policy.json', conf_dir)
         self.policy_file = os.path.join(conf_dir, 'policy.json')
 
