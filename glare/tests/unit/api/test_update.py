@@ -12,6 +12,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+from uuid import uuid4
+
 from glare.common import exception as exc
 from glare.tests.unit import base
 
@@ -361,3 +363,116 @@ class TestArtifactUpdate(base.BaseTestArtifactAPI):
         ]
 
         self.assertRaises(exc.BadRequest, self.update_with_values, changes)
+
+
+class TestLinks(TestArtifactUpdate):
+
+    """Test Glare artifact link management."""
+
+    def setUp(self):
+        super(TestLinks, self).setUp()
+        values = {'name': 'sss', 'version': '1.0'}
+        self.dependency = self.controller.create(
+            self.req, 'sample_artifact', values)
+
+    def test_manage_links(self):
+        dep_url = "/artifacts/sample_artifact/%s" % self.dependency['id']
+
+        # set valid link
+        patch = [{"op": "replace", "path": "/link1", "value": dep_url}]
+        res = self.update_with_values(patch)
+        self.assertEqual(res['link1'], dep_url)
+
+        # remove link from artifact
+        patch = [{"op": "replace", "path": "/link1", "value": None}]
+        res = self.update_with_values(patch)
+        self.assertIsNone(res['link1'])
+
+        # set invalid external link
+        dep_url = "http://example.com/artifacts/" \
+                  "sample_artifact/%s" % self.dependency['id']
+        patch = [{"op": "replace", "path": "/link1", "value": dep_url}]
+        self.assertRaises(exc.BadRequest, self.update_with_values, patch)
+
+        # try to set invalid link
+        patch = [{"op": "replace", "path": "/link1", "value": "Invalid"}]
+        self.assertRaises(exc.BadRequest, self.update_with_values, patch)
+
+        # try to set link to non-existing artifact
+        non_exiting_url = "/artifacts/sample_artifact/%s" % uuid4()
+        patch = [{"op": "replace",
+                  "path": "/link1",
+                  "value": non_exiting_url}]
+        self.assertRaises(exc.BadRequest, self.update_with_values, patch)
+
+    def test_manage_dict_of_links(self):
+        dep_url = "/artifacts/sample_artifact/%s" % self.dependency['id']
+
+        # set valid link
+        patch = [{"op": "add",
+                  "path": "/dict_of_links/link1",
+                  "value": dep_url}]
+        res = self.update_with_values(patch)
+        self.assertEqual(res['dict_of_links']['link1'], dep_url)
+
+        # remove link from artifact
+        patch = [{"op": "remove",
+                  "path": "/dict_of_links/link1"}]
+        res = self.update_with_values(patch)
+        self.assertNotIn('link1', res['dict_of_links'])
+
+        # set invalid external link
+        dep_url = "http://example.com/artifacts/" \
+                  "sample_artifact/%s" % self.dependency['id']
+        patch = [{"op": "replace",
+                  "path": "/dict_of_links/link1", "value": dep_url}]
+        self.assertRaises(exc.BadRequest, self.update_with_values, patch)
+
+        # try to set invalid link
+        patch = [{"op": "replace",
+                  "path": "/dict_of_links/link1",
+                  "value": "Invalid"}]
+        self.assertRaises(exc.BadRequest, self.update_with_values, patch)
+
+        # try to set link to non-existing artifact
+        non_exiting_url = "/artifacts/sample_artifact/%s" % uuid4()
+        patch = [{"op": "replace",
+                  "path": "/dict_of_links/link1",
+                  "value": non_exiting_url}]
+        self.assertRaises(exc.BadRequest, self.update_with_values, patch)
+
+    def test_manage_list_of_links(self):
+        dep_url = "/artifacts/sample_artifact/%s" % self.dependency['id']
+
+        # set valid link
+        patch = [{"op": "add",
+                  "path": "/list_of_links/-",
+                  "value": dep_url}]
+        res = self.update_with_values(patch)
+        self.assertEqual(res['list_of_links'][0], dep_url)
+
+        # remove link from artifact
+        patch = [{"op": "remove",
+                  "path": "/list_of_links/0"}]
+        res = self.update_with_values(patch)
+        self.assertEqual(0, len(res['list_of_links']))
+
+        # set invalid external link
+        dep_url = "http://example.com/artifacts/" \
+                  "sample_artifact/%s" % self.dependency['id']
+        patch = [{"op": "replace",
+                  "path": "/list_of_links/-", "value": dep_url}]
+        self.assertRaises(exc.BadRequest, self.update_with_values, patch)
+
+        # try to set invalid link
+        patch = [{"op": "add",
+                  "path": "/list_of_links/-",
+                  "value": "Invalid"}]
+        self.assertRaises(exc.BadRequest, self.update_with_values, patch)
+
+        # try to set link to non-existing artifact
+        non_exiting_url = "/artifacts/sample_artifact/%s" % uuid4()
+        patch = [{"op": "add",
+                  "path": "/list_of_links/-",
+                  "value": non_exiting_url}]
+        self.assertRaises(exc.BadRequest, self.update_with_values, patch)
