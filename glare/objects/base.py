@@ -608,6 +608,7 @@ class BaseArtifact(base.VersionedObject):
         :param context: user context
         :param af: artifact object targeted for deletion
         """
+        cls.validate_deletion(context, af)
         # marking artifact as deleted
         cls.db_api.update(context, af.id, {'status': cls.STATUS.DELETED})
 
@@ -824,6 +825,11 @@ class BaseArtifact(base.VersionedObject):
     @classmethod
     def validate_publish(cls, context, af):
         """Validation hook for publishing."""
+        pass
+
+    @classmethod
+    def validate_deletion(cls, context, af):
+        """Validation hook for deletion."""
         pass
 
     @classmethod
