@@ -29,7 +29,6 @@ from oslo_log import log
 import testtools
 
 from glare.common import config
-from glare.common import utils
 
 CONF = cfg.CONF
 try:
@@ -61,7 +60,7 @@ class BaseTestCase(testtools.TestCase):
         self.addCleanup(CONF.reset)
         self.test_dir = self.useFixture(fixtures.TempDir()).path
         self.conf_dir = os.path.join(self.test_dir, 'etc')
-        utils.safe_mkdirs(self.conf_dir)
+        safe_mkdirs(self.conf_dir)
         self.set_policy()
 
     def set_policy(self):
@@ -367,3 +366,11 @@ def xattr_writes_supported(path):
             os.unlink(fake_filepath)
 
     return result
+
+
+def safe_mkdirs(path):
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise

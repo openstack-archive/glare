@@ -19,16 +19,12 @@
 """
 System-level utilities and helper functions.
 """
-
-import errno
-
 try:
     from eventlet import sleep
 except ImportError:
     from time import sleep
 from eventlet.green import socket
 
-import functools
 import hashlib
 import os
 import re
@@ -42,7 +38,6 @@ from oslo_utils import excutils
 from oslo_utils import timeutils
 from oslo_versionedobjects import fields
 import six
-from webob import exc
 
 from glare.common import exception
 from glare.i18n import _, _LE, _LW
@@ -232,49 +227,6 @@ class LimitingReader(object):
         if self.bytes_read > self.limit:
             raise exception.RequestEntityTooLarge()
         return res
-
-
-def safe_mkdirs(path):
-    try:
-        os.makedirs(path)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
-
-
-def mutating(func):
-    """Decorator to enforce read-only logic"""
-    @functools.wraps(func)
-    def wrapped(self, req, *args, **kwargs):
-        if req.context.read_only:
-            msg = "Read-only access"
-            LOG.debug(msg)
-            raise exc.HTTPForbidden(msg, request=req,
-                                    content_type="text/plain")
-        return func(self, req, *args, **kwargs)
-    return wrapped
-
-
-def setup_remote_pydev_debug(host, port):
-    error_msg = _LE('Error setting up the debug environment. Verify that the'
-                    ' option pydev_worker_debug_host is pointing to a valid '
-                    'hostname or IP on which a pydev server is listening on'
-                    ' the port indicated by pydev_worker_debug_port.')
-
-    try:
-        try:
-            from pydev import pydevd
-        except ImportError:
-            import pydevd
-
-        pydevd.settrace(host,
-                        port=port,
-                        stdoutToServer=True,
-                        stderrToServer=True)
-        return True
-    except Exception:
-        with excutils.save_and_reraise_exception():
-            LOG.exception(error_msg)
 
 
 def validate_key_cert(key_file, cert_file):
@@ -483,33 +435,6 @@ def split_filter_value_for_quotes(value):
         | ,                # if we have only comma take empty string
         ''', re.VERBOSE)
     return [val[0] or val[1] for val in re.findall(tmp, value)]
-
-
-def evaluate_filter_op(value, operator, threshold):
-    """Evaluate a comparison operator.
-    Designed for use on a comparative-filtering query field.
-
-    :param value: evaluated against the operator, as left side of expression
-    :param operator: any supported filter operation
-    :param threshold: to compare value against, as right side of expression
-    :raises: InvalidFilterOperatorValue if an unknown operator is provided
-    :return: boolean result of applied comparison
-    """
-    if operator == 'gt':
-        return value > threshold
-    elif operator == 'gte':
-        return value >= threshold
-    elif operator == 'lt':
-        return value < threshold
-    elif operator == 'lte':
-        return value <= threshold
-    elif operator == 'neq':
-        return value != threshold
-    elif operator == 'eq':
-        return value == threshold
-
-    msg = _("Unable to filter on a unknown operator.")
-    raise exception.InvalidFilterOperatorValue(msg)
 
 
 class error_handler(object):
