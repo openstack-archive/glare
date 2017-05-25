@@ -52,6 +52,14 @@ class InvalidStatusTransition(BadRequest):
     message = _("Transition status from %(orig)s to %(new)s was not valid")
 
 
+class InvalidParameterValue(BadRequest):
+    message = _("Invalid filter value ")
+
+
+class InvalidFilterOperatorValue(BadRequest):
+    msg = _("Unable to filter by unknown operator.")
+
+
 class InvalidVersion(GlareException):
     message = _("Provided version is invalid")
 
