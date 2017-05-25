@@ -62,7 +62,7 @@ def save_blob_to_store(blob_id, blob, context, max_size,
     """Save file to specified store type and return location info to the user.
 
     :param store_type: type of the store, None means save to default store.
-    :param blob_id: id of artifact
+    :param blob_id: id of blob
     :param blob: blob file iterator
     :param context: user context
     :param verifier:signature verified
@@ -74,12 +74,16 @@ def save_blob_to_store(blob_id, blob, context, max_size,
                     % store_type)
         store_type = None
     data = utils.LimitingReader(utils.CooperativeReader(blob), max_size)
+
+    LOG.debug('Start uploading blob %s.' % blob_id)
     if store_type == 'database':
         location = database_api.add_to_backend(
             blob_id, data, context, verifier)
     else:
         (location, size, md5checksum, __) = backend.add_to_backend(
             CONF, blob_id, data, 0, store_type, context, verifier)
+    LOG.debug('Uploading of blob %s is finished.' % blob_id)
+
     checksums = {"md5": data.md5.hexdigest(),
                  "sha1": data.sha1.hexdigest(),
                  "sha256": data.sha256.hexdigest()}
