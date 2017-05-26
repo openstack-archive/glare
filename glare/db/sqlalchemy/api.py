@@ -120,7 +120,8 @@ def update(context, artifact_id, values, session):
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
 def delete(context, artifact_id, session):
-    session.query(models.Artifact).filter_by(id=artifact_id).delete()
+    with session.begin():
+        session.query(models.Artifact).filter_by(id=artifact_id).delete()
 
 
 def _drop_protected_attrs(model_class, values):
@@ -624,48 +625,51 @@ def _do_blobs(artifact, new_blobs):
        stop_max_attempt_number=50)
 def create_lock(context, lock_key, session):
     """Try to create lock record."""
-    existing = session.query(models.ArtifactLock).get(lock_key)
-    if existing is None:
-        try:
-            lock = models.ArtifactLock()
-            lock.id = lock_key
-            lock.save(session=session)
-            return lock.id
-        except (sqlalchemy.exc.IntegrityError, db_exception.DBDuplicateEntry):
-            msg = _("Cannot lock an item with key %s. "
-                    "Lock already acquired by other request") % lock_key
-            raise exception.Conflict(msg)
-    else:
-        if timeutils.is_older_than(existing.acquired_at, 5):
-            existing.acquired_at = timeutils.utcnow()
-            existing.save(session)
-            return existing.id
+    with session.begin():
+        existing = session.query(models.ArtifactLock).get(lock_key)
+        if existing is None:
+            try:
+                lock = models.ArtifactLock()
+                lock.id = lock_key
+                lock.save(session=session)
+                return lock.id
+            except (sqlalchemy.exc.IntegrityError,
+                    db_exception.DBDuplicateEntry):
+                msg = _("Cannot lock an item with key %s. "
+                        "Lock already acquired by other request") % lock_key
+                raise exception.Conflict(msg)
         else:
-            msg = _("Cannot lock an item with key %s. "
-                    "Lock already acquired by other request") % lock_key
-            raise exception.Conflict(msg)
+            if timeutils.is_older_than(existing.acquired_at, 5):
+                existing.acquired_at = timeutils.utcnow()
+                existing.save(session)
+                return existing.id
+            else:
+                msg = _("Cannot lock an item with key %s. "
+                        "Lock already acquired by other request") % lock_key
+                raise exception.Conflict(msg)
 
 
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
 def delete_lock(context, lock_id, session):
-    try:
-        session.query(models.ArtifactLock).filter_by(id=lock_id).delete()
-    except orm.exc.NoResultFound:
-        msg = _("Cannot delete a lock with id %s.") % lock_id
-        raise exception.NotFound(msg)
+    with session.begin():
+        try:
+            session.query(models.ArtifactLock).filter_by(id=lock_id).delete()
+        except orm.exc.NoResultFound:
+            msg = _("Cannot delete a lock with id %s.") % lock_id
+            raise exception.NotFound(msg)
 
 
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
 def save_blob_data(context, blob_data_id, data, session):
     """Save blob data to database."""
-
-    blob_data = models.ArtifactBlobData()
-    blob_data.id = blob_data_id
-    blob_data.data = data.read()
-    blob_data.save(session=session)
-    return "sql://" + blob_data.id
+    with session.begin():
+        blob_data = models.ArtifactBlobData()
+        blob_data.id = blob_data_id
+        blob_data.data = data.read()
+        blob_data.save(session=session)
+        return "sql://" + blob_data.id
 
 
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
@@ -687,11 +691,11 @@ def get_blob_data(context, uri, session):
        stop_max_attempt_number=50)
 def delete_blob_data(context, uri, session):
     """Delete blob data from database."""
-
-    blob_data_id = uri[6:]
-    try:
-        session.query(
-            models.ArtifactBlobData).filter_by(id=blob_data_id).delete()
-    except orm.exc.NoResultFound:
-        msg = _("Cannot delete a blob data with id %s.") % blob_data_id
-        raise exception.NotFound(msg)
+    with session.begin():
+        blob_data_id = uri[6:]
+        try:
+            session.query(
+                models.ArtifactBlobData).filter_by(id=blob_data_id).delete()
+        except orm.exc.NoResultFound:
+            msg = _("Cannot delete a blob data with id %s.") % blob_data_id
+            raise exception.NotFound(msg)
