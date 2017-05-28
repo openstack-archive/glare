@@ -156,36 +156,8 @@ def upgrade():
         mysql_charset=MYSQL_CHARSET
     )
 
-    # end Alembic commands #
-
 
 def downgrade():
-    op.drop_index('ix_glare_artifact_properties_name',
-                  table_name='glare_artifact_properties')
-    op.drop_index('ix_glare_artifact_properties_artifact_id',
-                  table_name='glare_artifact_properties')
-
-    op.drop_index('ix_glare_artifact_blobs_name',
-                  table_name='glare_artifact_blobs')
-    op.drop_index('ix_glare_artifact_blobs_artifact_id',
-                  table_name='glare_artifact_blobs')
-
-    op.drop_index('ix_glare_artifact_tags_artifact_id_tag_value',
-                  table_name='glare_artifact_tags')
-    op.drop_index('ix_glare_artifact_tags_artifact_id',
-                  table_name='glare_artifact_tags')
-
-    op.drop_index('ix_glare_artifact_visibility',
-                  table_name='glare_artifacts')
-    op.drop_index('ix_glare_artifact_owner',
-                  table_name='glare_artifacts')
-    op.drop_index('ix_glare_artifact_status',
-                  table_name='glare_artifacts')
-    op.drop_index('ix_glare_artifact_type',
-                  table_name='glare_artifacts')
-    op.drop_index('ix_glare_artifact_name_and_version',
-                  table_name='glare_artifacts')
-
     op.drop_table('glare_artifact_locks')
     op.drop_table('glare_artifact_properties')
     op.drop_table('glare_artifact_blobs')

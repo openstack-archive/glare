@@ -73,6 +73,11 @@ class WalkVersionsMixin(object):
                     self._migrate_up(engine, alembic_cfg,
                                      version.revision, with_data=True)
 
+            for version in versions:
+                with glare_fixtures.BannedDBSchemaOperations():
+                    self._migrate_down(engine, alembic_cfg,
+                                       version.down_revision, with_data=True)
+
     def _migrate_up(self, engine, config, version, with_data=False):
         """migrate up to a new version of the db.
 
@@ -94,6 +99,19 @@ class WalkVersionsMixin(object):
                 check = getattr(self, "_check_%s" % version, None)
                 if check:
                     check(engine, data)
+        except Exception:
+            LOG.error("Failed to migrate to version %(version)s on engine "
+                      "%(engine)s", {'version': version, 'engine': engine})
+            raise
+
+    def _migrate_down(self, engine, config, version, with_data=False):
+        try:
+            self.migration_api.downgrade(version, config=config)
+            if with_data:
+                post_downgrade = getattr(
+                    self, "_post_downgrade_%s" % version, None)
+                if post_downgrade:
+                    post_downgrade(engine)
         except Exception:
             LOG.error("Failed to migrate to version %(version)s on engine "
                       "%(engine)s", {'version': version, 'engine': engine})
