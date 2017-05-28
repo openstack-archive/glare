@@ -58,14 +58,26 @@ class TestArtifactList(base.BaseTestArtifactAPI):
         # (filter_name, filter_value)
 
         # List all artifacts
-        res = self.controller.list(self.req, 'sample_artifact', [])
+        res = self.controller.list(self.req, 'sample_artifact')
         self.assertEqual(7, len(res['artifacts']))
         self.assertEqual('sample_artifact', res['type_name'])
+
+        # List all artifacts as an anonymous. Only public artifacts are visible
+        anon_req = self.get_fake_request(user=self.users['anonymous'])
+        res = self.controller.list(anon_req, 'sample_artifact')
+        self.assertEqual(1, len(res['artifacts']))
+        self.assertIn(arts[4], res['artifacts'])
 
         # Filter by name
         filters = [('name', 'art1')]
         res = self.controller.list(self.req, 'sample_artifact', filters)
         self.assertEqual(5, len(res['artifacts']))
+
+        filters = [('name', 'in:art2,art3')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(2, len(res['artifacts']))
+        for i in (5, 6):
+            self.assertIn(arts[i], res['artifacts'])
 
         # Filter by string_required
         filters = [('string_required', 'str1')]
@@ -79,6 +91,12 @@ class TestArtifactList(base.BaseTestArtifactAPI):
         res = self.controller.list(self.req, 'sample_artifact', filters)
         self.assertEqual(3, len(res['artifacts']))
         for i in (0, 2, 4):
+            self.assertIn(arts[i], res['artifacts'])
+
+        filters = [('int1', 'in:5,6')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(4, len(res['artifacts']))
+        for i in (0, 1, 2, 4):
             self.assertIn(arts[i], res['artifacts'])
 
         # Filter by float1
@@ -146,13 +164,18 @@ class TestArtifactList(base.BaseTestArtifactAPI):
         self.assertRaises(exc.BadRequest, self.controller.list,
                           self.req, 'sample_artifact', filters)
 
+        # Filter by nonexistent field leads to BadRequest
+        filters = [('NONEXISTENT', 'something')]
+        self.assertRaises(exc.BadRequest, self.controller.list,
+                          self.req, 'sample_artifact', filters)
+
     def test_list_marker_and_limit(self):
         # Create artifacts
         art_list = [
             self.controller.create(
                 self.req, 'sample_artifact',
                 {'name': 'name%s' % i,
-                 'version': '1.0',
+                 'version': '%d.0' % i,
                  'tags': ['tag%s' % i],
                  'int1': 1024 + i,
                  'float1': 123.456,
@@ -189,6 +212,22 @@ class TestArtifactList(base.BaseTestArtifactAPI):
 
         # paginate by name in desc order with limit 2
         sort = [('name', 'desc')]
+        result = self.controller.list(self.req, 'sample_artifact', filters=(),
+                                      limit=2, sort=sort)
+        self.assertEqual(art_list[4:2:-1], result['artifacts'])
+
+        marker = result['next_marker']
+        result = self.controller.list(self.req, 'sample_artifact', filters=(),
+                                      marker=marker, limit=2, sort=sort)
+        self.assertEqual(art_list[2:0:-1], result['artifacts'])
+
+        marker = result['next_marker']
+        result = self.controller.list(self.req, 'sample_artifact', filters=(),
+                                      marker=marker, limit=2, sort=sort)
+        self.assertEqual([art_list[0]], result['artifacts'])
+
+        # paginate by version in desc order with limit 2
+        sort = [('version', 'desc')]
         result = self.controller.list(self.req, 'sample_artifact', filters=(),
                                       limit=2, sort=sort)
         self.assertEqual(art_list[4:2:-1], result['artifacts'])
@@ -395,6 +434,16 @@ class TestArtifactList(base.BaseTestArtifactAPI):
         self.assertRaises(exc.BadRequest, self.controller.list,
                           self.req, 'sample_artifact', filters)
 
+        # Filter by nonexistent dict leads to BadRequest
+        filters = [('NOTEXIST.one', 'eq:1')]
+        self.assertRaises(exc.BadRequest, self.controller.list,
+                          self.req, 'sample_artifact', filters)
+
+        # Test with TypeError
+        filters = [('dict_of_int.1', 'lala')]
+        self.assertRaises(exc.BadRequest, self.controller.list,
+                          self.req, 'sample_artifact', filters)
+
         # Return artifacts that contain key 'aa' in 'list_of_str'
         filters = [('list_of_str', 'eq:aa')]
         res = self.controller.list(self.req, 'sample_artifact', filters)
@@ -428,6 +477,58 @@ class TestArtifactList(base.BaseTestArtifactAPI):
         for i in (0, 1, 2, 3):
             self.assertIn(arts[i], res['artifacts'])
 
+    def test_filter_by_tags(self):
+        values = [
+            {'name': 'name1', 'tags': ['tag1', 'tag2']},
+            {'name': 'name2', 'tags': ['tag1', 'tag3']},
+            {'name': 'name3', 'tags': ['tag1']},
+            {'name': 'name4', 'tags': ['tag2']},
+            {'name': 'name5', 'tags': ['tag4']},
+            {'name': 'name6', 'tags': ['tag4', 'tag5']},
+        ]
+        arts = [self.controller.create(self.req, 'sample_artifact', val)
+                for val in values]
+
+        filters = [('tags', 'tag1')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(3, len(res['artifacts']))
+        for i in (0, 1, 2):
+            self.assertIn(arts[i], res['artifacts'])
+
+        filters = [('tags', 'tag1,tag2')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(1, len(res['artifacts']))
+        self.assertIn(arts[0], res['artifacts'])
+
+        filters = [('tags', 'NOT_A_TAG')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(0, len(res['artifacts']))
+
+        filters = [('tags-any', 'tag1')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(3, len(res['artifacts']))
+        for i in (0, 1, 2):
+            self.assertIn(arts[i], res['artifacts'])
+
+        filters = [('tags-any', 'tag1,NOT_A_TAG')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(3, len(res['artifacts']))
+        for i in (0, 1, 2):
+            self.assertIn(arts[i], res['artifacts'])
+
+        filters = [('tags-any', 'tag2,tag5')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(3, len(res['artifacts']))
+        for i in (0, 3, 5):
+            self.assertIn(arts[i], res['artifacts'])
+
+        # Filtering by tags with operators leads to BadRequest
+        for f in ('tags', 'tags-any'):
+            filters = [(f, 'eq:tag1')]
+            self.assertRaises(
+                exc.BadRequest, self.controller.list,
+                self.req, 'sample_artifact', filters)
+
     def test_list_and_sort_fields(self):
         amount = 7
         # Create a bunch of artifacts for list sorting tests
@@ -459,6 +560,22 @@ class TestArtifactList(base.BaseTestArtifactAPI):
         self.assertRaises(exc.BadRequest, self.controller.list,
                           self.req, 'sample_artifact',
                           [], sort=[("NONEXISTENT", "desc")])
+
+        # sort by wrong direction
+        self.assertRaises(exc.BadRequest, self.controller.list,
+                          self.req, 'sample_artifact',
+                          [], sort=[("name", "WRONG_DIR")])
+
+        # For performance sake sorting by more than one custom field
+        # is forbidden. Nevertheless, sorting by several basic field are
+        # absolutely fine.
+        # List of basic fields is located in glare/db/sqlalchemy/api.py as
+        # BASE_ARTIFACT_PROPERTIES tuple.
+        sort = [("int1", "desc"), ("float1", "desc")]
+        self.assertRaises(exc.BadRequest, self.controller.list,
+                          self.req, 'sample_artifact',
+                          [], sort=sort)
+
         # sort with non-sortable fields
         for name, field in sample_artifact.SampleArtifact.fields.items():
             for sort_dir in ['asc', 'desc']:
@@ -466,4 +583,4 @@ class TestArtifactList(base.BaseTestArtifactAPI):
                     self.assertRaises(
                         exc.BadRequest, self.controller.list,
                         self.req, 'sample_artifact',
-                        [], sort=[(field, sort_dir)])
+                        [], sort=[(name, sort_dir)])

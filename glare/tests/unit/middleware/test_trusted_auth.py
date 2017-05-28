@@ -43,6 +43,13 @@ class TestTrustedAuthMiddleware(base.BaseTestCase):
         self.assertEqual('user1', req.context.user)
         self.assertEqual('tenant1', req.context.tenant)
         self.assertEqual(['role1', 'role2'], req.context.roles)
+        self.assertIn('service_catalog', req.context.to_dict())
+
+    def test_no_auth_token(self):
+        req = self._build_request(None)
+        del req.headers['x-auth-token']
+        self.assertRaises(exc.Unauthorized,
+                          self._build_middleware().process_request, req)
 
     def test_wrong_format(self):
         req = self._build_request('WRONG_FORMAT')
@@ -142,3 +149,25 @@ class TestTrustedAuthMiddleware(base.BaseTestCase):
             resp_req_id = resp_req_id.decode('utf-8')
         self.assertFalse(resp_req_id.startswith('req-req-'))
         self.assertTrue(resp_req_id.startswith('req-'))
+
+    def test_response_no_request_id(self):
+        req = self._build_request('user1:tenant1:role1,role2')
+        req.context = context.RequestContext()
+        del req.context.request_id
+
+        resp = webob.Response()
+        resp.request = req
+        self._build_middleware().process_response(resp)
+        self.assertNotIn('x-openstack-request-id', resp.headers)
+
+    def test_response_no_request_id_prefix(self):
+        # prefix is 'req-'
+        req = self._build_request('user1:tenant1:role1,role2')
+        req.context = context.RequestContext()
+        req.context.request_id = "STRING_WITH_NO_PREFIX"
+
+        resp = webob.Response()
+        resp.request = req
+        self._build_middleware().process_response(resp)
+        self.assertEqual('req-STRING_WITH_NO_PREFIX',
+                         resp.headers['x-openstack-request-id'])
