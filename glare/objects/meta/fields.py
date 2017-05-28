@@ -61,7 +61,7 @@ class BlobFieldType(fields.FieldType):
         'type': 'object',
         'properties': {
             'url': {'type': ['string', 'null'], 'format': 'uri',
-                    'max_length': 255},
+                    'maxLength': 2048},
             'size': {'type': ['number', 'null']},
             'md5': {'type': ['string', 'null']},
             'sha1': {'type': ['string', 'null']},
