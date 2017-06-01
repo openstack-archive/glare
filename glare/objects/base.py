@@ -206,7 +206,7 @@ class BaseArtifact(base.VersionedObject):
             af.obj_set_defaults(*default_fields)
 
         # apply values specified by user
-        for name, value in six.iteritems(values):
+        for name, value in values.items():
             setattr(af, name, value)
         return af
 
@@ -350,7 +350,7 @@ class BaseArtifact(base.VersionedObject):
             cls._validate_change_allowed(values, af)
             # apply values to the artifact. if all changes applied then update
             # values in db or raise an exception in other case.
-            for key, value in six.iteritems(values):
+            for key, value in values.items():
                 try:
                     # check updates for links and validate them
                     if cls.is_link(key) and value is not None:
@@ -592,7 +592,7 @@ class BaseArtifact(base.VersionedObject):
 
     @classmethod
     def _delete_blobs(cls, blobs, context, af):
-        for name, blob in six.iteritems(blobs):
+        for name, blob in blobs.items():
             if cls.is_blob(name):
                 if not blob['external']:
                     try:
@@ -603,7 +603,7 @@ class BaseArtifact(base.VersionedObject):
                 cls.db_api.update_blob(context, af.id, {name: None})
             elif cls.is_blob_dict(name):
                 upd_blob = deepcopy(blob)
-                for key, val in six.iteritems(blob):
+                for key, val in blob.items():
                     if not val['external']:
                         try:
                             store_api.delete_blob(val['url'], context=context)
@@ -625,7 +625,7 @@ class BaseArtifact(base.VersionedObject):
 
         # marking all blobs as pending delete
         blobs = {}
-        for name, field in six.iteritems(af.fields):
+        for name, field in af.fields.items():
             if cls.is_blob(name):
                 b = getattr(af, name)
                 if b:
@@ -634,7 +634,7 @@ class BaseArtifact(base.VersionedObject):
             elif cls.is_blob_dict(name):
                 bd = getattr(af, name)
                 if bd:
-                    for key, b in six.iteritems(bd):
+                    for key, b in bd.items():
                         cls._prepare_blob_delete(b, af, name)
                     blobs[name] = bd
         LOG.debug("Marked artifact %(artifact)s as deleted and all its blobs "
@@ -665,7 +665,7 @@ class BaseArtifact(base.VersionedObject):
                     "for activation.") % cls.STATUS.ACTIVE
             raise exception.BadRequest(msg)
 
-        for name, type_obj in six.iteritems(af.fields):
+        for name, type_obj in af.fields.items():
             if type_obj.required_on_activate and getattr(af, name) is None:
                 msg = _(
                     "'%s' field value must be set before activation") % name
@@ -881,7 +881,7 @@ class BaseArtifact(base.VersionedObject):
     def _obj_changes_to_primitive(self):
         changes = self.obj_get_changes()
         res = {}
-        for key, val in six.iteritems(changes):
+        for key, val in changes.items():
             if val is not None and hasattr(val, 'to_primitive'):
                 res[key] = val.to_primitive()
             else:
@@ -977,7 +977,7 @@ class BaseArtifact(base.VersionedObject):
     def gen_schemas(cls):
         """Return json schema representation of the artifact type."""
         schemas_prop = {}
-        for field_name, field in six.iteritems(cls.fields):
+        for field_name, field in cls.fields.items():
             schemas_prop[field_name] = cls._schema_field(
                 field, field_name=field_name)
         schemas = {'properties': schemas_prop,

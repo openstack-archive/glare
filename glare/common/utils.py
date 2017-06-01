@@ -316,7 +316,7 @@ def no_4byte_params(f):
 
         def _check_dict(data_dict):
             # a dict of dicts has to be checked recursively
-            for key, value in six.iteritems(data_dict):
+            for key, value in data_dict.items():
                 if isinstance(value, dict):
                     _check_dict(value)
                 else:

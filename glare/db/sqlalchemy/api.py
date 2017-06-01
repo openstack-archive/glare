@@ -525,7 +525,7 @@ def _do_properties(artifact, new_properties):
         if prop.name not in new_properties:
             props_to_update.append(prop)
 
-    for prop_name, prop_value in six.iteritems(new_properties):
+    for prop_name, prop_value in new_properties.items():
         if prop_value is None:
             continue
         if isinstance(prop_value, list):
@@ -543,7 +543,7 @@ def _do_properties(artifact, new_properties):
                         _create_property(prop_name, list_prop, position=pos)
                     )
         elif isinstance(prop_value, dict):
-            for dict_key, dict_val in six.iteritems(prop_value):
+            for dict_key, dict_val in prop_value.items():
                 for prop in artifact.properties:
                     if prop.name == prop_name and prop.key_name == dict_key:
                         if getattr(prop, _get_prop_type(dict_val)) != dict_val:
@@ -582,7 +582,7 @@ def _do_blobs(artifact, new_blobs):
         if blob.name not in new_blobs:
             blobs_to_update.append(blob)
 
-    for blob_name, blob_value in six.iteritems(new_blobs):
+    for blob_name, blob_value in new_blobs.items():
         if blob_value is None:
             continue
         if isinstance(blob_value.get('status'), str):
@@ -597,7 +597,7 @@ def _do_blobs(artifact, new_blobs):
                 _update_blob_values(blob, blob_value)
                 blobs_to_update.append(blob)
         else:
-            for dict_key, dict_val in six.iteritems(blob_value):
+            for dict_key, dict_val in blob_value.items():
                 for blob in artifact.blobs:
                     if blob.name == blob_name and blob.key_name == dict_key:
                         _update_blob_values(blob, dict_val)

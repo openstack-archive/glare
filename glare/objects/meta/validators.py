@@ -13,8 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import six
-
 from oslo_log import log as logging
 from oslo_utils import encodeutils
 from oslo_versionedobjects import fields
@@ -287,7 +285,7 @@ class RequiredDictKeys(Validator):
                                  {"item": item,
                                   "value": ''.join(
                                       '{}:{}, '.format(key, val)
-                                      for key, val in six.iteritems(value))})
+                                      for key, val in value.items())})
 
     def to_jsonschema(self):
         return {'required': list(self.required_items)}
@@ -337,6 +335,6 @@ class DictElementValidator(ElementValidator):
         return glare_fields.Dict,
 
     def validate(self, value):
-        for v in six.itervalues(value):
+        for v in value.values():
             for validator in self.validators:
                 validator(v)

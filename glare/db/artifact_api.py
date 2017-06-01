@@ -17,7 +17,6 @@
 from oslo_db import exception as db_exception
 from oslo_log import log as logging
 from retrying import retry
-import six
 
 from glare.db.sqlalchemy import api
 from glare import locking
@@ -40,7 +39,7 @@ class ArtifactAPI(object):
         new_values = {}
         if 'tags' in values:
             new_values['tags'] = values.pop('tags') if values['tags'] else []
-        for key, value in six.iteritems(values):
+        for key, value in values.items():
             if key in api.BASE_ARTIFACT_PROPERTIES:
                 new_values[key] = value
             else:

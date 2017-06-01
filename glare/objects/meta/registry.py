@@ -22,7 +22,6 @@ from oslo_config import cfg
 from oslo_config import types as conf_types
 from oslo_log import log as logging
 from oslo_versionedobjects import base as vo_base
-import six
 
 from glare.common import exception
 from glare.i18n import _
@@ -120,7 +119,7 @@ class ArtifactRegistry(vo_base.VersionedObjectRegistry):
         :param type_name: name of artifact type
         :return: artifact class
         """
-        for name, af_type in six.iteritems(cls.obj_classes()):
+        for name, af_type in cls.obj_classes().items():
             if af_type[0].get_type_name() == type_name:
                 return af_type[0]
         raise exception.TypeNotFound(name=type_name)

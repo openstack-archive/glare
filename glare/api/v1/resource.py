@@ -122,7 +122,7 @@ class RequestDeserializer(api_versioning.VersionedResource,
 
         # step 4 - parse filter parameters
         filters = []
-        for fname, fval in six.iteritems(params):
+        for fname, fval in params.items():
             if fname == 'version' and fval == 'latest':
                 query_params['latest'] = True
             else:
@@ -386,7 +386,7 @@ class ResponseSerializer(api_versioning.VersionedResource,
         params.pop('marker', None)
 
         encode_params = {}
-        for key, value in six.iteritems(params):
+        for key, value in params.items():
             encode_params[key] = encodeutils.safe_encode(value)
         query = urlparse.urlencode(encode_params)
 

@@ -92,7 +92,7 @@ class BlobFieldType(fields.FieldType):
 
     @staticmethod
     def to_primitive(obj, field, value):
-        prim = {key: val for key, val in six.iteritems(value)
+        prim = {key: val for key, val in value.items()
                 if key != 'id'}
 
         if not value.get('external'):

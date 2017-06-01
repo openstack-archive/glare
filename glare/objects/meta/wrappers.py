@@ -14,8 +14,6 @@
 
 """This file contains classes that wrap nat"""
 
-import six
-
 from oslo_versionedobjects import fields
 
 from glare.common import exception as exc
@@ -112,7 +110,7 @@ class Field(object):
         # setup custom field properties
         field_props = {prop_name: getattr(self, prop_name)
                        for prop_name in self.field_props}
-        for prop, value in six.iteritems(field_props):
+        for prop, value in field_props.items():
                 setattr(field, prop, value)
 
         # apply custom validators
