@@ -52,8 +52,6 @@ BASE_ARTIFACT_PROPERTIES = ('id', 'visibility', 'created_at', 'updated_at',
                             'activated_at', 'owner', 'status', 'description',
                             'name', 'type_name', 'version')
 
-DEFAULT_SORT_PARAMETERS = (('created_at', 'desc', None), ('id', 'asc', None))
-
 _FACADE = None
 _LOCK = threading.Lock()
 
@@ -300,13 +298,6 @@ def _get_all(context, session, filters=None, marker=None, limit=None,
     marker_artifact = None
     if marker is not None:
         marker_artifact = get(context, marker, session)
-
-    if sort is None:
-        sort = DEFAULT_SORT_PARAMETERS
-    else:
-        for val in DEFAULT_SORT_PARAMETERS:
-            if val not in sort:
-                sort.append(val)
 
     query = _do_paginate_query(query=query, limit=limit,
                                marker=marker_artifact, sort=sort)
