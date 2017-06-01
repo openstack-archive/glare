@@ -353,3 +353,11 @@ class TestArtifactUpdate(base.BaseTestArtifactAPI):
         self.assertEqual(description, res['description'])
         self.assertEqual(metadata, res['metadata'])
         self.assertEqual(tags, res['tags'])
+
+    def test_update_artifact_4_byte_unicode(self):
+        bad_name = u'A name with forbidden symbol \U0001f62a'
+        changes = [
+            {'op': 'replace', 'path': '/name', 'value': bad_name}
+        ]
+
+        self.assertRaises(exc.BadRequest, self.update_with_values, changes)
