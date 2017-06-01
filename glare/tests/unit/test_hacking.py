@@ -13,7 +13,6 @@
 #    under the License.
 
 import inspect
-import mock
 
 from glare.hacking import checks
 from glare.tests.unit import base
@@ -141,47 +140,6 @@ class HackingTestCase(base.BaseTestCase):
 
         self.assertEqual(0, len(list(checks.check_python3_no_itervalues(
             "obj.values()"))))
-
-    def test_validate_log_translations(self):
-        with mock.patch('pep8.noqa', return_value=True):
-            self.assertEqual([], list(
-                checks.validate_log_translations("", "", None)))
-
-        self.assertEqual(0, len(list(checks.validate_log_translations(
-            "LOG.info(_LI(''))", "", None))))
-
-        self.assertEqual(1, len(list(checks.validate_log_translations(
-            "LOG.info('')", "", None))))
-
-        self.assertEqual(0, len(list(checks.validate_log_translations(
-            "LOG.exception(_LE(''))", "", None))))
-
-        self.assertEqual(1, len(list(checks.validate_log_translations(
-            "LOG.exception('')", "", None))))
-
-        self.assertEqual(0, len(list(checks.validate_log_translations(
-            "LOG.error(_LE(''))", "", None))))
-
-        self.assertEqual(1, len(list(checks.validate_log_translations(
-            "LOG.error('')", "", None))))
-
-        self.assertEqual(0, len(list(checks.validate_log_translations(
-            "LOG.critical(_LC(''))", "", None))))
-
-        self.assertEqual(1, len(list(checks.validate_log_translations(
-            "LOG.critical('')", "", None))))
-
-        self.assertEqual(0, len(list(checks.validate_log_translations(
-            "LOG.warning(_LW(''))", "", None))))
-
-        self.assertEqual(1, len(list(checks.validate_log_translations(
-            "LOG.warning('')", "", None))))
-
-        self.assertEqual(0, len(list(checks.validate_log_translations(
-            "LOG.audit(_(''))", "", None))))
-
-        self.assertEqual(1, len(list(checks.validate_log_translations(
-            "LOG.audit('')", "", None))))
 
     def test_factory(self):
         class Register(object):

@@ -22,7 +22,7 @@ from oslo_serialization import jsonutils
 
 from glare.common import exception
 from glare.common import policy
-from glare.i18n import _, _LW
+from glare.i18n import _
 
 context_opts = [
     cfg.BoolOpt('allow_anonymous_access', default=False,
@@ -71,7 +71,7 @@ class BaseContextMiddleware(base_middleware.ConfigurableMiddleware):
         try:
             request_id = resp.request.context.request_id
         except AttributeError:
-            LOG.warn(_LW('Unable to retrieve request id from context'))
+            LOG.warn('Unable to retrieve request id from context')
         else:
             # For python 3 compatibility need to use bytes type
             prefix = b'req-' if isinstance(request_id, bytes) else 'req-'

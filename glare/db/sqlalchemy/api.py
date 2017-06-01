@@ -39,7 +39,7 @@ from glare.common import exception
 from glare.common import semver_db
 from glare.common import utils
 from glare.db.sqlalchemy import models
-from glare.i18n import _, _LW
+from glare.i18n import _
 
 LOG = os_logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ def _retry_on_deadlock(exc):
     """Decorator to retry a DB API call if Deadlock was received."""
 
     if isinstance(exc, db_exception.DBDeadlock):
-        LOG.warning(_LW("Deadlock detected. Retrying..."))
+        LOG.warning("Deadlock detected. Retrying...")
         return True
     return False
 

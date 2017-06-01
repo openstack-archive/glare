@@ -39,7 +39,6 @@ import sqlalchemy.exc
 
 from glare.db.migration import migration
 import glare.db.sqlalchemy.api
-from glare.i18n import _LE
 from glare.tests.unit import glare_fixtures
 
 LOG = logging.getLogger(__name__)
@@ -96,9 +95,8 @@ class WalkVersionsMixin(object):
                 if check:
                     check(engine, data)
         except Exception:
-            LOG.error(_LE("Failed to migrate to version %(version)s on engine "
-                          "%(engine)s"),
-                      {'version': version, 'engine': engine})
+            LOG.error("Failed to migrate to version %(version)s on engine "
+                      "%(engine)s", {'version': version, 'engine': engine})
             raise
 
 
