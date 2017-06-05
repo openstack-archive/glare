@@ -479,13 +479,7 @@ class BaseArtifact(base.VersionedObject):
         # (filter_name, filter_value)
         # output format for filters is list of tuples:
         # (field_name, key_name, op, field_type, value)
-
-        new_filters = [('status', None, 'neq', None, cls.STATUS.DELETED)]
-        if cls.get_type_name() != 'all':
-            new_filters.append(
-                ('type_name', None, 'eq', None, cls.get_type_name()))
-        if filters is None:
-            return new_filters
+        new_filters = []
 
         for filter_name, filter_value in filters:
             if filter_name in ('tags-any', 'tags'):
@@ -560,12 +554,29 @@ class BaseArtifact(base.VersionedObject):
         versions should be returned in output
         :return: list of artifact objects
         """
-        if sort is not None:
-            sort = cls._parse_sort_values(sort)
-        else:
-            sort = [('created_at', 'desc', None), ('id', 'asc', None)]
 
-        filters = cls._parse_filter_values(filters)
+        default_sort_parameters = (
+            ('created_at', 'desc', None), ('id', 'asc', None))
+        # Parse sort parameters and update them with defaults
+        sort = [] if sort is None else cls._parse_sort_values(sort)
+        for default_sort in default_sort_parameters:
+            for s in sort:
+                # If the default sort parameter already in the list - skip it
+                if s[0] == default_sort[0]:
+                    break
+            else:
+                sort.append(default_sort)
+
+        default_filter_parameters = [
+            ('status', None, 'neq', None, cls.STATUS.DELETED)]
+        if cls.get_type_name() != 'all':
+            default_filter_parameters.append(
+                ('type_name', None, 'eq', None, cls.get_type_name()))
+        # Parse filter parameters and update them with defaults
+        filters = [] if filters is None else cls._parse_filter_values(filters)
+        for default_filter in default_filter_parameters:
+            if default_filter not in filters:
+                filters.append(default_filter)
 
         return [cls._init_artifact(context, af)
                 for af in cls.db_api.list(
