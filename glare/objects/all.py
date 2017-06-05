@@ -16,10 +16,10 @@ from oslo_versionedobjects import fields
 
 from glare.common import exception
 from glare.objects import base
-from glare.objects.meta import attribute
+from glare.objects.meta import wrappers
 
 
-Field = attribute.Attribute.init
+Field = wrappers.Field.init
 
 
 class All(base.BaseArtifact):

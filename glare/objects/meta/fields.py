@@ -43,7 +43,7 @@ class ArtifactStatusField(fields.StateMachine):
 class Version(fields.FieldType):
 
     @staticmethod
-    def coerce(obj, attr, value):
+    def coerce(obj, field, value):
         return str(semantic_version.Version.coerce(str(value)))
 
 
@@ -77,7 +77,7 @@ class BlobFieldType(fields.FieldType):
     }
 
     @staticmethod
-    def coerce(obj, attr, value):
+    def coerce(obj, field, value):
         """Validate and store blob info inside oslo.vo"""
         if not isinstance(value, dict):
             raise ValueError(_("Blob value must be dict. Got %s type instead")
@@ -91,7 +91,7 @@ class BlobFieldType(fields.FieldType):
         return value
 
     @staticmethod
-    def to_primitive(obj, attr, value):
+    def to_primitive(obj, field, value):
         prim = {key: val for key, val in six.iteritems(value)
                 if key != 'id'}
 
@@ -100,7 +100,7 @@ class BlobFieldType(fields.FieldType):
                 "name": obj.get_type_name(),
                 'id': obj.id
             }
-            blob_path = attr.split('[')
+            blob_path = field.split('[')
             url = url + blob_path[0]
             if len(blob_path) > 1:
                 url += '/%s' % blob_path[1][1:-2]
@@ -133,16 +133,16 @@ class LinkFieldType(fields.FieldType):
                                "extract type_name from link %s"), link)
 
     @staticmethod
-    def coerce(obj, attr, value):
+    def coerce(obj, field, value):
         # to remove the existing link user sets its value to None,
         # we have to consider this case.
         if value is None:
             return value
         # check that value is string
         if not isinstance(value, six.string_types):
-            raise ValueError(_('A string is required in field %(attr)s, '
+            raise ValueError(_('A string is required in field %(field)s, '
                                'not a %(type)s') %
-                             {'attr': attr, 'type': type(value).__name__})
+                             {'field': field, 'type': type(value).__name__})
         # determine if link is external or internal
         external = LinkFieldType.is_external(value)
         # validate link itself
@@ -156,10 +156,10 @@ class LinkFieldType(fields.FieldType):
             if len(result) != 4 or result[1] != 'artifacts':
                 raise ValueError(
                     _('Link %(link)s is not valid in field '
-                      '%(attr)s. The link must be either valid url or '
+                      '%(field)s. The link must be either valid url or '
                       'reference to artifact. Example: '
                       '/artifacts/<artifact_type>/<artifact_id>'
-                      ) % {'link': value, 'attr': attr})
+                      ) % {'link': value, 'field': field})
         return value
 
 

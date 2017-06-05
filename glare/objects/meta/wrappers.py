@@ -12,6 +12,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+"""This file contains classes that wrap nat"""
+
 import six
 
 from oslo_versionedobjects import fields
@@ -27,11 +29,11 @@ FILTERS = (
 DEFAULT_MAX_BLOB_SIZE = 10485760
 
 
-class Attribute(object):
+class Field(object):
     def __init__(self, field_class, mutable=False, required_on_activate=True,
                  system=False, validators=None, nullable=True, default=None,
                  sortable=False, filter_ops=None, description=""):
-        """Init and validate attribute."""
+        """Init and validate field."""
         if not issubclass(field_class, fields.AutoTypedField):
             raise exc.IncorrectArtifactType(
                 "Field class %s must be sub-class of AutoTypedField." %
@@ -43,15 +45,15 @@ class Attribute(object):
             if isinstance(v, val_lib.MaxStrLen):
                 if v.size > 255 and sortable:
                     raise exc.IncorrectArtifactType(
-                        "It's forbidden to make attribute %(attr)s "
+                        "It's forbidden to make field %(field)s "
                         "sortable if string length can be more than 255 "
                         "symbols. Maximal allowed length now: %(max)d" %
-                        {"attr": str(field_class), 'max': v.size})
+                        {"field": str(field_class), 'max': v.size})
 
         self.field_class = field_class
         self.nullable = nullable
         self.default = default
-        self.vo_attrs = ['nullable', 'default']
+        self.vo_props = ['nullable', 'default']
 
         self.mutable = mutable
         self.required_on_activate = required_on_activate
@@ -73,7 +75,7 @@ class Attribute(object):
                         "Only %s are allowed" % (op, ', '.join(default_ops)))
             self.filter_ops = filter_ops
 
-        self.field_attrs = ['mutable', 'required_on_activate', 'system',
+        self.field_props = ['mutable', 'required_on_activate', 'system',
                             'sortable', 'filter_ops', 'description']
         self.description = description
 
@@ -104,13 +106,13 @@ class Attribute(object):
 
     def get_field(self):
         # init the field
-        vo_attrs = {attr_name: getattr(self, attr_name)
-                    for attr_name in self.vo_attrs}
-        field = self.field_class(**vo_attrs)
-        # setup custom field attrs
-        field_attrs = {attr_name: getattr(self, attr_name)
-                       for attr_name in self.field_attrs}
-        for prop, value in six.iteritems(field_attrs):
+        vo_props = {prop_name: getattr(self, prop_name)
+                    for prop_name in self.vo_props}
+        field = self.field_class(**vo_props)
+        # setup custom field properties
+        field_props = {prop_name: getattr(self, prop_name)
+                       for prop_name in self.field_props}
+        for prop, value in six.iteritems(field_props):
                 setattr(field, prop, value)
 
         # apply custom validators
@@ -123,16 +125,16 @@ class Attribute(object):
                 vals.append(def_val)
 
         def wrapper(coerce_func):
-            def coerce_wrapper(obj, attr, value):
+            def coerce_wrapper(obj, field, value):
                 try:
-                    val = coerce_func(obj, attr, value)
+                    val = coerce_func(obj, field, value)
                     if val is not None:
                         for check_func in vals:
                             check_func(val)
                     return val
                 except (KeyError, ValueError, TypeError) as e:
                     msg = "Type: %s. Field: %s. Exception: %s" % (
-                        obj.get_type_name(), attr, str(e))
+                        obj.get_type_name(), field, str(e))
                     raise exc.BadRequest(message=msg)
             return coerce_wrapper
 
@@ -142,11 +144,11 @@ class Attribute(object):
 
     @classmethod
     def init(cls, *args, **kwargs):
-        """Fabric to build attributes."""
+        """Fabric to build fields."""
         return cls(*args, **kwargs).get_field()
 
 
-class CompoundAttribute(Attribute):
+class CompoundField(Field):
     def __init__(self, field_class, element_type, element_validators=None,
                  **kwargs):
         if element_type is None:
@@ -154,10 +156,10 @@ class CompoundAttribute(Attribute):
                                             "compound type.")
         self.element_type = element_type
 
-        super(CompoundAttribute, self).__init__(field_class, **kwargs)
+        super(CompoundField, self).__init__(field_class, **kwargs)
 
-        self.vo_attrs.append('element_type')
-        self.field_attrs.append('element_type')
+        self.vo_props.append('element_type')
+        self.field_props.append('element_type')
 
         self.element_validators = element_validators or []
         if self.sortable:
@@ -177,54 +179,63 @@ class CompoundAttribute(Attribute):
         return default_vals + self.element_validators
 
 
-class ListAttribute(CompoundAttribute):
+class ListField(CompoundField):
     def __init__(self, element_type, max_size=255, **kwargs):
         if 'default' not in kwargs:
             kwargs['default'] = []
         if element_type is glare_fields.BlobField:
             raise exc.IncorrectArtifactType("List of blobs is not allowed "
                                             "to be specified in artifact.")
-        super(ListAttribute, self).__init__(glare_fields.List, element_type,
-                                            **kwargs)
+        super(ListField, self).__init__(glare_fields.List, element_type,
+                                        **kwargs)
         self.validators.append(val_lib.MaxListSize(max_size))
 
     def get_default_validators(self):
         default_vals = []
         elem_val = val_lib.ListElementValidator(
-            super(ListAttribute, self).get_element_validators())
+            super(ListField, self).get_element_validators())
         default_vals.append(elem_val)
         return default_vals
 
 
-class DictAttribute(CompoundAttribute):
+class DictField(CompoundField):
     def __init__(self, element_type, max_size=255, **kwargs):
         if 'default' not in kwargs:
             kwargs['default'] = {}
-        super(DictAttribute, self).__init__(glare_fields.Dict, element_type,
-                                            **kwargs)
+        super(DictField, self).__init__(glare_fields.Dict, element_type,
+                                        **kwargs)
         self.validators.append(val_lib.MaxDictSize(max_size))
 
     def get_default_validators(self):
         default_vals = []
         elem_val = val_lib.DictElementValidator(
-            super(DictAttribute, self).get_element_validators())
+            super(DictField, self).get_element_validators())
         default_vals.append(elem_val)
         default_vals.append(val_lib.MaxDictKeyLen(255))
         default_vals.append(val_lib.MinDictKeyLen(1))
         return default_vals
 
 
-class BlobAttribute(Attribute):
+class BlobField(Field):
     def __init__(self, max_blob_size=DEFAULT_MAX_BLOB_SIZE, **kwargs):
-        super(BlobAttribute, self).__init__(
+        super(BlobField, self).__init__(
             field_class=glare_fields.BlobField, **kwargs)
         self.max_blob_size = int(max_blob_size)
-        self.field_attrs.append('max_blob_size')
+        self.field_props.append('max_blob_size')
 
 
-class BlobDictAttribute(DictAttribute):
+class FolderField(DictField):
     def __init__(self, max_blob_size=DEFAULT_MAX_BLOB_SIZE, **kwargs):
-        super(BlobDictAttribute, self).__init__(
+        super(FolderField, self).__init__(
             element_type=glare_fields.BlobFieldType, **kwargs)
         self.max_blob_size = int(max_blob_size)
-        self.field_attrs.append('max_blob_size')
+        self.field_props.append('max_blob_size')
+
+# Classes below added for backward compatibility. They shouldn't be used
+
+Attribute = Field
+CompoundAttribute = CompoundField
+ListAttribute = ListField
+DictAttribute = DictField
+BlobAttribute = BlobField
+BlobDictAttribute = FolderField

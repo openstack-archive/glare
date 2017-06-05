@@ -30,9 +30,9 @@ from glare.common import utils
 from glare.db import artifact_api
 from glare.i18n import _
 from glare import locking
-from glare.objects.meta import attribute
 from glare.objects.meta import fields as glare_fields
 from glare.objects.meta import validators
+from glare.objects.meta import wrappers
 
 artifact_opts = [
     cfg.BoolOpt('delayed_delete', default=False,
@@ -66,10 +66,10 @@ class BaseArtifact(base.VersionedObject):
 
     STATUS = glare_fields.ArtifactStatusField
 
-    Field = attribute.Attribute.init
-    DictField = attribute.DictAttribute.init
-    ListField = attribute.ListAttribute.init
-    Blob = attribute.BlobAttribute.init
+    Field = wrappers.Field.init
+    DictField = wrappers.DictField.init
+    ListField = wrappers.ListField.init
+    Blob = wrappers.BlobField.init
 
     fields = {
         'id': Field(fields.StringField, system=True,
@@ -197,13 +197,13 @@ class BaseArtifact(base.VersionedObject):
         :return: artifact with initialized values
         """
         af = cls(context)
-        # setup default values for all non specified attributes
-        default_attrs = []
-        for attr in af.fields:
-            if attr not in values:
-                default_attrs.append(attr)
-        if default_attrs:
-            af.obj_set_defaults(*default_attrs)
+        # setup default values for all non specified fields
+        default_fields = []
+        for field in af.fields:
+            if field not in values:
+                default_fields.append(field)
+        if default_fields:
+            af.obj_set_defaults(*default_fields)
 
         # apply values specified by user
         for name, value in six.iteritems(values):
@@ -300,8 +300,8 @@ class BaseArtifact(base.VersionedObject):
         """Validate if fields can be updated in artifact."""
         af_status = cls.STATUS.DRAFTED if af is None else af.status
         if af_status not in (cls.STATUS.ACTIVE, cls.STATUS.DRAFTED):
-            msg = _("Forbidden to change attributes "
-                    "if artifact not active or drafted.")
+            msg = _("Forbidden to change fields "
+                    "if artifact is not active or drafted.")
             raise exception.Forbidden(message=msg)
 
         for field_name in field_names:
@@ -667,7 +667,8 @@ class BaseArtifact(base.VersionedObject):
 
         for name, type_obj in six.iteritems(af.fields):
             if type_obj.required_on_activate and getattr(af, name) is None:
-                msg = _("'%s' attribute must be set before activation") % name
+                msg = _(
+                    "'%s' field value must be set before activation") % name
                 raise exception.BadRequest(msg)
 
         cls.validate_activate(context, af)
@@ -888,17 +889,17 @@ class BaseArtifact(base.VersionedObject):
         return res
 
     @classmethod
-    def _schema_attr(cls, attr, attr_name=''):
-        attr_type = utils.get_schema_type(attr)
+    def _schema_field(cls, field, field_name=''):
+        field_type = utils.get_schema_type(field)
         schema = {}
 
         # generate schema for validators
-        for val in getattr(attr, 'validators', []):
+        for val in getattr(field, 'validators', []):
             schema.update(val.to_jsonschema())
 
-        schema['type'] = (attr_type
-                          if not attr.nullable else [attr_type, 'null'])
-        schema['glareType'] = utils.get_glare_type(attr)
+        schema['type'] = (field_type
+                          if not field.nullable else [field_type, 'null'])
+        schema['glareType'] = utils.get_glare_type(field)
         output_blob_schema = {
             'type': ['object', 'null'],
             'properties': {
@@ -917,15 +918,15 @@ class BaseArtifact(base.VersionedObject):
             'additionalProperties': False
         }
 
-        if attr.system:
+        if field.system:
             schema['readOnly'] = True
 
-        if isinstance(attr, glare_fields.Dict):
-            element_type = (utils.get_schema_type(attr.element_type)
-                            if hasattr(attr, 'element_type')
+        if isinstance(field, glare_fields.Dict):
+            element_type = (utils.get_schema_type(field.element_type)
+                            if hasattr(field, 'element_type')
                             else 'string')
 
-            if attr.element_type is glare_fields.BlobFieldType:
+            if field.element_type is glare_fields.BlobFieldType:
                 schema['additionalProperties'] = output_blob_schema
             else:
                 if schema.get('properties'):
@@ -941,34 +942,34 @@ class BaseArtifact(base.VersionedObject):
                 else:
                     schema['additionalProperties'] = {'type': element_type}
 
-        if attr_type == 'array':
+        if field_type == 'array':
             schema['items'] = {
-                'type': (utils.get_schema_type(attr.element_type)
-                         if hasattr(attr, 'element_type')
+                'type': (utils.get_schema_type(field.element_type)
+                         if hasattr(field, 'element_type')
                          else 'string')}
 
-        if isinstance(attr, glare_fields.BlobField):
+        if isinstance(field, glare_fields.BlobField):
             schema.update(output_blob_schema)
 
-        if isinstance(attr, fields.DateTimeField):
+        if isinstance(field, fields.DateTimeField):
             schema['format'] = 'date-time'
 
-        if attr_name == 'status':
+        if field_name == 'status':
             schema['enum'] = list(
                 glare_fields.ArtifactStatusField.ARTIFACT_STATUS)
 
-        if attr.description:
-            schema['description'] = attr.description
-        if attr.mutable:
+        if field.description:
+            schema['description'] = field.description
+        if field.mutable:
             schema['mutable'] = True
-        if attr.sortable:
+        if field.sortable:
             schema['sortable'] = True
-        if not attr.required_on_activate:
+        if not field.required_on_activate:
             schema['required_on_activate'] = False
-        if attr._default is not None:
-            schema['default'] = attr._default
+        if field._default is not None:
+            schema['default'] = field._default
 
-        schema['filter_ops'] = attr.filter_ops
+        schema['filter_ops'] = field.filter_ops
 
         return schema
 
@@ -976,9 +977,9 @@ class BaseArtifact(base.VersionedObject):
     def gen_schemas(cls):
         """Return json schema representation of the artifact type."""
         schemas_prop = {}
-        for attr_name, attr in six.iteritems(cls.fields):
-            schemas_prop[attr_name] = cls._schema_attr(
-                attr, attr_name=attr_name)
+        for field_name, field in six.iteritems(cls.fields):
+            schemas_prop[field_name] = cls._schema_field(
+                field, field_name=field_name)
         schemas = {'properties': schemas_prop,
                    'name': cls.get_type_name(),
                    'version': cls.VERSION,
