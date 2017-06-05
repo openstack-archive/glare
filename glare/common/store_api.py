@@ -19,7 +19,6 @@ from oslo_log import log as logging
 
 from glare.common import exception
 from glare.common import utils
-from glare.i18n import _LW
 from glare.store import database
 
 CONF = cfg.CONF
@@ -69,9 +68,8 @@ def save_blob_to_store(blob_id, blob, context, max_size,
     :return: tuple of values: (location_uri, size, checksums)
     """
     if store_type not in set(CONF.glance_store.stores + ['database']):
-        LOG.warning(_LW("Incorrect backend configuration - scheme '%s' is not"
-                        " supported. Fallback to default store.")
-                    % store_type)
+        LOG.warning("Incorrect backend configuration - scheme '%s' is not"
+                    " supported. Fallback to default store.", store_type)
         store_type = None
     data = utils.LimitingReader(utils.CooperativeReader(blob), max_size)
 

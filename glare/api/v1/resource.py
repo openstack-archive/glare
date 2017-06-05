@@ -28,7 +28,7 @@ from glare.api.v1 import api_versioning
 from glare.common import exception as exc
 from glare.common import wsgi
 from glare import engine
-from glare.i18n import _, _LI
+from glare.i18n import _
 
 LOG = logging.getLogger(__name__)
 
@@ -172,10 +172,10 @@ def log_request_progress(f):
                   {'request_id': req.context.request_id,
                    'api_method': f.__name__})
         result = f(self, req, *args, **kwargs)
-        LOG.info(_LI(
+        LOG.info(
             "Request %(request_id)s for artifact %(api_method)s "
-            "successfully executed."), {'request_id': req.context.request_id,
-                                        'api_method': f.__name__})
+            "successfully executed.", {'request_id': req.context.request_id,
+                                       'api_method': f.__name__})
         return result
     return log_decorator
 

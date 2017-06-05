@@ -20,7 +20,6 @@ from retrying import retry
 import six
 
 from glare.db.sqlalchemy import api
-from glare.i18n import _LW
 from glare import locking
 
 LOG = logging.getLogger(__name__)
@@ -30,7 +29,7 @@ def _retry_on_connection_error(exc):
     """Function to retry a DB API call if connection error was received."""
 
     if isinstance(exc, db_exception.DBConnectionError):
-        LOG.warning(_LW("Connection error detected. Retrying..."))
+        LOG.warning("Connection error detected. Retrying...")
         return True
     return False
 

@@ -28,8 +28,8 @@ from glare.common import exception
 from glare.common import store_api
 from glare.common import utils
 from glare.db import artifact_api
+from glare.i18n import _
 from glare import locking
-from glare.i18n import _, _LI
 from glare.objects.meta import attribute
 from glare.objects.meta import fields as glare_fields
 from glare.objects.meta import validators
@@ -264,8 +264,8 @@ class BaseArtifact(base.VersionedObject):
             values['created_at'] = timeutils.utcnow()
             values['updated_at'] = values['created_at']
             af = cls._init_artifact(context, values)
-            LOG.info(_LI("Parameters validation for artifact creation "
-                         "passed for request %s."), context.request_id)
+            LOG.info("Parameters validation for artifact creation "
+                     "passed for request %s.", context.request_id)
             af_vals = cls.db_api.create(
                 context, af._obj_changes_to_primitive(), cls.get_type_name())
             return cls._init_artifact(context, af_vals)
@@ -367,8 +367,8 @@ class BaseArtifact(base.VersionedObject):
                     raise exception.BadRequest(msg)
                 setattr(af, key, value)
 
-            LOG.info(_LI("Parameters validation for artifact %(artifact)s "
-                         "update passed for request %(request)s."),
+            LOG.info("Parameters validation for artifact %(artifact)s "
+                     "update passed for request %(request)s.",
                      {'artifact': af.id, 'request': context.request_id})
             updated_af = cls.db_api.update(
                 context, af.id, af._obj_changes_to_primitive())
@@ -635,8 +635,7 @@ class BaseArtifact(base.VersionedObject):
             if blobs:
                 # delete blobs one by one
                 cls._delete_blobs(blobs, context, af)
-                LOG.info(_LI("Blobs successfully deleted "
-                             "for artifact %s"), af.id)
+                LOG.info("Blobs successfully deleted for artifact %s", af.id)
             # delete artifact itself
             cls.db_api.delete(context, af.id)
 
@@ -665,8 +664,8 @@ class BaseArtifact(base.VersionedObject):
             raise exception.InvalidStatusTransition(
                 orig=af.status, new=cls.STATUS.ACTIVE
             )
-        LOG.info(_LI("Parameters validation for artifact %(artifact)s "
-                     "activate passed for request %(request)s."),
+        LOG.info("Parameters validation for artifact %(artifact)s "
+                 "activate passed for request %(request)s.",
                  {'artifact': af.id, 'request': context.request_id})
         af = cls.db_api.update(context, af.id, {'status': cls.STATUS.ACTIVE})
         return cls._init_artifact(context, af)
@@ -689,8 +688,8 @@ class BaseArtifact(base.VersionedObject):
             raise exception.InvalidStatusTransition(
                 orig=af.status, new=cls.STATUS.ACTIVE
             )
-        LOG.info(_LI("Parameters validation for artifact %(artifact)s "
-                     "reactivate passed for request %(request)s."),
+        LOG.info("Parameters validation for artifact %(artifact)s "
+                 "reactivate passed for request %(request)s.",
                  {'artifact': af.id, 'request': context.request_id})
         af = cls.db_api.update(context, af.id, {'status': cls.STATUS.ACTIVE})
         return cls._init_artifact(context, af)
@@ -719,8 +718,8 @@ class BaseArtifact(base.VersionedObject):
             raise exception.InvalidStatusTransition(
                 orig=af.status, new=cls.STATUS.ACTIVE
             )
-        LOG.info(_LI("Parameters validation for artifact %(artifact)s "
-                     "deactivate passed for request %(request)s."),
+        LOG.info("Parameters validation for artifact %(artifact)s "
+                 "deactivate passed for request %(request)s.",
                  {'artifact': af.id, 'request': context.request_id})
         af = cls.db_api.update(context, af.id,
                                {'status': cls.STATUS.DEACTIVATED})
@@ -748,8 +747,8 @@ class BaseArtifact(base.VersionedObject):
             cls._validate_versioning(context, af.name, af.version,
                                      is_public=True)
             cls.validate_publish(context, af)
-            LOG.info(_LI("Parameters validation for artifact %(artifact)s "
-                         "publish passed for request %(request)s."),
+            LOG.info("Parameters validation for artifact %(artifact)s "
+                     "publish passed for request %(request)s.",
                      {'artifact': af.id, 'request': context.request_id})
             af = cls.db_api.update(context, af.id, {'visibility': 'public'})
             return cls._init_artifact(context, af)

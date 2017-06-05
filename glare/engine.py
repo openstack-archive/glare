@@ -24,7 +24,7 @@ from glare.common import exception
 from glare.common import policy
 from glare.common import store_api
 from glare.common import utils
-from glare.i18n import _, _LI
+from glare.i18n import _
 from glare.notification import Notifier
 from glare.objects import base
 from glare.objects.meta import fields as glare_fields
@@ -266,8 +266,8 @@ class Engine(object):
             blob["sha256"] = blob_meta.pop("sha256", None)
         modified_af = cls.update_blob(
             context, type_name, artifact_id, blob, field_name, blob_key)
-        LOG.info(_LI("External location %(location)s has been created "
-                     "successfully for artifact %(artifact)s blob %(blob)s"),
+        LOG.info("External location %(location)s has been created "
+                 "successfully for artifact %(artifact)s blob %(blob)s",
                  {'location': location, 'artifact': af.id,
                   'blob': blob_name})
 
@@ -333,8 +333,8 @@ class Engine(object):
                                        field_name, blob_dict_attr)
             blob_name = "%s[%s]" % (field_name, blob_key) \
                 if blob_key else field_name
-            LOG.info(_LI("Successfully finished blob upload for artifact "
-                         "%(artifact)s blob field %(blob)s."),
+            LOG.info("Successfully finished blob upload for artifact "
+                     "%(artifact)s blob field %(blob)s.",
                      {'artifact': af.id, 'blob': blob_name})
 
             # update blob info and activate it

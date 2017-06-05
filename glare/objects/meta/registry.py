@@ -25,7 +25,7 @@ from oslo_versionedobjects import base as vo_base
 import six
 
 from glare.common import exception
-from glare.i18n import _, _LE
+from glare.i18n import _
 from glare.objects import base
 
 CONF = cfg.CONF
@@ -67,8 +67,8 @@ def import_modules_list(modules):
             custom_module_list.append(importlib.import_module(module_name))
         except Exception as e:
             LOG.exception(e)
-            LOG.error(_LE("Cannot import custom artifact type from module "
-                          "%(module_name)%s. Error: %(error)s"),
+            LOG.error("Cannot import custom artifact type from module "
+                      "%(module_name)%s. Error: %(error)s",
                       {'module_name': module_name, 'error': str(e)})
     return custom_module_list
 
