@@ -77,7 +77,7 @@ class RequestTest(base.BaseTestCase):
                         return_value=['en']):
             req = wsgi.Request.blank(
                 '/', headers={'Accept-Language': 'Klingon'})
-        self.assertEqual(None, req.best_match_language())
+        self.assertIsNone(req.best_match_language())
 
     @mock.patch.object(webob.acceptparse.AcceptLanguage, 'best_match')
     def test_best_match_language_unknown(self, mock_best_match):
