@@ -17,15 +17,15 @@
 from oslo_versionedobjects import fields
 
 from glare.objects import base as base_artifact
-from glare.objects.meta import attribute
 from glare.objects.meta import fields as glare_fields
 from glare.objects.meta import validators
+from glare.objects.meta import wrappers
 
-Field = attribute.Attribute.init
-Dict = attribute.DictAttribute.init
-List = attribute.ListAttribute.init
-Blob = attribute.BlobAttribute.init
-BlobDict = attribute.BlobDictAttribute.init
+Field = wrappers.Field.init
+Dict = wrappers.DictField.init
+List = wrappers.ListField.init
+Blob = wrappers.BlobField.init
+Folder = wrappers.FolderField.init
 
 
 class SampleArtifact(base_artifact.BaseArtifact):
@@ -42,11 +42,11 @@ class SampleArtifact(base_artifact.BaseArtifact):
                        required_on_activate=False),
         'bool1': Field(fields.FlexibleBooleanField,
                        required_on_activate=False,
-                       filter_ops=(attribute.FILTER_EQ,),
+                       filter_ops=(wrappers.FILTER_EQ,),
                        default=False),
         'bool2': Field(fields.FlexibleBooleanField,
                        required_on_activate=False,
-                       filter_ops=(attribute.FILTER_EQ,),
+                       filter_ops=(wrappers.FILTER_EQ,),
                        default=False),
         'int1': Field(fields.IntegerField,
                       required_on_activate=False,
@@ -65,31 +65,31 @@ class SampleArtifact(base_artifact.BaseArtifact):
                       required_on_activate=False),
         'list_of_str': List(fields.String,
                             required_on_activate=False,
-                            filter_ops=(attribute.FILTER_EQ,
-                                        attribute.FILTER_IN)),
+                            filter_ops=(wrappers.FILTER_EQ,
+                                        wrappers.FILTER_IN)),
         'list_of_int': List(fields.Integer,
                             required_on_activate=False,
-                            filter_ops=(attribute.FILTER_EQ,
-                                        attribute.FILTER_IN)),
+                            filter_ops=(wrappers.FILTER_EQ,
+                                        wrappers.FILTER_IN)),
         'dict_of_str': Dict(fields.String,
                             required_on_activate=False,
-                            filter_ops=(attribute.FILTER_EQ,
-                                        attribute.FILTER_IN)),
+                            filter_ops=(wrappers.FILTER_EQ,
+                                        wrappers.FILTER_IN)),
         'dict_of_int': Dict(fields.Integer,
                             required_on_activate=False,
-                            filter_ops=(attribute.FILTER_EQ,
-                                        attribute.FILTER_IN)),
+                            filter_ops=(wrappers.FILTER_EQ,
+                                        wrappers.FILTER_IN)),
         'dict_of_links': Dict(glare_fields.LinkFieldType,
                               mutable=True,
                               required_on_activate=False,
-                              filter_ops=(attribute.FILTER_EQ,)),
+                              filter_ops=(wrappers.FILTER_EQ,)),
         'list_of_links': List(glare_fields.LinkFieldType,
                               mutable=True,
                               required_on_activate=False,
-                              filter_ops=(attribute.FILTER_EQ,)),
-        'dict_of_blobs': BlobDict(required_on_activate=False,
-                                  validators=[
-                                      validators.MaxDictKeyLen(1000)]),
+                              filter_ops=(wrappers.FILTER_EQ,)),
+        'dict_of_blobs': Folder(required_on_activate=False,
+                                validators=[
+                                    validators.MaxDictKeyLen(1000)]),
         'string_mutable': Field(fields.StringField,
                                 required_on_activate=False,
                                 mutable=True),

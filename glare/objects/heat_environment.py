@@ -15,13 +15,9 @@
 
 
 from glare.objects import base
-from glare.objects.meta import attribute
+from glare.objects.meta import wrappers
 
-
-Field = attribute.Attribute.init
-Blob = attribute.BlobAttribute.init
-Dict = attribute.DictAttribute.init
-BlobDict = attribute.BlobDictAttribute.init
+Blob = wrappers.BlobField.init
 
 
 class HeatEnvironment(base.BaseArtifact):

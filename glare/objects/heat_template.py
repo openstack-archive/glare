@@ -16,14 +16,13 @@
 from oslo_versionedobjects import fields
 
 from glare.objects import base
-from glare.objects.meta import attribute
 from glare.objects.meta import fields as glare_fields
+from glare.objects.meta import wrappers
 
-
-Field = attribute.Attribute.init
-Blob = attribute.BlobAttribute.init
-Dict = attribute.DictAttribute.init
-BlobDict = attribute.BlobDictAttribute.init
+Field = wrappers.Field.init
+Blob = wrappers.BlobField.init
+Dict = wrappers.DictField.init
+Folder = wrappers.FolderField.init
 
 
 class HeatTemplate(base.BaseArtifact):
@@ -35,10 +34,10 @@ class HeatTemplate(base.BaseArtifact):
                                          "that can be used with current "
                                          "template."),
         'template': Blob(description="Heat template body."),
-        'nested_templates': BlobDict(description="Dict of nested templates "
-                                                 "where key is the name  of "
-                                                 "template and value is "
-                                                 "nested template body."),
+        'nested_templates': Folder(description="Dict of nested templates "
+                                               "where key is the name  of "
+                                               "template and value is "
+                                               "nested template body."),
         'default_envs': Dict(fields.String, mutable=True,
                              description="Default environments that can be "
                                          "applied to the template if no "
