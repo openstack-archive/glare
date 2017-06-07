@@ -287,7 +287,7 @@ class BaseArtifact(base.VersionedObject):
             else:
                 filters.extend([('visibility', 'public')])
             if len(cls.list(context, filters)) > 0:
-                msg = _("Artifact with this name and version is already "
+                msg = _("Artifact with this name and version already "
                         "exists for this owner.")
                 raise exception.Conflict(msg)
         else:
@@ -696,10 +696,6 @@ class BaseArtifact(base.VersionedObject):
             msg = _("Only {'status': %s} is allowed in a request "
                     "for reactivation.") % cls.STATUS.ACTIVE
             raise exception.BadRequest(msg)
-        if af.status != cls.STATUS.DEACTIVATED:
-            raise exception.InvalidStatusTransition(
-                orig=af.status, new=cls.STATUS.ACTIVE
-            )
         LOG.info("Parameters validation for artifact %(artifact)s "
                  "reactivate passed for request %(request)s.",
                  {'artifact': af.id, 'request': context.request_id})

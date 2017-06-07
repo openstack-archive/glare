@@ -14,7 +14,6 @@
 
 import operator
 import threading
-import uuid
 
 from oslo_config import cfg
 from oslo_db import exception as db_exception
@@ -100,13 +99,6 @@ def drop_db():
     models.unregister_models(engine)
 
 
-def clear_db_env():
-    """Unset global configuration variables for database.
-    """
-    global _FACADE
-    _FACADE = None
-
-
 def create(context, values, session):
     return _create_or_update(context, None, values, session)
 
@@ -138,15 +130,9 @@ def _create_or_update(context, artifact_id, values, session):
     with session.begin():
         _drop_protected_attrs(models.Artifact, values)
         if artifact_id is None:
-            if 'type_name' not in values:
-                msg = _('Type name must be set.')
-                raise exception.BadRequest(msg)
             # create new artifact
             artifact = models.Artifact()
-            if 'id' not in values:
-                artifact.id = str(uuid.uuid4())
-            else:
-                artifact.id = values.pop('id')
+            artifact.id = values.pop('id')
             artifact.created_at = timeutils.utcnow()
         else:
             # update the existing artifact

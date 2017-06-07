@@ -180,6 +180,11 @@ class TestArtifactUpload(base.BaseTestArtifactAPI):
             self.req, 'sample_artifact', self.sample_artifact['id'], 'INVALID',
             BytesIO(b'aaa'), 'application/octet-stream')
 
+        self.assertRaises(
+            exc.BadRequest, self.controller.upload_blob,
+            self.req, 'sample_artifact', self.sample_artifact['id'],
+            'blob/key', BytesIO(b'aaa'), 'application/octet-stream')
+
     def test_upload_non_blob_field(self):
         self.assertRaises(
             exc.BadRequest, self.controller.upload_blob,

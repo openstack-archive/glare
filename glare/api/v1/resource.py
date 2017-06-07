@@ -266,7 +266,7 @@ class ArtifactsController(api_versioning.VersionedResource):
 
     @supported_versions(min_ver='1.0')
     @log_request_progress
-    def list(self, req, type_name, filters, marker=None, limit=None,
+    def list(self, req, type_name, filters=None, marker=None, limit=None,
              sort=None, latest=False):
         """List available artifacts.
 

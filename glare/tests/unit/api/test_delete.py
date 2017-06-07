@@ -131,6 +131,22 @@ class TestArtifactUpdate(base.BaseTestArtifactAPI):
                           self.req, 'sample_artifact', self.artifact['id'])
 
     @mock.patch('glare.common.store_api.delete_blob',
+                side_effect=exc.NotFound)
+    def test_delete_blob_not_found(self, mocked_delete):
+        # Upload a file to blob dict
+        self.controller.upload_blob(
+            self.req, 'sample_artifact', self.artifact['id'],
+            'dict_of_blobs/blob',
+            BytesIO(b'a' * 100), 'application/octet-stream')
+
+        # Despite the exception artifact should be deleted successfully
+        self.controller.delete(self.req, 'sample_artifact',
+                               self.artifact['id'])
+        self.assertRaises(exc.NotFound, self.controller.show,
+                          self.req, 'sample_artifact', self.artifact['id'])
+        self.assertEqual(2, mocked_delete.call_count)
+
+    @mock.patch('glare.common.store_api.delete_blob',
                 side_effect=store_api.delete_blob)
     def test_delayed_delete(self, mocked_delete):
         # Enable delayed delete
