@@ -475,11 +475,12 @@ class error_handler(object):
 
 
 def get_schema_type(attr):
-    if isinstance(attr, fields.IntegerField):
+    if isinstance(attr, fields.IntegerField) or attr is fields.Integer:
         return 'integer'
-    elif isinstance(attr, fields.FloatField):
+    elif isinstance(attr, fields.FloatField) or attr is fields.Float:
         return 'number'
-    elif isinstance(attr, fields.BooleanField):
+    elif isinstance(attr, fields.FlexibleBooleanField) \
+            or attr is fields.FlexibleBoolean:
         return 'boolean'
     elif isinstance(attr, glare_fields.List):
         return 'array'
