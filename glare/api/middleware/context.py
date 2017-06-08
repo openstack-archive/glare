@@ -71,7 +71,7 @@ class BaseContextMiddleware(base_middleware.ConfigurableMiddleware):
         try:
             request_id = resp.request.context.request_id
         except AttributeError:
-            LOG.warn('Unable to retrieve request id from context')
+            LOG.warning('Unable to retrieve request id from context')
         else:
             # For python 3 compatibility need to use bytes type
             prefix = b'req-' if isinstance(request_id, bytes) else 'req-'
