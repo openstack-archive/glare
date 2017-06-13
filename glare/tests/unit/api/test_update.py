@@ -104,6 +104,10 @@ class TestArtifactUpdate(base.BaseTestArtifactAPI):
         res = self.update_with_values(changes)
         self.assertEqual('1.0', res['name'])
 
+        changes = [{'op': 'replace', 'path': '/name', 'value': "tt:t"}]
+        res = self.update_with_values(changes)
+        self.assertEqual('tt:t', res['name'])
+
         # version
         changes = [{'op': 'replace', 'path': '/version', 'value': 2.0}]
         res = self.update_with_values(changes)
@@ -112,6 +116,10 @@ class TestArtifactUpdate(base.BaseTestArtifactAPI):
         changes = [{'op': 'replace', 'path': '/version', 'value': '1-alpha'}]
         res = self.update_with_values(changes)
         self.assertEqual('1.0.0-alpha', res['version'])
+
+        changes = [{'op': 'replace', 'path': '/version', 'value': '1:0'}]
+        res = self.update_with_values(changes)
+        self.assertEqual('1.0.0-0', res['version'])
 
     def test_update_deleted_artifact(self):
         # Enable delayed delete
