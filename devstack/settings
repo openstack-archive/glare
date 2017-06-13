@@ -25,7 +25,7 @@ GLARE_AUTH_CACHE_DIR=${GLARE_AUTH_CACHE_DIR:-/var/cache/glare}
 GLARE_CONF_DIR=${GLARE_CONF_DIR:-/etc/glare}
 GLARE_CONF_FILE=$GLARE_CONF_DIR/glare.conf
 GLARE_PASTE_INI=$GLARE_CONF_DIR/glare-paste.ini
-GLARE_POLICY_JSON=$GLARE_CONF_DIR/policy.json
+GLARE_POLICY_FILE=$GLARE_CONF_DIR/policy.yaml
 GLARE_SWIFT_STORE_CONF=$GLARE_CONF_DIR/glare-swift-store.conf
 
 if is_ssl_enabled_service "glare" || is_service_enabled tls-proxy; then

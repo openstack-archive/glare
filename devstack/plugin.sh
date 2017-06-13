@@ -42,6 +42,11 @@ function mkdir_chown_stack {
 
 
 function configure_glare {
+
+    # create and clean up auth cache dir
+    mkdir_chown_stack "$GLARE_AUTH_CACHE_DIR"
+    rm -f "$GLARE_AUTH_CACHE_DIR"/*
+
     mkdir_chown_stack "$GLARE_CONF_DIR"
 
     # Generate Glare configuration file and configure common parameters.
@@ -52,21 +57,15 @@ function configure_glare {
 
     iniset $GLARE_CONF_FILE DEFAULT debug $GLARE_DEBUG
 
-    GLARE_POLICY_FILE=$GLARE_CONF_DIR/policy.json
     oslopolicy-sample-generator --namespace=glare --output-file=$GLARE_POLICY_FILE
+    sed -i 's/^#"//' $GLARE_POLICY_FILE
 
     cp -p $GLARE_DIR/etc/glare-paste.ini $GLARE_CONF_DIR
 
     iniset $GLARE_CONF_FILE paste_deploy flavor $GLARE_FLAVOR
 
     # Setup keystone_authtoken section
-    iniset $GLARE_CONF_FILE keystone_authtoken auth_host $KEYSTONE_AUTH_HOST
-    iniset $GLARE_CONF_FILE keystone_authtoken auth_port $KEYSTONE_AUTH_PORT
-    iniset $GLARE_CONF_FILE keystone_authtoken auth_protocol $KEYSTONE_AUTH_PROTOCOL
-    iniset $GLARE_CONF_FILE keystone_authtoken admin_tenant_name $SERVICE_TENANT_NAME
-    iniset $GLARE_CONF_FILE keystone_authtoken admin_user $GLARE_ADMIN_USER
-    iniset $GLARE_CONF_FILE keystone_authtoken admin_password $SERVICE_PASSWORD
-    iniset $GLARE_CONF_FILE keystone_authtoken auth_uri "http://${KEYSTONE_AUTH_HOST}:5000/v3"
+    configure_auth_token_middleware $GLARE_CONF_FILE glare $GLARE_AUTH_CACHE_DIR
 
     # Setup RabbitMQ credentials
     iniset $GLARE_CONF_FILE oslo_messaging_rabbit rabbit_userid $RABBIT_USERID
@@ -80,7 +79,7 @@ function configure_glare {
     iniset $GLARE_CONF_FILE database max_overflow -1
     iniset $GLARE_CONF_FILE database max_pool_size 1000
 
-    # Path of policy.json file.
+    # Path of policy.yaml file.
     iniset $GLARE_CONF_FILE oslo_policy policy_file $GLARE_POLICY_FILE
 
     if [ "$LOG_COLOR" == "True" ] && [ "$SYSLOG" == "False" ]; then
@@ -177,8 +176,8 @@ if is_service_enabled glare; then
         install_glare_pythonclient
     elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
         echo_summary "Configuring glare"
-        configure_glare
         create_glare_accounts
+        configure_glare
     elif [[ "$1" == "stack" && "$2" == "extra" ]]; then
         echo_summary "Initializing glare"
         init_glare
