@@ -21,17 +21,37 @@ class TestArtifactCreate(base.BaseTestArtifactAPI):
     """Test Glare artifact creation."""
 
     def test_create_artifact_minimal(self):
-        values = {'name': 'ttt'}
 
+        for name in ['ttt', 'tt:t', 'tt t', 'tt: t', 'tt,t']:
+            values = {'name': name}
+
+            res = self.controller.create(self.req, 'sample_artifact', values)
+            self.assertEqual(name, res['name'])
+            self.assertEqual('0.0.0', res['version'])
+            self.assertEqual(self.users['user1']['tenant_id'], res['owner'])
+            self.assertEqual('drafted', res['status'])
+            self.assertEqual('private', res['visibility'])
+            self.assertEqual('', res['description'])
+            self.assertEqual({}, res['metadata'])
+            self.assertEqual([], res['tags'])
+
+    def test_create_artifact_with_version(self):
+        values = {'name': 'name', 'version': '1.0'}
         res = self.controller.create(self.req, 'sample_artifact', values)
-        self.assertEqual('ttt', res['name'])
-        self.assertEqual('0.0.0', res['version'])
-        self.assertEqual(self.users['user1']['tenant_id'], res['owner'])
-        self.assertEqual('drafted', res['status'])
-        self.assertEqual('private', res['visibility'])
-        self.assertEqual('', res['description'])
-        self.assertEqual({}, res['metadata'])
-        self.assertEqual([], res['tags'])
+        self.assertEqual('name', res['name'])
+        self.assertEqual('1.0.0', res['version'])
+
+        values = {'name': 'name', 'version': '1:0'}
+        res = self.controller.create(self.req, 'sample_artifact', values)
+        self.assertEqual('1.0.0-0', res['version'])
+
+        values = {'name': 'name', 'version': '1:0:0'}
+        res = self.controller.create(self.req, 'sample_artifact', values)
+        self.assertEqual('1.0.0-0-0', res['version'])
+
+        values = {'name': 'name', 'version': '2:0-0'}
+        res = self.controller.create(self.req, 'sample_artifact', values)
+        self.assertEqual('2.0.0-0-0', res['version'])
 
     def test_create_artifact_with_fields(self):
         values = {'name': 'ttt', 'version': '1.0',
@@ -65,6 +85,10 @@ class TestArtifactCreate(base.BaseTestArtifactAPI):
                           self.req, 'sample_artifact', values)
 
         values = {'name': 'test', 'version': -1}
+        self.assertRaises(exc.BadRequest, self.controller.create,
+                          self.req, 'sample_artifact', values)
+
+        values = {'name': 'test', 'version': ':'}
         self.assertRaises(exc.BadRequest, self.controller.create,
                           self.req, 'sample_artifact', values)
 

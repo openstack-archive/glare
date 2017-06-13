@@ -280,9 +280,9 @@ class BaseArtifact(base.VersionedObject):
         :param is_public: flag that indicates to search artifact globally
         """
         if version is not None and name not in (None, ""):
-            filters = [('name', name), ('version', version)]
+            filters = [('name', 'eq:' + name), ('version', 'eq:' + version)]
             if is_public is False:
-                filters.extend([('owner', context.tenant),
+                filters.extend([('owner', 'eq:' + context.tenant),
                                 ('visibility', 'private')])
             else:
                 filters.extend([('visibility', 'public')])
