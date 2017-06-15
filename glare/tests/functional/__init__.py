@@ -336,6 +336,56 @@ paste.filter_factory =
 """
 
 
+class ScrubberDaemon(Server):
+    """
+    Server object that starts/stops/manages the Scrubber server
+    """
+
+    def __init__(self, test_dir, policy_file, daemon=False, **kwargs):
+        # NOTE(jkoelker): Set the port to 0 since we actually don't listen
+        super(ScrubberDaemon, self).__init__(test_dir, 0)
+        self.server_name = 'scrubber'
+        self.server_module = 'glare.cmd.%s' % self.server_name
+        self.daemon = daemon
+
+        self.blob_dir = os.path.join(self.test_dir, "artifacts")
+        self.scrub_time = 5
+        self.pid_file = os.path.join(self.test_dir, "scrubber.pid")
+        self.log_file = os.path.join(self.test_dir, "scrubber.log")
+        self.lock_path = self.test_dir
+
+        default_sql_connection = 'sqlite:////%s/tests.sqlite' % self.test_dir
+        self.sql_connection = os.environ.get('GLARE_TEST_SQL_CONNECTION',
+                                             default_sql_connection)
+        self.policy_file = policy_file
+        self.policy_default_rule = 'default'
+
+        self.conf_base = """[DEFAULT]
+debug = %(debug)s
+log_file = %(log_file)s
+[scrubber]
+daemon = %(daemon)s
+wakeup_time = 2
+scrub_time = %(scrub_time)s
+[glance_store]
+filesystem_store_datadir=%(blob_dir)s
+[oslo_policy]
+policy_file = %(policy_file)s
+policy_default_rule = %(policy_default_rule)s
+[database]
+connection = %(sql_connection)s
+idle_timeout = 3600
+"""
+
+    def start(self, expect_exit=True, expected_exitcode=0, **kwargs):
+        if 'daemon' in kwargs:
+            expect_exit = False
+        return super(ScrubberDaemon, self).start(
+            expect_exit=expect_exit,
+            expected_exitcode=expected_exitcode,
+            **kwargs)
+
+
 class FunctionalTest(test_utils.BaseTestCase):
 
     """Base test class for any test that wants to test the actual
@@ -353,6 +403,8 @@ class FunctionalTest(test_utils.BaseTestCase):
         self.api_protocol = 'http'
         self.glare_port, glare_sock = test_utils.get_unused_port_and_socket()
 
+        self.include_scrubber = False
+
         self.tracecmd = tracecmd_osmap.get(platform.system())
 
         conf_dir = os.path.join(self.test_dir, 'etc')
@@ -365,7 +417,10 @@ class FunctionalTest(test_utils.BaseTestCase):
                                         self.policy_file,
                                         sock=glare_sock)
 
-        self.pid_files = [self.glare_server.pid_file]
+        self.scrubber_daemon = ScrubberDaemon(self.test_dir, self.policy_file)
+
+        self.pid_files = [self.glare_server.pid_file,
+                          self.scrubber_daemon.pid_file]
         self.files_to_destroy = []
         self.launched_servers = []
 
@@ -379,6 +434,7 @@ class FunctionalTest(test_utils.BaseTestCase):
         super(FunctionalTest, self).tearDown()
 
         self.glare_server.dump_log('glare_server')
+        self.scrubber_daemon.dump_log('scrubber_daemon')
 
     def set_policy_rules(self, rules):
         with open(self.policy_file, 'w') as fap:
@@ -423,7 +479,8 @@ class FunctionalTest(test_utils.BaseTestCase):
         # server is dead.  This eliminates the possibility of a race
         # between a child process listening on a port actually dying
         # and a new process being started
-        servers = [self.glare_server]
+        servers = [self.glare_server,
+                   self.scrubber_daemon]
         for s in servers:
             try:
                 s.stop()
@@ -510,6 +567,12 @@ class FunctionalTest(test_utils.BaseTestCase):
 
         self.start_with_retry(self.glare_server, 'glare_port', 3, **kwargs)
 
+        if self.include_scrubber:
+            exitcode, out, err = self.scrubber_daemon.start(**kwargs)
+            self.assertEqual(0, exitcode,
+                             "Failed to spin up the Scrubber daemon. "
+                             "Got: %s" % err)
+
     def ping_server(self, port):
         """Simple ping on the port. If responsive, return True, else
         return False.
@@ -580,7 +643,7 @@ class FunctionalTest(test_utils.BaseTestCase):
 
         return msg if expect_launch else None
 
-    def stop_server(self, server, name):
+    def stop_server(self, server):
         """Called to stop a single server in a normal fashion.
 
         :param server: the server to stop
@@ -589,7 +652,10 @@ class FunctionalTest(test_utils.BaseTestCase):
         server.stop()
 
     def stop_servers(self):
-        self.stop_server(self.glare_server, 'Glare server')
+        self.stop_server(self.glare_server)
+
+        if self.include_scrubber:
+            self.stop_server(self.scrubber_daemon)
 
         self._reset_database(self.glare_server.sql_connection)
 
