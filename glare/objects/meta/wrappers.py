@@ -31,7 +31,30 @@ class Field(object):
     def __init__(self, field_class, mutable=False, required_on_activate=True,
                  system=False, validators=None, nullable=True, default=None,
                  sortable=False, filter_ops=None, description=""):
-        """Init and validate field."""
+        """Init and validate field.
+        Each artifact field has several common properties:
+
+        :param required_on_activate: boolean value indicating if the field
+         value should be specified for the artifact
+         before activation (Default:True).
+        :param mutable: boolean value indicating if the field value may
+         be changed after the artifact is activated. (Default: False)
+        :param system: boolean value indicating if the field
+         value cannot be edited by user (Default: False).
+        :param sortable: boolean value indicating if there is a possibility
+         to sort by this fields's values. (Default: False) Only fields of
+         4 primitive types may be sortable: integer, string, float and boolean.
+        :param default: a default value for the field may be specified
+         (Default: None).
+        :param validators: a list of objects. When user sets a value to
+         the field with additional validators Glare checks them before setting
+         the value and raises ValueError if at least one of the requirements
+         is not satisfied.
+        :param filter_ops: a list of available filter operators for the field.
+         There are seven available operators:
+         'eq', 'neq', 'lt', 'lte', 'gt', 'gte', 'in'.
+         """
+
         if not issubclass(field_class, fields.AutoTypedField):
             raise exc.IncorrectArtifactType(
                 "Field class %s must be sub-class of AutoTypedField." %
