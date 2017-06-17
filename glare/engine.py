@@ -399,7 +399,7 @@ class Engine(object):
         blob_name = "%s[%s]" % (field_name, blob_key)\
             if blob_key else field_name
 
-        # check if property is downloadable
+        # check if field is downloadable
         if blob_key is None and not af.is_blob(field_name):
             msg = _("%s is not a blob") % field_name
             raise exception.BadRequest(msg)
@@ -440,4 +440,17 @@ class Engine(object):
             data = store_api.load_from_store(uri=blob['url'], context=context)
             meta['size'] = blob.get('size')
             meta['content_type'] = blob.get('content_type')
-        return data, meta
+
+        path = None
+        try:
+            try:
+                # call download hook first
+                data, path = af.validate_download(
+                    context, af, field_name, data)
+            except Exception as e:
+                raise exception.BadRequest(message=str(e))
+
+            return data, meta
+        finally:
+            if path:
+                os.remove(path)
