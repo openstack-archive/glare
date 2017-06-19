@@ -252,7 +252,7 @@ class ArtifactBlobData(BASE, ArtifactBase):
     __table_args__ = (
         {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8'},)
     id = Column(String(255), primary_key=True, nullable=False)
-    data = Column(LargeBinary, nullable=False)
+    data = Column(LargeBinary(length=(2 ** 32) - 1), nullable=False)
 
 
 def register_models(engine):
