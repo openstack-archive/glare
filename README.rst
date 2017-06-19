@@ -7,10 +7,10 @@ unified catalog of structured meta-information as well as related binary data
 
 * Get Started: https://github.com/openstack/glare/blob/master/doc/source/quickstart.rst
 * Documentation: https://github.com/openstack/glare/blob/master/doc
-* Source: http://git.openstack.org/cgit/openstack/glare
-* Bugs: http://bugs.launchpad.net/glare
+* Source: https://git.openstack.org/cgit/openstack/glare
+* Bugs: https://bugs.launchpad.net/glare
 * Blueprints:** https://blueprints.launchpad.net/glare
-* REST Client:** http://git.openstack.org/cgit/openstack/python-glareclient
+* REST Client:** https://git.openstack.org/cgit/openstack/python-glareclient
 
 License
 -------
