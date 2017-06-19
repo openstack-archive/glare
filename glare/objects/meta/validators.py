@@ -13,23 +13,27 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo_log import log as logging
-from oslo_utils import encodeutils
-from oslo_versionedobjects import fields
+import abc
+import uuid
 
+from oslo_log import log as logging
+from oslo_versionedobjects import fields
+import six
+
+from glare.common import exception
 from glare.i18n import _
 from glare.objects.meta import fields as glare_fields
 
 LOG = logging.getLogger(__name__)
 
 
+@six.add_metaclass(abc.ABCMeta)
 class Validator(object):
     """Common interface for all validators."""
 
-    def validate(self, value):
-        raise NotImplementedError()
-
-    def get_allowed_types(self):
+    @staticmethod
+    @abc.abstractmethod
+    def get_allowed_types():
         raise NotImplementedError()
 
     def check_type_allowed(self, field_type):
@@ -40,7 +44,7 @@ class Validator(object):
                                         for field in self.get_allowed_types()
                                         if hasattr(field, 'AUTO_TYPE'))
             if not issubclass(field_type, allowed_field_types):
-                raise TypeError(
+                raise exception.IncorrectArtifactType(
                     _("%(type)s is not allowed for validator "
                       "%(val)s. Allowed types are %(allowed)s.") % {
                         "type": str(field_type),
@@ -50,23 +54,19 @@ class Validator(object):
     def to_jsonschema(self):
         return {}
 
+    @abc.abstractmethod
     def __call__(self, value):
-        try:
-            self.validate(value)
-        except ValueError:
-            raise
-        except TypeError as e:
-            # we are raising all expected ex Type Errors as ValueErrors
-            LOG.exception(e)
-            raise ValueError(encodeutils.exception_to_unicode(e))
+        raise NotImplemented
 
 
 class UUID(Validator):
-    def get_allowed_types(self):
+
+    @staticmethod
+    def get_allowed_types():
         return fields.StringField,
 
-    def validate(self, value):
-        pass
+    def __call__(self, value):
+        uuid.UUID(value, version=4)
 
     def to_jsonschema(self):
         return {'pattern': ('^([0-9a-fA-F]){8}-([0-9a-fA-F]){4}-([0-9a-fA-F])'
@@ -74,26 +74,30 @@ class UUID(Validator):
 
 
 class AllowedValues(Validator):
+
     def __init__(self, allowed_values):
         self.allowed_values = allowed_values
 
-    def get_allowed_types(self):
-        return fields.StringField,
+    @staticmethod
+    def get_allowed_types():
+        return fields.StringField, fields.IntegerField, fields.FloatField
 
-    def validate(self, value):
+    def __call__(self, value):
         if value not in self.allowed_values:
             raise ValueError(_("Value must be one of the following: %s") %
-                             ', '.join(self.allowed_values))
+                             ', '.join(map(str, self.allowed_values)))
 
     def to_jsonschema(self):
         return {'enum': self.allowed_values}
 
 
 class Version(Validator):
-    def get_allowed_types(self):
-        return glare_fields.VersionField
 
-    def validate(self, value):
+    @staticmethod
+    def get_allowed_types():
+        return glare_fields.VersionField,
+
+    def __call__(self, value):
         pass
 
     def to_jsonschema(self):
@@ -101,77 +105,87 @@ class Version(Validator):
                             '+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/')}
 
 
+@six.add_metaclass(abc.ABCMeta)
 class SizeValidator(Validator):
+
     def __init__(self, size):
         self.size = size
 
 
 class MaxStrLen(SizeValidator):
-    def get_allowed_types(self):
+
+    @staticmethod
+    def get_allowed_types():
         return fields.StringField,
 
-    def validate(self, value):
+    def __call__(self, value):
         l = len(value)
         if l > self.size:
             raise ValueError(
-                _("String length must be less than  %(size)s. "
-                  "Current size: %(cur)s") % {'size': self.size,
-                                              'cur': l})
+                _("String length must be less than  %(size)d. "
+                  "Current length: %(cur)d") % {'size': self.size,
+                                                'cur': l})
 
     def to_jsonschema(self):
         return {'maxLength': self.size}
 
 
 class MinStrLen(SizeValidator):
-    def get_allowed_types(self):
+
+    @staticmethod
+    def get_allowed_types():
         return fields.StringField,
 
-    def validate(self, value):
+    def __call__(self, value):
         l = len(value)
         if l < self.size:
             raise ValueError(
-                _("String length must be more than  %(size)s. "
-                  "Current size: %(cur)s") % {'size': self.size,
-                                              'cur': l})
+                _("String length must be less than  %(size)d. "
+                  "Current length: %(cur)d") % {'size': self.size,
+                                                'cur': l})
 
     def to_jsonschema(self):
         return {'minLength': self.size}
 
 
 class ForbiddenChars(Validator):
+
     def __init__(self, forbidden_chars):
         self.forbidden_chars = forbidden_chars
 
-    def get_allowed_types(self):
+    @staticmethod
+    def get_allowed_types():
         return fields.StringField,
 
-    def validate(self, value):
+    def __call__(self, value):
         for fc in self.forbidden_chars:
             if fc in value:
                 raise ValueError(
-                    _("Forbidden character %(char) found in string "
+                    _("Forbidden character %(char)c found in string "
                       "%(string)s")
                     % {"char": fc, "string": value})
 
+    def to_jsonschema(self):
+        return {'pattern': '^[^%s]+$' % ''.join(self.forbidden_chars)}
 
+
+@six.add_metaclass(abc.ABCMeta)
 class MaxSize(SizeValidator):
 
-    def validate(self, value):
+    def __call__(self, value):
         l = len(value)
         if l > self.size:
             raise ValueError(
                 _("Number of items must be less than  "
-                  "%(size)s. Current size: %(cur)s") %
+                  "%(size)d. Current size: %(cur)d") %
                 {'size': self.size, 'cur': l})
-
-    def to_jsonschema(self):
-        return {'maxItems': self.size}
 
 
 class MaxDictSize(MaxSize):
 
-    def get_allowed_types(self):
-        return glare_fields.Dict
+    @staticmethod
+    def get_allowed_types():
+        return glare_fields.Dict,
 
     def to_jsonschema(self):
         return {'maxProperties': self.size}
@@ -179,20 +193,55 @@ class MaxDictSize(MaxSize):
 
 class MaxListSize(MaxSize):
 
-    def get_allowed_types(self):
-        return glare_fields.List
+    @staticmethod
+    def get_allowed_types():
+        return glare_fields.List,
 
     def to_jsonschema(self):
         return {'maxItems': self.size}
 
 
-class MaxNumberSize(SizeValidator):
-    def validate(self, value):
-        if value > self.size:
-            raise ValueError("Number is too big: %s. Max allowed number is "
-                             "%s" % (value, self.size))
+@six.add_metaclass(abc.ABCMeta)
+class MinSize(SizeValidator):
 
-    def get_allowed_types(self):
+    def __call__(self, value):
+        l = len(value)
+        if l < self.size:
+            raise ValueError(
+                _("Number of items must be greater than  "
+                  "%(size)d. Current size: %(cur)d") %
+                {'size': self.size, 'cur': l})
+
+
+class MinDictSize(MinSize):
+
+    @staticmethod
+    def get_allowed_types():
+        return glare_fields.Dict,
+
+    def to_jsonschema(self):
+        return {'minProperties': self.size}
+
+
+class MinListSize(MinSize):
+
+    @staticmethod
+    def get_allowed_types():
+        return glare_fields.List,
+
+    def to_jsonschema(self):
+        return {'minItems': self.size}
+
+
+class MaxNumberSize(SizeValidator):
+
+    def __call__(self, value):
+        if value > self.size:
+            raise ValueError("Number is too big: %d. Max allowed number is "
+                             "%d" % (value, self.size))
+
+    @staticmethod
+    def get_allowed_types():
         return fields.IntegerField, fields.FloatField
 
     def to_jsonschema(self):
@@ -200,12 +249,14 @@ class MaxNumberSize(SizeValidator):
 
 
 class MinNumberSize(SizeValidator):
-    def validate(self, value):
-        if value < self.size:
-            raise ValueError("Number is too small: %s. Min allowed number is "
-                             "%s" % (value, self.size))
 
-    def get_allowed_types(self):
+    def __call__(self, value):
+        if value < self.size:
+            raise ValueError("Number is too small: %d. Min allowed number is "
+                             "%d" % (value, self.size))
+
+    @staticmethod
+    def get_allowed_types():
         return fields.IntegerField, fields.FloatField
 
     def to_jsonschema(self):
@@ -213,50 +264,34 @@ class MinNumberSize(SizeValidator):
 
 
 class Unique(Validator):
+
     def __init__(self, convert_to_set=False):
         self.convert_to_set = convert_to_set
 
-    def get_allowed_types(self):
+    @staticmethod
+    def get_allowed_types():
         return glare_fields.List,
 
-    def validate(self, value):
+    def __call__(self, value):
         if self.convert_to_set:
             value[:] = list(set(value))
         elif len(value) != len(set(value)):
             raise ValueError(_("List items %s must be unique.") % value)
 
     def to_jsonschema(self):
-        return {'unique': True}
-
-
-class AllowedListValues(Validator):
-    def __init__(self, allowed_values):
-        self.allowed_items = allowed_values
-
-    def get_allowed_types(self):
-        return glare_fields.List,
-
-    def validate(self, value):
-        for item in value:
-            if item not in self.allowed_items:
-                raise ValueError(
-                    _("Value %(item)s is not allowed in list. "
-                      "Allowed list values: %(allowed)s") %
-                    {"item": item,
-                     "allowed": self.allowed_items})
-
-    def to_jsonschema(self):
-        return {'enum': self.allowed_items}
+        return {'uniqueItems': True}
 
 
 class AllowedDictKeys(Validator):
+
     def __init__(self, allowed_keys):
         self.allowed_items = allowed_keys
 
-    def get_allowed_types(self):
+    @staticmethod
+    def get_allowed_types():
         return glare_fields.Dict,
 
-    def validate(self, value):
+    def __call__(self, value):
         for item in value:
             if item not in self.allowed_items:
                 raise ValueError(_("Key %(item)s is not allowed in dict. "
@@ -271,17 +306,19 @@ class AllowedDictKeys(Validator):
 
 
 class RequiredDictKeys(Validator):
+
     def __init__(self, required_keys):
         self.required_items = required_keys
 
-    def get_allowed_types(self):
+    @staticmethod
+    def get_allowed_types():
         return glare_fields.Dict,
 
-    def validate(self, value):
+    def __call__(self, value):
         for item in self.required_items:
             if item not in value:
-                raise ValueError(_("Key \"%(item)s\" is required in property "
-                                   "dictionary: %(value)s.") %
+                raise ValueError(_("Key \"%(item)s\" is required in "
+                                   "dictionary %(value)s.") %
                                  {"item": item,
                                   "value": ''.join(
                                       '{}:{}, '.format(key, val)
@@ -292,49 +329,69 @@ class RequiredDictKeys(Validator):
 
 
 class MaxDictKeyLen(SizeValidator):
-    def get_allowed_types(self):
+
+    @staticmethod
+    def get_allowed_types():
         return glare_fields.Dict,
 
-    def validate(self, value):
+    def __call__(self, value):
         for key in value:
             if len(str(key)) > self.size:
                 raise ValueError(_("Dict key length %(key)s must be less than "
-                                   "%(size)s.") % {'key': key,
+                                   "%(size)d.") % {'key': key,
                                                    'size': self.size})
 
 
 class MinDictKeyLen(SizeValidator):
-    def get_allowed_types(self):
+
+    @staticmethod
+    def get_allowed_types():
         return glare_fields.Dict,
 
-    def validate(self, value):
+    def __call__(self, value):
         for key in value:
             if len(str(key)) < self.size:
                 raise ValueError(_("Dict key length %(key)s must be bigger "
-                                   "than %(size)s.") % {'key': key,
+                                   "than %(size)d.") % {'key': key,
                                                         'size': self.size})
 
 
+@six.add_metaclass(abc.ABCMeta)
 class ElementValidator(Validator):
+
     def __init__(self, validators):
         self.validators = validators
 
 
 class ListElementValidator(ElementValidator):
-    def get_allowed_types(self):
+
+    @staticmethod
+    def get_allowed_types():
         return glare_fields.List,
 
-    def validate(self, value):
+    def __call__(self, value):
         for v in value:
             for validator in self.validators:
                 validator(v)
 
+    def to_jsonschema(self):
+        return {'itemValidators': [
+            val.to_jsonschema() for val in self.validators
+        ]}
+
 
 class DictElementValidator(ElementValidator):
-    def get_allowed_types(self):
+
+    @staticmethod
+    def get_allowed_types():
         return glare_fields.Dict,
 
-    def validate(self, value):
+    def __call__(self, value):
         for v in value.values():
             for validator in self.validators:
                 validator(v)
+
+    def to_jsonschema(self):
+        return {'propertyValidators': [
+            val.to_jsonschema() for val in self.validators
+        ]}
