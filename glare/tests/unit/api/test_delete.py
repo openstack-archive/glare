@@ -95,6 +95,9 @@ class TestArtifactUpdate(base.BaseTestArtifactAPI):
         # Deleting of the artifact leads to Conflict error
         self.assertRaises(exc.Conflict, self.controller.delete,
                           self.req, 'sample_artifact', self.artifact['id'])
+        self.artifact = self.controller.show(
+            self.req, 'sample_artifact', self.artifact['id'])
+        self.assertEqual('drafted', self.artifact['status'])
 
     def test_delete_deleted_artifact(self):
         # Change status of the artifact to 'deleted'
