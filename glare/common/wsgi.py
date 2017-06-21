@@ -55,9 +55,9 @@ from glare.i18n import _
 
 
 bind_opts = [
-    cfg.StrOpt('bind_host', default='0.0.0.0',
-               help=_('Address to bind the server.  Useful when '
-                      'selecting a particular network interface.')),
+    cfg.HostAddressOpt('bind_host', default='0.0.0.0',
+                       help=_('Address to bind the server.  Useful when '
+                              'selecting a particular network interface.')),
     cfg.PortOpt('bind_port',
                 help=_('The port on which the server will listen.')),
 ]
