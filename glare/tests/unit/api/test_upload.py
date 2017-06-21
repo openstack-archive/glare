@@ -196,3 +196,39 @@ class TestArtifactUpload(base.BaseTestArtifactAPI):
             exc.BadRequest, self.controller.upload_blob,
             self.req, 'sample_artifact', self.sample_artifact['id'],
             'dict_of_blobs/', BytesIO(b'aaa'), 'application/octet-stream')
+
+    def test_parallel_uploading_and_activation(self):
+        """
+        This test check whether it is possible to activate an artifact,
+        when it has uploading blobs.
+        """
+        self.controller.upload_blob(
+            self.req, 'sample_artifact', self.sample_artifact['id'], 'blob',
+            BytesIO(b'aaa'), 'application/octet-stream')
+        self.sample_artifact = self.controller.show(
+            self.req, 'sample_artifact', self.sample_artifact['id'])
+        changes = [{'op': 'replace',
+                    'path': '/string_required',
+                    'value': 'ttt'}]
+        self.update_with_values(changes)
+
+        # Change status of the blob to 'saving'
+        self.sample_artifact['blob']['status'] = 'saving'
+        artifact_api.ArtifactAPI().update_blob(
+            self.req.context, self.sample_artifact['id'],
+            {'blob': self.sample_artifact['blob']})
+        self.sample_artifact = self.controller.show(
+            self.req, 'sample_artifact', self.sample_artifact['id'])
+        self.assertEqual('saving', self.sample_artifact['blob']['status'])
+
+        # activation of artifact with saving blobs lead to Conflict error
+        changes = [{'op': 'replace', 'path': '/status', 'value': 'active'}]
+        self.assertRaises(exc.Conflict, self.update_with_values, changes)
+
+        # create another artifact which doesn't have uploading blobs
+        values = {'name': 'ttt', 'version': '2.0', 'string_required': 'rrr'}
+        new_artifact = self.controller.create(
+            self.req, 'sample_artifact', values)
+        # activation is possible
+        res = self.update_with_values(changes, art_id=new_artifact['id'])
+        self.assertEqual('active', res['status'])

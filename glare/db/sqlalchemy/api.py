@@ -154,16 +154,16 @@ def _create_or_update(context, artifact_id, values, session):
             artifact.blobs = _do_blobs(artifact, blobs)
 
         artifact.updated_at = timeutils.utcnow()
-        if 'status' in values and values['status'] == 'active':
-            if session.query(
-                    exists().where(
-                        models.ArtifactBlob.status == 'saving' and
-                        models.ArtifactBlob.artifact_id == artifact_id)
+        if 'status' in values:
+            if session.query(exists().where(and_(
+                models.ArtifactBlob.status == 'saving',
+                models.ArtifactBlob.artifact_id == artifact_id))
             ).one()[0]:
                 raise exception.Conflict(
-                    "You cannot activate artifact if it has "
+                    "You cannot change artifact status if it has "
                     "uploading blobs.")
-            artifact.activated_at = timeutils.utcnow()
+            if values['status'] == 'active':
+                artifact.activated_at = timeutils.utcnow()
         artifact.update(values)
 
         LOG.debug('Sending request to the database. '
