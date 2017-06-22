@@ -70,9 +70,6 @@ class BaseContextMiddleware(base_middleware.ConfigurableMiddleware):
     def process_response(resp, request=None):
         try:
             request_id = resp.request.context.request_id
-        except AttributeError:
-            LOG.warning('Unable to retrieve request id from context')
-        else:
             # For python 3 compatibility need to use bytes type
             prefix = b'req-' if isinstance(request_id, bytes) else 'req-'
 
@@ -80,6 +77,8 @@ class BaseContextMiddleware(base_middleware.ConfigurableMiddleware):
                 request_id = prefix + request_id
 
             resp.headers['x-openstack-request-id'] = request_id
+        except AttributeError:
+            pass
 
         return resp
 
