@@ -164,7 +164,7 @@ using Representational State Transfer concept (ReST).
                 "external": {"type": "boolean"},
                 "id": {"type": "string"},
                 "status": {"type": "string",
-                           "enum": ["saving", "active", "pending_delete"]},
+                           "enum": ["saving", "active"]},
                 "content_type": {"type": ["string", "null"]},
             },
             "required": ["url", "size", "md5", "sha1", "sha256", "external",
@@ -177,29 +177,18 @@ using Representational State Transfer concept (ReST).
 
   * *active* - blob upload successfully finished.
 
-  * *pending_delete* - indicates that blob will be deleted soon by Scrubber
-    (if delayed delete is enabled) or by Glare itself.
-
 .. list-table::  **Blob status transition table**
    :header-rows: 1
 
    * - Blob Status
      - saving
      - active
-     - pending delete
 
    * - **saving**
      - X
      - finish blob upload
-     - request for artifact delete
 
    * - **active**
-     - N/A
-     - X
-     - request for artifact delete
-
-   * - **pending_delete**
-     - N/A
      - N/A
      - X
 

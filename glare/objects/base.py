@@ -582,14 +582,6 @@ class BaseArtifact(base.VersionedObject):
                 for af in cls.db_api.list(
                 context, filters, marker, limit, sort, latest)]
 
-    @staticmethod
-    def _prepare_blob_delete(b, af, name):
-        if b['status'] == glare_fields.BlobFieldType.SAVING:
-            msg = _('Blob %(name)s is saving for artifact %(id)s'
-                    ) % {'name': name, 'id': af.id}
-            raise exception.Conflict(msg)
-        b['status'] = glare_fields.BlobFieldType.PENDING_DELETE
-
     @classmethod
     def _delete_blobs(cls, blobs, context, af):
         for name, blob in blobs.items():
@@ -623,24 +615,16 @@ class BaseArtifact(base.VersionedObject):
         # marking artifact as deleted
         cls.db_api.update(context, af.id, {'status': cls.STATUS.DELETED})
 
-        # marking all blobs as pending delete
+        # collect all uploaded blobs
         blobs = {}
-        for name, field in af.fields.items():
-            if cls.is_blob(name):
-                b = getattr(af, name)
-                if b:
-                    cls._prepare_blob_delete(b, af, name)
-                    blobs[name] = b
-            elif cls.is_blob_dict(name):
-                bd = getattr(af, name)
-                if bd:
-                    for key, b in bd.items():
-                        cls._prepare_blob_delete(b, af, name)
-                    blobs[name] = bd
-        LOG.debug("Marked artifact %(artifact)s as deleted and all its blobs "
-                  "%(blobs) as pending delete.",
-                  {'artifact': af.id, 'blobs': blobs})
-        cls.db_api.update_blob(context, af.id, blobs)
+        for name in af.fields:
+            if cls.is_blob(name) or cls.is_blob_dict(name):
+                field = getattr(af, name)
+                if field:
+                    blobs[name] = field
+
+        LOG.debug("Marked artifact %(artifact)s as deleted.",
+                  {'artifact': af.id})
 
         if not CONF.delayed_delete:
             if blobs:

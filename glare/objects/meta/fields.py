@@ -54,8 +54,7 @@ class VersionField(fields.AutoTypedField):
 class BlobFieldType(fields.FieldType):
     """Blob field contains reference to blob location.
     """
-    BLOB_STATUS = (SAVING, ACTIVE, PENDING_DELETE) = (
-        'saving', 'active', 'pending_delete')
+    BLOB_STATUS = (SAVING, ACTIVE) = ('saving', 'active')
 
     BLOB_SCHEMA = {
         'type': 'object',

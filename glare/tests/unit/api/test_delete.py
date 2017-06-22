@@ -163,7 +163,7 @@ class TestArtifactUpdate(base.BaseTestArtifactAPI):
         self.artifact = self.controller.show(
             self.req, 'sample_artifact', self.artifact['id'])
         self.assertEqual('deleted', self.artifact['status'])
-        self.assertEqual('pending_delete', self.artifact['blob']['status'])
+        self.assertEqual('active', self.artifact['blob']['status'])
         # Disable delayed delete
         self.config(delayed_delete=False)
         # Delete artifact and check that 'delete_blob' was called this time
