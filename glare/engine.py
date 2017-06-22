@@ -340,7 +340,13 @@ class Engine(object):
         policy.authorize(action_name, af.to_dict(), context)
         af.validate_delete(context, af)
         blobs = af.delete(context, af)
-        if not CONF.delayed_delete:
+
+        delayed_delete = getattr(CONF, type_name).delayed_delete
+        # use global parameter if delayed delete isn't set per artifact type
+        if delayed_delete is None:
+            delayed_delete = CONF.delayed_delete
+
+        if not delayed_delete:
             if blobs:
                 # delete blobs one by one
                 self._delete_blobs(context, af, blobs)

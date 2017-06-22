@@ -151,7 +151,7 @@ class TestArtifactUpdate(base.BaseTestArtifactAPI):
 
     @mock.patch('glare.common.store_api.delete_blob',
                 side_effect=store_api.delete_blob)
-    def test_delayed_delete(self, mocked_delete):
+    def test_delayed_delete_global(self, mocked_delete):
         # Enable delayed delete
         self.config(delayed_delete=True)
         # Delete artifact and check that 'delete_blob' was not called
@@ -166,6 +166,31 @@ class TestArtifactUpdate(base.BaseTestArtifactAPI):
         self.assertEqual('active', self.artifact['blob']['status'])
         # Disable delayed delete
         self.config(delayed_delete=False)
+        # Delete artifact and check that 'delete_blob' was called this time
+        self.controller.delete(self.req, 'sample_artifact',
+                               self.artifact['id'])
+        self.assertEqual(1, mocked_delete.call_count)
+        self.assertRaises(exc.NotFound, self.controller.show,
+                          self.req, 'sample_artifact', self.artifact['id'])
+
+    @mock.patch('glare.common.store_api.delete_blob',
+                side_effect=store_api.delete_blob)
+    def test_delayed_delete_per_artifact_type(self, mocked_delete):
+        # Enable delayed delete for sample_artifact type
+        # Global parameter is disabled
+        self.config(delayed_delete=True, group='sample_artifact')
+        # Delete artifact and check that 'delete_blob' was not called
+        self.controller.delete(self.req, 'sample_artifact',
+                               self.artifact['id'])
+        self.assertEqual(0, mocked_delete.call_count)
+        # Check that artifact status is 'deleted' and its blob is
+        # 'pending_delete'
+        self.artifact = self.controller.show(
+            self.req, 'sample_artifact', self.artifact['id'])
+        self.assertEqual('deleted', self.artifact['status'])
+        self.assertEqual('active', self.artifact['blob']['status'])
+        # Disable delayed delete
+        self.config(delayed_delete=False, group='sample_artifact')
         # Delete artifact and check that 'delete_blob' was called this time
         self.controller.delete(self.req, 'sample_artifact',
                                self.artifact['id'])

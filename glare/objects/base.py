@@ -26,15 +26,16 @@ from glare.objects.meta import fields as glare_fields
 from glare.objects.meta import validators
 from glare.objects.meta import wrappers
 
-artifact_opts = [
+global_artifact_opts = [
     cfg.BoolOpt('delayed_delete', default=False,
-                help=_("Defines if artifact must be deleted immediately "
-                       "or just marked as deleted so it can be cleaned "
+                help=_("If False defines that artifacts must be deleted "
+                       "immediately after the user call. Otherwise they just "
+                       "will be marked as deleted so they can be scrubbed "
                        "by some other tool in the background.")),
 ]
 
 CONF = cfg.CONF
-CONF.register_opts(artifact_opts)
+CONF.register_opts(global_artifact_opts)
 
 LOG = logging.getLogger(__name__)
 
@@ -122,6 +123,25 @@ class BaseArtifact(base.VersionedObject):
                          sortable=True, validators=[validators.Version()],
                          description="Artifact version(semver).")
     }
+
+    artifact_type_opts = [
+        cfg.BoolOpt('delayed_delete',
+                    help=_(
+                        "If False defines that artifacts must be deleted "
+                        "immediately after the user call. Otherwise they just "
+                        "will be marked as deleted so they can be scrubbed "
+                        "by some other tool in the background. "
+                        "Redefines global parameter of the same name "
+                        "from [DEFAULT] section.")),
+    ]
+
+    def __new__(cls, *args, **kwargs):
+        CONF.register_opts(cls.artifact_type_opts, group=cls.get_type_name())
+        return base.VersionedObject.__new__(cls)
+
+    @classmethod
+    def list_artifact_type_opts(cls):
+        return cls.artifact_type_opts
 
     db_api = artifact_api.ArtifactAPI()
 
