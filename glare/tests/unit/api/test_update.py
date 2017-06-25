@@ -542,12 +542,15 @@ class TestArtifactUpdate(base.BaseTestArtifactAPI):
         self.assertRaises(exc.BadRequest, self.update_with_values, changes)
 
 
-class TestLinks(TestArtifactUpdate):
+class TestLinks(base.BaseTestArtifactAPI):
 
     """Test Glare artifact link management."""
 
     def setUp(self):
         super(TestLinks, self).setUp()
+        values = {'name': 'ttt', 'version': '1.0'}
+        self.sample_artifact = self.controller.create(
+            self.req, 'sample_artifact', values)
         values = {'name': 'sss', 'version': '1.0'}
         self.dependency = self.controller.create(
             self.req, 'sample_artifact', values)
