@@ -145,6 +145,9 @@ function install_glare_pythonclient {
     if use_library_from_git "python-glareclient"; then
         git_clone $GLARE_PYTHONCLIENT_REPO $GLARE_PYTHONCLIENT_DIR $GLARE_PYTHONCLIENT_BRANCH
         setup_develop $GLARE_PYTHONCLIENT_DIR
+    else
+        # nothing actually "requires" glareclient, so force installation from pypi
+        pip_install_gr python-glareclient
     fi
 }
 
