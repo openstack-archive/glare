@@ -755,6 +755,15 @@ class BaseArtifact(base.VersionedObject):
         return getattr(cls.fields[field_name], 'max_blob_size')
 
     @classmethod
+    def get_max_folder_size(cls, field_name):
+        """Get the maximum allowed folder size in bytes.
+
+        :param field_name: folder (blob dict) field name
+        :return: maximum folder size in bytes
+        """
+        return getattr(cls.fields[field_name], 'max_folder_size')
+
+    @classmethod
     def validate_upload_allowed(cls, af, field_name, blob_key=None):
         """Validate if given blob is ready for uploading.
 
