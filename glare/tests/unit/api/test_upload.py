@@ -40,7 +40,7 @@ class TestArtifactUpload(base.BaseTestArtifactAPI):
         self.assertEqual(3, artifact['blob']['size'])
         self.assertEqual('active', artifact['blob']['status'])
 
-    def test_size_too_big(self):
+    def test_blob_size_too_big(self):
         # small blob size is limited by 10 bytes
         self.assertRaises(
             exc.RequestEntityTooLarge, self.controller.upload_blob,
@@ -115,6 +115,42 @@ class TestArtifactUpload(base.BaseTestArtifactAPI):
                                         self.sample_artifact['id'])
         self.assertEqual(3, artifact['dict_of_blobs']['blb2']['size'])
         self.assertEqual('active', artifact['dict_of_blobs']['blb2']['status'])
+
+    def test_upload_oversized_blob_dict(self):
+        self.controller.upload_blob(
+            self.req, 'sample_artifact', self.sample_artifact['id'],
+            'dict_of_blobs/a',
+            BytesIO(1800 * b'a'), 'application/octet-stream')
+        artifact = self.controller.show(self.req, 'sample_artifact',
+                                        self.sample_artifact['id'])
+        self.assertEqual(1800, artifact['dict_of_blobs']['a']['size'])
+        self.assertEqual('active', artifact['dict_of_blobs']['a']['status'])
+
+        # upload another one
+        self.controller.upload_blob(
+            self.req, 'sample_artifact', self.sample_artifact['id'],
+            'dict_of_blobs/b',
+            BytesIO(199 * b'b'), 'application/octet-stream')
+        artifact = self.controller.show(self.req, 'sample_artifact',
+                                        self.sample_artifact['id'])
+        self.assertEqual(199, artifact['dict_of_blobs']['b']['size'])
+        self.assertEqual('active', artifact['dict_of_blobs']['b']['status'])
+
+        # upload to have size of 2000 bytes exactly
+        self.controller.upload_blob(
+            self.req, 'sample_artifact', self.sample_artifact['id'],
+            'dict_of_blobs/c',
+            BytesIO(b'c'), 'application/octet-stream')
+        artifact = self.controller.show(self.req, 'sample_artifact',
+                                        self.sample_artifact['id'])
+        self.assertEqual(1, artifact['dict_of_blobs']['c']['size'])
+        self.assertEqual('active', artifact['dict_of_blobs']['c']['status'])
+
+        # Upload to have more than max folder limit, more than 2000
+        self.assertRaises(
+            exc.RequestEntityTooLarge, self.controller.upload_blob,
+            self.req, 'sample_artifact', self.sample_artifact['id'],
+            'dict_of_blobs/d', BytesIO(b'd'), 'application/octet-stream')
 
     def test_existing_blob_dict_key(self):
         self.controller.upload_blob(

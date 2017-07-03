@@ -88,6 +88,7 @@ class SampleArtifact(base_artifact.BaseArtifact):
                               required_on_activate=False,
                               filter_ops=(wrappers.FILTER_EQ,)),
         'dict_of_blobs': Folder(required_on_activate=False,
+                                max_folder_size=2000,
                                 validators=[
                                     validators.MaxDictKeyLen(1000)]),
         'string_mutable': Field(fields.StringField,

@@ -316,10 +316,21 @@ class Engine(object):
                 except Exception as e:
                     raise exception.BadRequest(message=str(e))
 
+                max_allowed_size = af.get_max_blob_size(field_name)
+                # Check if we wanna upload to a folder (and not just to a Blob)
+                if blob_key is not None:
+                    blobs_dict = getattr(af, field_name)
+                    overall_folder_size = sum(blob["size"] for blob
+                                              in blobs_dict.values())
+                    max_folder_size_allowed_ = af.get_max_folder_size(field_name) \
+                        - overall_folder_size  # always non-negative
+                    max_allowed_size = min(max_allowed_size,
+                                           max_folder_size_allowed_)
+
                 default_store = af.get_default_store(
                     context, af, field_name, blob_key)
                 location_uri, size, checksums = store_api.save_blob_to_store(
-                    blob_id, fd, context, af.get_max_blob_size(field_name),
+                    blob_id, fd, context, max_allowed_size,
                     store_type=default_store)
             except Exception:
                 # if upload failed remove blob from db and storage
