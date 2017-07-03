@@ -30,6 +30,7 @@ import glare.common.wsgi
 import glare.notification
 import glare.objects.base
 import glare.objects.meta.registry
+import glare.scrubber
 
 _artifacts_opts = [
     (None, list(itertools.chain(
@@ -45,7 +46,11 @@ _artifacts_opts = [
         glare.objects.meta.registry.registry_options))),
     profiler.list_opts()[0],
     ('paste_deploy', glare.common.config.paste_deploy_opts),
-    ('keycloak_oidc', glare.api.middleware.keycloak_auth.keycloak_oidc_opts)
+    ('keycloak_oidc', glare.api.middleware.keycloak_auth.keycloak_oidc_opts),
+    ('scrubber',
+     glare.scrubber.scrubber_opts +
+     glare.scrubber.scrubber_cmd_opts +
+     glare.scrubber.scrubber_cmd_cli_opts)
 ]
 
 
