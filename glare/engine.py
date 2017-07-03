@@ -320,8 +320,9 @@ class Engine(object):
                 # Check if we wanna upload to a folder (and not just to a Blob)
                 if blob_key is not None:
                     blobs_dict = getattr(af, field_name)
-                    overall_folder_size = sum(blob["size"] for blob
-                                              in blobs_dict.values())
+                    overall_folder_size = sum(
+                        blob["size"] for blob in blobs_dict.values()
+                        if blob["size"] is not None)
                     max_folder_size_allowed_ = af.get_max_folder_size(field_name) \
                         - overall_folder_size  # always non-negative
                     max_allowed_size = min(max_allowed_size,

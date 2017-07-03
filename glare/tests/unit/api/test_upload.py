@@ -117,6 +117,17 @@ class TestArtifactUpload(base.BaseTestArtifactAPI):
         self.assertEqual('active', artifact['dict_of_blobs']['blb2']['status'])
 
     def test_upload_oversized_blob_dict(self):
+        # external location shouldn't affect folder size
+        ct = 'application/vnd+openstack.glare-custom-location+json'
+        body = {'url': 'https://FAKE_LOCATION.com',
+                'md5': "fake", 'sha1': "fake_sha", "sha256": "fake_sha256"}
+        artifact = self.controller.upload_blob(
+            self.req, 'sample_artifact', self.sample_artifact['id'],
+            'dict_of_blobs/external', body, ct)
+        self.assertIsNone(artifact['dict_of_blobs']['external']['size'])
+        self.assertEqual('active',
+                         artifact['dict_of_blobs']['external']['status'])
+
         self.controller.upload_blob(
             self.req, 'sample_artifact', self.sample_artifact['id'],
             'dict_of_blobs/a',
