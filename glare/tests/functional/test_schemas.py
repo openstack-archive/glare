@@ -75,6 +75,7 @@ fixture_base_props = {
                               u'in'],
               u'glareType': u'String',
               u'maxLength': 255,
+              u'minLength': 1,
               u'required_on_activate': False,
               u'sortable': True,
               u'type': u'string'},
@@ -98,6 +99,7 @@ fixture_base_props = {
                                 u'neq',
                                 u'in'],
                 u'glareType': u'String',
+                u'mutable': True,
                 u'sortable': True,
                 u'type': u'string'},
     u'tags': {u'default': [],
@@ -118,6 +120,7 @@ fixture_base_props = {
         u'filter_ops': [u'lt', u'gt'],
         u'format': u'date-time',
         u'glareType': u'DateTime',
+        u'mutable': True,
         u'readOnly': True,
         u'sortable': True,
         u'type': u'string'},
@@ -144,6 +147,7 @@ fixture_base_props = {
                     u'enum': [u'private', u'public'],
                     u'filter_ops': [u'eq', u'neq', u'in'],
                     u'glareType': u'String',
+                    u'mutable': True,
                     u'sortable': True,
                     u'type': u'string'}
 }

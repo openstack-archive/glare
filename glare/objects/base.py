@@ -77,12 +77,13 @@ class BaseArtifact(base.VersionedObject):
                     sortable=True, description="Artifact UUID."),
         'name': Field(fields.StringField, required_on_activate=False,
                       nullable=False, sortable=True,
+                      validators=[validators.MinStrLen(1)],
                       description="Artifact Name."),
         'owner': Field(fields.StringField, system=True,
                        required_on_activate=False, nullable=False,
                        sortable=True, description="ID of user/tenant who "
                                                   "uploaded artifact."),
-        'status': Field(glare_fields.ArtifactStatusField,
+        'status': Field(glare_fields.ArtifactStatusField, mutable=True,
                         default=glare_fields.ArtifactStatusField.DRAFTED,
                         nullable=False, sortable=True,
                         description="Artifact status."),
@@ -91,7 +92,7 @@ class BaseArtifact(base.VersionedObject):
                             description="Datetime when artifact has "
                                         "been created."),
         'updated_at': Field(fields.DateTimeField, system=True,
-                            nullable=False, sortable=True,
+                            nullable=False, sortable=True, mutable=True,
                             description="Datetime when artifact has "
                                         "been updated last time."),
         'activated_at': Field(fields.DateTimeField, system=True,
@@ -118,7 +119,7 @@ class BaseArtifact(base.VersionedObject):
                               description="Key-value dict with useful "
                                           "information about an artifact."),
         'visibility': Field(fields.StringField, default='private',
-                            nullable=False, sortable=True,
+                            nullable=False, sortable=True, mutable=True,
                             validators=[validators.AllowedValues(
                                 ['private', 'public'])],
                             description="Artifact visibility that defines "
