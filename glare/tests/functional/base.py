@@ -152,35 +152,15 @@ class TestArtifact(functional.FunctionalTest):
     # so we can easily define where is the failed code
 
     make_active = [{"op": "replace", "path": "/status", "value": "active"}]
-
-    def activate_with_admin(self, artifact_id, status=200,
-                            type_name='sample_artifact'):
-        cur_user = self.current_user
-        self.set_user('admin')
-        url = '/%s/%s' % (type_name, artifact_id)
-        af = self.patch(url=url, data=self.make_active, status=status)
-        self.set_user(cur_user)
-        return af
-
     make_deactivated = [{"op": "replace", "path": "/status",
                          "value": "deactivated"}]
-
-    def deactivate_with_admin(self, artifact_id, status=200,
-                              type_name='sample_artifact'):
-        cur_user = self.current_user
-        self.set_user('admin')
-        url = '/%s/%s' % (type_name, artifact_id)
-        af = self.patch(url=url, data=self.make_deactivated, status=status)
-        self.set_user(cur_user)
-        return af
-
     make_public = [{"op": "replace", "path": "/visibility", "value": "public"}]
 
-    def publish_with_admin(self, artifact_id, status=200,
-                           type_name='sample_artifact'):
+    def admin_action(self, artifact_id, body, status=200,
+                     type_name='sample_artifact'):
         cur_user = self.current_user
         self.set_user('admin')
         url = '/%s/%s' % (type_name, artifact_id)
-        af = self.patch(url=url, data=self.make_public, status=status)
+        af = self.patch(url=url, data=body, status=status)
         self.set_user(cur_user)
         return af

@@ -95,7 +95,8 @@ class TestList(base.TestArtifact):
             "value": "active"
         }]
         self.patch(url=url, data=data, status=200)
-        public_art = self.publish_with_admin(public_art['id'])
+        public_art = self.admin_action(public_art['id'], self.make_public)
+
         art_list.append(public_art)
 
         art_list.sort(key=lambda x: x['name'])
@@ -523,7 +524,8 @@ class TestList(base.TestArtifact):
             "value": "active"
         }]
         self.patch(url=url, data=data, status=200)
-        public_art = self.publish_with_admin(public_art['id'])
+        public_art = self.admin_action(public_art['id'], self.make_public)
+
         art_list.insert(0, public_art)
 
         expected_result = sort_results(art_list, target='version')
@@ -899,7 +901,8 @@ class TestTags(base.TestArtifact):
         }]
         art = self.patch(url=url, data=data, status=200)
         self.assertEqual('active', art['status'])
-        art = self.publish_with_admin(art['id'])
+        art = self.admin_action(art['id'], self.make_public)
+
         self.assertEqual('public', art['visibility'])
         # only admins can update tags for public artifacts
         self.set_user("admin")
@@ -941,11 +944,11 @@ class TestArtifactOps(base.TestArtifact):
     def test_create(self):
         """All tests related to artifact creation"""
         # check that cannot create artifact for non-existent artifact type
-        self.post('/incorrect_artifact', {}, status=404)
+        self.post('/incorrect_artifact', {"name": "t"}, status=404)
         # check that cannot accept non-json body
         self.post('/incorrect_artifact', "incorrect_body", status=400)
         # check that cannot accept incorrect content type
-        self.post('/sample_artifact', {}, status=415,
+        self.post('/sample_artifact', {"name": "t"}, status=415,
                   headers={"Content-Type": "application/octet-stream"})
         # check that cannot create artifact without name
         self.create_artifact(data={"int1": 1024}, status=400)
@@ -1038,7 +1041,7 @@ class TestArtifactOps(base.TestArtifact):
         self.set_user("user1")
 
         self.patch(url=url, data=self.make_active)
-        self.publish_with_admin(private_art['id'])
+        self.admin_action(private_art['id'], self.make_public)
         self.create_artifact(data={"name": "test_af",
                                    "string_required": "test_str"})
 
@@ -1159,7 +1162,7 @@ class TestArtifactOps(base.TestArtifact):
                   "version": "0.0.1"})
         url = '/sample_artifact/%s' % art['id']
         self.patch(url=url, data=self.make_active)
-        self.publish_with_admin(art['id'])
+        self.admin_action(art['id'], self.make_public)
         self.set_user('user2')
         self.delete(url=url, status=403)
 
@@ -1186,7 +1189,8 @@ class TestArtifactOps(base.TestArtifact):
             data={"name": "test_af", "string_required": "test_str",
                   "version": "0.0.1"})
         url = '/sample_artifact/%s' % private_art['id']
-        self.deactivate_with_admin(private_art['id'], 400)
+        self.admin_action(private_art['id'], self.make_deactivated,
+                          status=400)
         self.patch(url, self.make_active)
         self.set_user('admin')
         # test cannot deactivate if there is something else in request
@@ -1196,7 +1200,8 @@ class TestArtifactOps(base.TestArtifact):
         self.patch(url, incorrect, 400)
         self.set_user('user1')
         # test artifact deactivate success
-        deactive_art = self.deactivate_with_admin(private_art['id'])
+        deactive_art = self.admin_action(private_art['id'],
+                                         self.make_deactivated)
         self.assertEqual("deactivated", deactive_art["status"])
         # test deactivate is idempotent
         self.patch(url, self.make_deactivated)
@@ -1208,7 +1213,7 @@ class TestArtifactOps(base.TestArtifact):
                   "version": "0.0.1"})
         url = '/sample_artifact/%s' % private_art['id']
         self.patch(url, self.make_active)
-        self.deactivate_with_admin(private_art['id'])
+        self.admin_action(private_art['id'], self.make_deactivated)
         # test cannot reactivate if there is something else in request
         incorrect = self.make_active + [{"op": "replace",
                                          "path": "/name",
@@ -1343,7 +1348,7 @@ class TestUpdate(base.TestArtifact):
         # check we can update private artifact
         # to the same name version as public artifact
         self.patch(url=url, data=self.make_active)
-        self.publish_with_admin(private_art['id'])
+        self.admin_action(private_art['id'], self.make_public)
         self.patch(url=dupv_url, data=change_version)
 
     def test_update_after_activate_and_publish(self):
@@ -1371,15 +1376,15 @@ class TestUpdate(base.TestArtifact):
         self.assertEqual("new_value", updated_af["string_mutable"])
         # test cannot update deactivated artifact
         upd_mutable[0]["value"] = "another_new_value"
-        self.deactivate_with_admin(private_art['id'])
+        self.admin_action(private_art['id'], self.make_deactivated)
         # test that nobody(even admin) can publish deactivated artifact
         self.set_user("admin")
         self.patch(url, self.make_public, 400)
         self.set_user("user1")
         self.patch(url, upd_mutable, 403)
-        self.activate_with_admin(private_art['id'])
+        self.admin_action(private_art['id'], self.make_active)
         # publish artifact
-        self.publish_with_admin(private_art['id'])
+        self.admin_action(private_art['id'], self.make_public)
         # check we cannot update public artifact anymore
         self.patch(url, upd_mutable, status=403)
         self.patch(url, upd_mutable, status=403)
@@ -2109,7 +2114,7 @@ class TestUpdate(base.TestArtifact):
         result = self.patch(url=url, data=data)
         self.assertIsNone(result['float1'])
 
-        # cannot remove id
+        # cannot remove id, because it's a system field
         data = [{'op': 'replace',
                  'path': '/id',
                  'value': None}]
@@ -2126,7 +2131,7 @@ class TestUpdate(base.TestArtifact):
         headers = {'Content-Type': 'application/octet-stream'}
         self.put(url=url + '/blob', data="d" * 1000, headers=headers)
 
-        # cannot remove id
+        # cannot remove blob
         data = [{'op': 'replace',
                  'path': '/blob',
                  'value': None}]
