@@ -44,15 +44,13 @@ class HackingTestCase(base.BaseTestCase):
         self.assertEqual(
             0, len(list(checks.assert_equal_none("self.assertIsNone()"))))
 
-    def test_no_translate_debug_logs(self):
-        self.assertEqual(1, len(list(checks.no_translate_debug_logs(
-            "LOG.debug(_('foo'))", "glare/common/foo.py"))))
-
-        self.assertEqual(0, len(list(checks.no_translate_debug_logs(
-            "LOG.debug('foo')", "glare/common/foo.py"))))
-
-        self.assertEqual(0, len(list(checks.no_translate_debug_logs(
-            "LOG.info(_('foo'))", "glare/common/foo.py"))))
+    def test_no_translate_logs(self):
+        for log in checks._all_log_levels:
+            bad = 'LOG.%s(_("Bad"))' % log
+            self.assertEqual(1, len(list(checks.no_translate_logs(bad))))
+            # Catch abuses when used with a variable and not a literal
+            bad = 'LOG.%s(_(msg))' % log
+            self.assertEqual(1, len(list(checks.no_translate_logs(bad))))
 
     def test_no_direct_use_of_unicode_function(self):
         self.assertEqual(1, len(list(checks.no_direct_use_of_unicode_function(
