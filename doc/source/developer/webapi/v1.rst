@@ -37,8 +37,8 @@ using Representational State Transfer concept (ReST).
   * *drafted* - Artifact is created but not activated, so it can be changed by
     Artifact owner or Administrator.
 
-  * *active* - Artifact is activated, immutable fields cannot be changed.
-    Artifact available for download to other Users.
+  * *active* - Artifact is activated and marked as ready for usage.
+    Only mutable fields can be changed since that.
 
   * *deactivated* - Artifact is not available to other users except
     administrators. Used when Cloud Admin need to check the artifact.
