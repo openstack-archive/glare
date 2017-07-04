@@ -122,7 +122,9 @@ class Field(object):
         if issubclass(self.field_class, fields.StringField):
             # check if fields is string
             if not any(isinstance(v, val_lib.MaxStrLen)
-                       for v in self.validators):
+                       for v in self.validators) and \
+                    not any(isinstance(v, val_lib.AllowedValues)
+                            for v in self.validators):
                 default.append(val_lib.MaxStrLen(255))
         return default
 
