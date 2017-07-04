@@ -22,7 +22,6 @@ from oslo_utils import timeutils
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 import six
-import six.moves.urllib.request as urlrequest
 
 from glare.common import exception
 from glare.common import store_api
@@ -153,37 +152,6 @@ class BaseArtifact(base.VersionedObject):
         return (isinstance(cls.fields.get(field_name), glare_fields.Dict) and
                 cls.fields[field_name].element_type ==
                 glare_fields.BlobFieldType)
-
-    @classmethod
-    def is_link(cls, field_name):
-        """Helper to check that a field is a link.
-
-        :param field_name: name of the field
-        :return: True if field is a link, False otherwise
-        """
-        return isinstance(cls.fields.get(field_name), glare_fields.Link)
-
-    @classmethod
-    def is_link_dict(cls, field_name):
-        """Helper to check that a field is a link dict.
-
-        :param field_name: name of the field
-        :return: True if field is a link dict, False otherwise
-        """
-        return (isinstance(cls.fields.get(field_name), glare_fields.Dict) and
-                cls.fields[field_name].element_type ==
-                glare_fields.LinkFieldType)
-
-    @classmethod
-    def is_link_list(cls, field_name):
-        """Helper to check that a field is a link list.
-
-        :param field_name: name of the field
-        :return: True if the field is a link list, False otherwise
-        """
-        return (isinstance(cls.fields.get(field_name), glare_fields.List) and
-                cls.fields[field_name].element_type ==
-                glare_fields.LinkFieldType)
 
     @classmethod
     def _init_artifact(cls, context, values):
@@ -352,20 +320,6 @@ class BaseArtifact(base.VersionedObject):
             # apply values to the artifact. if all changes applied then update
             # values in db or raise an exception in other case.
             for key, value in values.items():
-                try:
-                    # check updates for links and validate them
-                    if cls.is_link(key) and value is not None:
-                        cls._validate_link(key, value, context)
-                    elif cls.is_link_dict(key) and value:
-                        for l in value:
-                            cls._validate_link(key, value[l], context)
-                    elif cls.is_link_list(key) and value:
-                        for l in value:
-                            cls._validate_link(key, l, context)
-                except Exception as e:
-                    msg = (_("Bad link in artifact %(af)s: %(msg)s")
-                           % {"af": af.id, "msg": str(e)})
-                    raise exception.BadRequest(msg)
                 setattr(af, key, value)
 
             LOG.info("Parameters validation for artifact %(artifact)s "
@@ -411,19 +365,6 @@ class BaseArtifact(base.VersionedObject):
                   {'action': action.__name__, 'updates': values})
 
         return action
-
-    @classmethod
-    def _validate_link(cls, key, value, ctx):
-        # check format
-        glare_fields.LinkFieldType.coerce(None, key, value)
-        # check containment
-        if glare_fields.LinkFieldType.is_external(value):
-            with urlrequest.urlopen(value) as data:
-                data.read(1)
-        else:
-            filters = [('id', None, 'eq', None, value.split('/')[3])]
-            if len(cls.db_api.list(ctx, filters, None, 1, [], False)) == 0:
-                raise exception.NotFound
 
     @classmethod
     def get(cls, context, artifact_id):
