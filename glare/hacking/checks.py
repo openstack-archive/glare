@@ -41,18 +41,13 @@ asse_equal_end_with_none_re = re.compile(
 asse_equal_start_with_none_re = re.compile(
     r"(.)*assertEqual\(None, (\w|\.|\'|\"|\[|\])+\)")
 unicode_func_re = re.compile(r"(\s|\W|^)unicode\(")
-log_translation = re.compile(
-    r"(.)*LOG\.(audit)\(\s*('|\")")
-log_translation_info = re.compile(
-    r"(.)*LOG\.(info)\(\s*(_\(|'|\")")
-log_translation_exception = re.compile(
-    r"(.)*LOG\.(exception)\(\s*(_\(|'|\")")
-log_translation_error = re.compile(
-    r"(.)*LOG\.(error)\(\s*(_\(|'|\")")
-log_translation_critical = re.compile(
-    r"(.)*LOG\.(critical)\(\s*(_\(|'|\")")
-log_translation_warning = re.compile(
-    r"(.)*LOG\.(warning)\(\s*(_\(|'|\")")
+
+_all_log_levels = {'debug', 'error', 'info', 'warning',
+                   'critical', 'exception'}
+# Since _Lx have been removed, we just need to check _()
+translated_logs = re.compile(
+    r"(.)*LOG\.(%(level)s)\(\s*_\(" % {'level': '|'.join(_all_log_levels)})
+
 dict_constructor_with_list_copy_re = re.compile(r".*\bdict\((\[)?(\(|\[)")
 
 
@@ -86,18 +81,13 @@ def assert_equal_none(logical_line):
                "sentences not allowed")
 
 
-def no_translate_debug_logs(logical_line, filename):
-    dirs = [
-        "glare/api",
-        "glare/cmd",
-        "glare/common",
-        "glare/db",
-        "glare/tests",
-    ]
+def no_translate_logs(logical_line):
+    """Check for use of LOG.*(_(
 
-    if max([name in filename for name in dirs]):
-        if logical_line.startswith("LOG.debug(_("):
-            yield(0, "G319: Don't translate debug level logs")
+    G319
+    """
+    if translated_logs.match(logical_line):
+        yield (0, "G319: Don't translate logs")
 
 
 def no_direct_use_of_unicode_function(logical_line):
@@ -156,7 +146,7 @@ def factory(register):
     register(assert_true_instance)
     register(assert_equal_type)
     register(assert_equal_none)
-    register(no_translate_debug_logs)
+    register(no_translate_logs)
     register(no_direct_use_of_unicode_function)
     register(check_no_contextlib_nested)
     register(dict_constructor_with_list_copy)
