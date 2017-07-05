@@ -150,12 +150,10 @@ class TestList(base.TestArtifact):
         self.get(url=url, status=400)
 
         url = '/sample_artifact?name='
-        result = self.get(url=url)['sample_artifact']
-        self.assertEqual([], result)
+        self.get(url=url, status=400)
 
         url = '/sample_artifact?name=eq:'
-        result = self.get(url=url)['sample_artifact']
-        self.assertEqual([], result)
+        self.get(url=url, status=400)
 
         url = '/sample_artifact?tags=tag4,tag5'
         result = sort_results(self.get(url=url)['sample_artifact'])
