@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import uuid
 
 import fixtures
 import glance_store as store
@@ -22,6 +21,7 @@ import jsonpatch
 from oslo_config import cfg
 from oslo_config import fixture as cfg_fixture
 from oslo_policy import policy as os_policy
+from oslo_utils import uuidutils
 import testtools
 
 from glare.api.middleware import context
@@ -41,21 +41,21 @@ class BaseTestCase(testtools.TestCase):
 
         self.users = {
             'user1': {
-                'id': str(uuid.uuid4()),
-                'tenant_id': str(uuid.uuid4()),
-                'token': str(uuid.uuid4()),
+                'id': uuidutils.generate_uuid(),
+                'tenant_id': uuidutils.generate_uuid(),
+                'token': uuidutils.generate_uuid(),
                 'roles': ['member']
             },
             'user2': {
-                'id': str(uuid.uuid4()),
-                'tenant_id': str(uuid.uuid4()),
-                'token': str(uuid.uuid4()),
+                'id': uuidutils.generate_uuid(),
+                'tenant_id': uuidutils.generate_uuid(),
+                'token': uuidutils.generate_uuid(),
                 'roles': ['member']
             },
             'admin': {
-                'id': str(uuid.uuid4()),
-                'tenant_id': str(uuid.uuid4()),
-                'token': str(uuid.uuid4()),
+                'id': uuidutils.generate_uuid(),
+                'tenant_id': uuidutils.generate_uuid(),
+                'token': uuidutils.generate_uuid(),
                 'roles': ['admin']
             },
             'anonymous': {

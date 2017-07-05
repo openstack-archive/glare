@@ -14,11 +14,11 @@
 #    under the License.
 
 from copy import deepcopy
-import uuid
 
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import timeutils
+from oslo_utils import uuidutils
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 import six
@@ -260,7 +260,7 @@ class BaseArtifact(base.VersionedObject):
                 msg = _("visibility is not allowed in a request "
                         "for artifact create.")
                 raise exception.BadRequest(msg)
-            values['id'] = str(uuid.uuid4())
+            values['id'] = uuidutils.generate_uuid()
             values['owner'] = context.tenant
             values['created_at'] = timeutils.utcnow()
             values['updated_at'] = values['created_at']

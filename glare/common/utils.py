@@ -28,7 +28,6 @@ from eventlet.green import socket
 import hashlib
 import os
 import re
-import uuid
 
 from OpenSSL import crypto
 from oslo_config import cfg
@@ -36,6 +35,7 @@ from oslo_log import log as logging
 from oslo_utils import encodeutils
 from oslo_utils import excutils
 from oslo_utils import timeutils
+from oslo_utils import uuidutils
 from oslo_versionedobjects import fields
 import six
 
@@ -236,7 +236,7 @@ def validate_key_cert(key_file, cert_file):
                             'ce': ce})
 
     try:
-        data = str(uuid.uuid4())
+        data = uuidutils.generate_uuid()
         # On Python 3, explicitly encode to UTF-8 to call crypto.sign() which
         # requires bytes. Otherwise, it raises a deprecation warning (and
         # will raise an error later).

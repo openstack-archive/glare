@@ -12,10 +12,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import uuid
 
 from oslo_db.sqlalchemy import models
 from oslo_utils import timeutils
+from oslo_utils import uuidutils
 from sqlalchemy import BigInteger
 from sqlalchemy import Boolean
 from sqlalchemy import Column
@@ -103,7 +103,7 @@ class Artifact(BASE, ArtifactBase):
     __protected_attributes__ = set(["created_at", "updated_at"])
 
     id = Column(String(36), primary_key=True,
-                default=lambda: str(uuid.uuid4()))
+                default=lambda: uuidutils.generate_uuid())
     name = Column(String(255), nullable=False)
     type_name = Column(String(255), nullable=False)
     version_prefix = Column(BigInteger().with_variant(Integer, "sqlite"),
@@ -182,7 +182,7 @@ class ArtifactTag(BASE, ArtifactBase):
                       {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8'},)
 
     id = Column(String(36), primary_key=True, nullable=False,
-                default=lambda: str(uuid.uuid4()))
+                default=lambda: uuidutils.generate_uuid())
     artifact_id = Column(String(36), ForeignKey('glare_artifacts.id'),
                          nullable=False)
     artifact = relationship(Artifact,
@@ -198,7 +198,7 @@ class ArtifactProperty(BASE, ArtifactBase):
         Index('ix_glare_artifact_properties_name', 'name'),
         {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8'},)
     id = Column(String(36), primary_key=True, nullable=False,
-                default=lambda: str(uuid.uuid4()))
+                default=lambda: uuidutils.generate_uuid())
     artifact_id = Column(String(36), ForeignKey('glare_artifacts.id'),
                          nullable=False)
     artifact = relationship(Artifact,
@@ -220,7 +220,7 @@ class ArtifactBlob(BASE, ArtifactBase):
         Index('ix_glare_artifact_blobs_name', 'name'),
         {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8'},)
     id = Column(String(36), primary_key=True, nullable=False,
-                default=lambda: str(uuid.uuid4()))
+                default=lambda: uuidutils.generate_uuid())
     artifact_id = Column(String(36), ForeignKey('glare_artifacts.id'),
                          nullable=False)
     name = Column(String(255), nullable=False)

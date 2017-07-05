@@ -12,9 +12,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import uuid
 
 from oslo_serialization import jsonutils
+from oslo_utils import uuidutils
 import requests
 
 from glare.tests import functional
@@ -31,21 +31,21 @@ class TestArtifact(functional.FunctionalTest):
 
     users = {
         'user1': {
-            'id': str(uuid.uuid4()),
-            'tenant_id': str(uuid.uuid4()),
-            'token': str(uuid.uuid4()),
+            'id': uuidutils.generate_uuid(),
+            'tenant_id': uuidutils.generate_uuid(),
+            'token': uuidutils.generate_uuid(),
             'role': 'member'
         },
         'user2': {
-            'id': str(uuid.uuid4()),
-            'tenant_id': str(uuid.uuid4()),
-            'token': str(uuid.uuid4()),
+            'id': uuidutils.generate_uuid(),
+            'tenant_id': uuidutils.generate_uuid(),
+            'token': uuidutils.generate_uuid(),
             'role': 'member'
         },
         'admin': {
-            'id': str(uuid.uuid4()),
-            'tenant_id': str(uuid.uuid4()),
-            'token': str(uuid.uuid4()),
+            'id': uuidutils.generate_uuid(),
+            'tenant_id': uuidutils.generate_uuid(),
+            'token': uuidutils.generate_uuid(),
             'role': 'admin'
         },
         'anonymous': {
