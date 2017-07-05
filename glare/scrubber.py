@@ -155,7 +155,7 @@ class Scrubber(object):
 
     @staticmethod
     def _scrub_artifact(af):
-        LOG.info("Begin scrubbing of artifact %s" % af.id)
+        LOG.info("Begin scrubbing of artifact %s", af.id)
         for blob in af.blobs:
             if not blob.external:
                 try:
@@ -168,4 +168,4 @@ class Scrubber(object):
         # delete artifact itself
         db_api.delete(context, af.id, db_api.get_session())
 
-        LOG.info("Artifact %s was scrubbed" % af.id)
+        LOG.info("Artifact %s was scrubbed", af.id)
