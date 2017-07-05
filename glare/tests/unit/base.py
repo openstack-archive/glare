@@ -77,10 +77,14 @@ class BaseTestCase(testtools.TestCase):
                 enf.rules[default.name] = default.check
 
         self.config(
-            custom_artifact_types_modules=['glare.tests.sample_artifact'],
+            custom_artifact_types_modules=[
+                'glare.tests.sample_artifact',
+                'glare.tests.hooks_artifact'
+            ],
             enabled_artifact_types=[
-                'sample_artifact:database', 'images', 'heat_templates',
-                'heat_environments', 'murano_packages', 'tosca_templates']
+                'hooks_artifact', 'sample_artifact:database', 'images',
+                'heat_templates', 'heat_environments', 'murano_packages',
+                'tosca_templates']
         )
 
         location.SCHEME_TO_CLS_MAP = {}

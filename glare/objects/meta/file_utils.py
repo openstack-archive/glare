@@ -40,10 +40,10 @@ def create_temporary_file(stream, suffix=''):
     tfd, path = tempfile.mkstemp(suffix=suffix)
     while True:
         data = stream.read(100000)
-        if data == '':  # end of file reached
+        if data == b'':  # end of file reached
             break
         os.write(tfd, data)
-    tfile = os.fdopen(tfd)
+    tfile = os.fdopen(tfd, "rb")
     return tfile, path
 
 

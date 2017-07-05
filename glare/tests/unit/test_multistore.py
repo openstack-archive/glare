@@ -24,7 +24,8 @@ class TestMultistore(base.BaseTestCase):
                  'heat_templates': 'rbd', 'heat_environments': '',
                  'tosca_templates': 'sheepdog',
                  'murano_packages': 'vmware_store',
-                 'sample_artifact': 'database'}
+                 'sample_artifact': 'database',
+                 'hooks_artifact': 'database'}
 
         self.config(
             enabled_artifact_types=[":".join(_) for _ in types.items()])
