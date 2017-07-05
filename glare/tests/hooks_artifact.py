@@ -12,14 +12,17 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import io
 import os
 import shutil
+import zipfile
 
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_versionedobjects import fields
 
 from glare.common import exception
+from glare.common import utils
 from glare.objects import base
 from glare.objects.meta import file_utils
 from glare.objects.meta import wrappers
@@ -46,15 +49,37 @@ class HookChecker(base.BaseArtifact):
         'forbid_download_zip': Field(fields.FlexibleBooleanField,
                                      default=False),
         'forbid_delete': Field(fields.FlexibleBooleanField,
-                               default=False, mutable=True)
+                               default=False, mutable=True),
     }
+
+    artifact_type_opts = base.BaseArtifact.artifact_type_opts + [
+        cfg.BoolOpt('in_memory_processing')
+    ]
 
     @classmethod
     def get_type_name(cls):
         return "hooks_artifact"
 
     @classmethod
-    def validate_upload(cls, context, af, field_name, fd):
+    def _validate_upload_inmemory(cls, context, af, field_name, fd):
+        flobj = io.BytesIO(fd.read())
+        while True:
+            data = fd.read(65536)
+            if data == b'':  # end of file reached
+                break
+            flobj.write(data)
+
+        zip_ref = zipfile.ZipFile(flobj, 'r')
+        for name in zip_ref.namelist():
+            if not name.endswith('/'):
+                file_utils.upload_content_file(
+                    context, af, utils.BlobIterator(zip_ref.read(name)),
+                    'content', name)
+        flobj.seek(0)
+        return flobj, None
+
+    @classmethod
+    def _validate_upload_harddrive(cls, context, af, field_name, fd):
         path = None
         tdir = None
         try:
@@ -82,6 +107,15 @@ class HookChecker(base.BaseArtifact):
         tfile.flush()
         tfile.seek(0)
         return tfile, path
+
+    @classmethod
+    def validate_upload(cls, context, af, field_name, fd):
+        if CONF.hooks_artifact.in_memory_processing:
+            return cls._validate_upload_harddrive(
+                context, af, field_name, fd)
+        else:
+            return cls._validate_upload_inmemory(
+                context, af, field_name, fd)
 
     @classmethod
     def validate_download(cls, context, af, field_name, fd):

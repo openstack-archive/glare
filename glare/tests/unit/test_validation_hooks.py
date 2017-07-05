@@ -44,6 +44,13 @@ class TestArtifactHooks(base.BaseTestArtifactAPI):
         self.assertEqual(
             11, artifact['content']['folder1/folder2/ccc.txt']['size'])
 
+    def test_upload_hook_inmemory(self):
+        # enable in-memory processing
+        self.config(in_memory_processing=True,
+                    group='hooks_artifact')
+
+        self.test_upload_hook()
+
     def test_download_hook(self):
         # upload data
         var_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
