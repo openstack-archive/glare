@@ -144,7 +144,6 @@ fixture_base_props = {
                     u'enum': [u'private', u'public'],
                     u'filter_ops': [u'eq', u'neq', u'in'],
                     u'glareType': u'String',
-                    u'maxLength': 255,
                     u'sortable': True,
                     u'type': u'string'}
 }
@@ -621,7 +620,6 @@ fixtures = {
                                 u'neq',
                                 u'in'],
                 u'glareType': u'String',
-                u'maxLength': 255,
                 u'type': [u'string',
                           u'null']}
         }),
@@ -658,7 +656,6 @@ fixtures = {
                                                   u'neq',
                                                   u'in'],
                                   u'glareType': u'String',
-                                  u'maxLength': 255,
                                   u'type': [u'string',
                                             u'null']},
 
@@ -678,7 +675,6 @@ fixtures = {
                                              u'neq',
                                              u'in'],
                              u'glareType': u'String',
-                             u'maxLength': 255,
                              u'type': [u'string', u'null']},
             u'image': {u'additionalProperties': False,
                        u'description': u'Image binary.',
