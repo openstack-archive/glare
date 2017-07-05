@@ -167,7 +167,7 @@ def _create_or_update(context, artifact_id, values, session):
         artifact.update(values)
 
         LOG.debug('Sending request to the database. '
-                  'New values are %s' % values)
+                  'New values are %s', values)
         artifact.save(session=session)
         LOG.debug('Response from the database was received.')
 

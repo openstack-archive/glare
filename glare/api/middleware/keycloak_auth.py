@@ -98,10 +98,8 @@ class KeycloakAuthMiddleware(base_middleware.Middleware):
                                   time=CONF.keycloak_oidc.token_cache_time)
             info = resp.json()
 
-        LOG.debug(
-            "HTTP response from OIDC provider: %s" %
-            pprint.pformat(info)
-        )
+        LOG.debug("HTTP response from OIDC provider: %s",
+                  pprint.pformat(info))
 
         return info
 
