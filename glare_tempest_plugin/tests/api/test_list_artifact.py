@@ -13,13 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
 import testtools
 
 
 from glare_tempest_plugin.tests.api import base
 from tempest import config
-
 
 CONF = config.CONF
 
