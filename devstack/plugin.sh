@@ -57,6 +57,16 @@ function configure_glare {
 
     iniset $GLARE_CONF_FILE DEFAULT debug $GLARE_DEBUG
 
+    # Specify additional modules with external artifact types
+    if [ -n "$GLARE_CUSTOM_MODULES" ]; then
+        iniset $GLARE_CONF_FILE DEFAULT custom_artifact_types_modules $GLARE_CUSTOM_MODULES
+    fi
+
+    # Specify a list of enabled artifact types
+    if [ -n "$GLARE_ENABLED_TYPES" ]; then
+        iniset $GLARE_CONF_FILE DEFAULT enabled_artifact_types $GLARE_ENABLED_TYPES
+    fi
+
     oslopolicy-sample-generator --namespace=glare --output-file=$GLARE_POLICY_FILE
     sed -i 's/^#"//' $GLARE_POLICY_FILE
 
