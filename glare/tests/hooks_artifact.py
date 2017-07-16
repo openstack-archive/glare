@@ -89,7 +89,7 @@ class HookChecker(base.BaseArtifact):
 
     @classmethod
     def validate_upload(cls, context, af, field_name, fd):
-        if CONF.hooks_artifact.in_memory_processing:
+        if getattr(CONF, 'artifact_type:hooks_artifact').in_memory_processing:
             return file_utils.unpack_zip_archive_in_memory(
                 context, af, 'content', fd), None
         else:

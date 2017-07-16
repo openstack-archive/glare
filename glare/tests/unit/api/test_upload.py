@@ -85,7 +85,8 @@ class TestArtifactUpload(base.BaseTestArtifactAPI):
             BytesIO(b'aaa'), 'application/octet-stream')
 
     def test_storage_error(self):
-        self.config(enabled_artifact_types=['sample_artifact'])
+        self.config(default_store='filesystem',
+                    group='artifact_type:sample_artifact')
         with mock.patch('glance_store.backend.add_to_backend',
                         side_effect=store_exc.GlanceStoreException):
             self.assertRaises(
@@ -179,7 +180,8 @@ class TestArtifactUpload(base.BaseTestArtifactAPI):
             'dict_of_blobs/blb', BytesIO(b'aaa'), 'application/octet-stream')
 
     def test_blob_dict_storage_error(self):
-        self.config(enabled_artifact_types=['sample_artifact'])
+        self.config(default_store='filesystem',
+                    group='artifact_type:sample_artifact')
         with mock.patch('glance_store.backend.add_to_backend',
                         side_effect=store_exc.GlanceStoreException):
             self.assertRaises(

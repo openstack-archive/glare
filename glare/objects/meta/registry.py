@@ -103,10 +103,13 @@ class ArtifactRegistry(vo_base.VersionedObjectRegistry):
         supported_types = []
         for module in modules:
             supported_types.extend(get_subclasses(module, base.BaseArtifact))
-        types = [t.partition(':')[0] for t in CONF.enabled_artifact_types]
-        for type_name in set(types + ['all']):
+
+        for type_name in set(CONF.enabled_artifact_types + ['all']):
             for af_type in supported_types:
                 if type_name == af_type.get_type_name():
+                    CONF.register_opts(
+                        af_type.artifact_type_opts,
+                        group='artifact_type:' + type_name)
                     cls.register(af_type)
                     break
             else:

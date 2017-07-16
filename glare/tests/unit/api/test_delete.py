@@ -21,12 +21,12 @@ from glare.db import artifact_api
 from glare.tests.unit import base
 
 
-class TestArtifactUpdate(base.BaseTestArtifactAPI):
+class TestArtifactDelete(base.BaseTestArtifactAPI):
 
     """Test Glare artifact deletion."""
 
     def setUp(self):
-        super(TestArtifactUpdate, self).setUp()
+        super(TestArtifactDelete, self).setUp()
         values = {'name': 'ttt', 'version': '1.0'}
         self.artifact = self.controller.create(
             self.req, 'sample_artifact', values)
@@ -178,7 +178,8 @@ class TestArtifactUpdate(base.BaseTestArtifactAPI):
     def test_delayed_delete_per_artifact_type(self, mocked_delete):
         # Enable delayed delete for sample_artifact type
         # Global parameter is disabled
-        self.config(delayed_delete=True, group='sample_artifact')
+        self.config(delayed_delete=True,
+                    group='artifact_type:sample_artifact')
         # Delete artifact and check that 'delete_blob' was not called
         self.controller.delete(self.req, 'sample_artifact',
                                self.artifact['id'])
@@ -190,7 +191,8 @@ class TestArtifactUpdate(base.BaseTestArtifactAPI):
         self.assertEqual('deleted', self.artifact['status'])
         self.assertEqual('active', self.artifact['blob']['status'])
         # Disable delayed delete
-        self.config(delayed_delete=False, group='sample_artifact')
+        self.config(delayed_delete=False,
+                    group='artifact_type:sample_artifact')
         # Delete artifact and check that 'delete_blob' was called this time
         self.controller.delete(self.req, 'sample_artifact',
                                self.artifact['id'])

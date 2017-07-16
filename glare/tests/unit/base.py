@@ -82,7 +82,7 @@ class BaseTestCase(testtools.TestCase):
                 'glare.tests.hooks_artifact'
             ],
             enabled_artifact_types=[
-                'hooks_artifact', 'sample_artifact:database', 'images',
+                'hooks_artifact', 'sample_artifact', 'images',
                 'heat_templates', 'heat_environments', 'murano_packages',
                 'tosca_templates']
         )
@@ -165,3 +165,5 @@ class BaseTestArtifactAPI(BaseTestCase):
         super(BaseTestArtifactAPI, self).setUp()
         self.controller = resource.ArtifactsController()
         self.req = self.get_fake_request(user=self.users['user1'])
+        self.config(default_store='database',
+                    group='artifact_type:sample_artifact')

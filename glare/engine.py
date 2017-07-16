@@ -341,7 +341,8 @@ class Engine(object):
         af.validate_delete(context, af)
         blobs = af.delete(context, af)
 
-        delayed_delete = getattr(CONF, type_name).delayed_delete
+        delayed_delete = getattr(
+            CONF, 'artifact_type:' + type_name).delayed_delete
         # use global parameter if delayed delete isn't set per artifact type
         if delayed_delete is None:
             delayed_delete = CONF.delayed_delete
@@ -488,8 +489,12 @@ class Engine(object):
                 max_allowed_size = min(max_allowed_size,
                                        max_folder_size_allowed)
 
-            default_store = af.get_default_store(
-                context, af, field_name, blob_key)
+            default_store = getattr(
+                CONF, 'artifact_type:' + type_name).default_store
+            # use global parameter if default store isn't set per artifact type
+            if default_store is None:
+                default_store = CONF.glance_store.default_store
+
             location_uri, size, checksums = store_api.save_blob_to_store(
                 blob_id, fd, context, max_allowed_size,
                 store_type=default_store)

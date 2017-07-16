@@ -20,7 +20,22 @@ from glare.tests.functional import base
 
 
 class TestMultiStore(base.TestArtifact):
-    enabled_types = (u'sample_artifact:database',)
+
+    def setUp(self):
+        base.functional.FunctionalTest.setUp(self)
+
+        self.set_user('user1')
+        self.glare_server.deployment_flavor = 'noauth'
+
+        self.glare_server.enabled_artifact_types = 'sample_artifact'
+        self.glare_server.custom_artifact_types_modules = (
+            'glare.tests.sample_artifact')
+        self.glare_server.artifact_type_section = """
+[artifact_type:sample_artifact]
+delayed_delete = False
+default_store = database
+"""
+        self.start_servers(**self.__dict__.copy())
 
     def test_blob_dicts(self):
         # Getting empty artifact list

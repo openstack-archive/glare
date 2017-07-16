@@ -87,7 +87,12 @@ def upload_content_file(context, af, data, blob_dict, key_name,
 
     # try to perform blob uploading to storage backend
     try:
-        default_store = af.get_default_store(context, af, blob_dict, key_name)
+        default_store = getattr(
+            CONF, 'artifact_type:' + af.get_type_name()).default_store
+        # use global parameter if default store isn't set per artifact type
+        if default_store is None:
+            default_store = CONF.glance_store.default_store
+
         location_uri, size, checksums = store_api.save_blob_to_store(
             blob_id, data, context, af.get_max_blob_size(blob_dict),
             default_store)

@@ -56,7 +56,8 @@ _artifacts_opts = [
 registry.ArtifactRegistry.register_all_artifacts()
 for af_type in registry.ArtifactRegistry.obj_classes().values():
     _artifacts_opts.append(
-        (af_type[0].get_type_name(), af_type[0].list_artifact_type_opts()))
+        ('artifact_type:' + af_type[0].get_type_name(),
+         af_type[0].list_artifact_type_opts()))
 
 
 def list_artifacts_opts():

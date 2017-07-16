@@ -133,11 +133,35 @@ class BaseArtifact(base.VersionedObject):
                         "by some other tool in the background. "
                         "Redefines global parameter of the same name "
                         "from [DEFAULT] section.")),
+        cfg.StrOpt('default_store',
+                   choices=('file', 'filesystem', 'http', 'https', 'swift',
+                            'swift+http', 'swift+https', 'swift+config', 'rbd',
+                            'sheepdog', 'cinder', 'vsphere', 'database'),
+                   help=_("""
+The default scheme to use for storing artifacts of this
+type.
+Provide a string value representing the default scheme to
+use for storing artifact data. If not set, Glare uses
+default_store parameter from [glance_store] section.
+NOTE: The value given for this configuration option must
+be a valid scheme for a store registered with the ``stores``
+configuration option.
+Possible values:
+   * file
+   * filesystem
+   * http
+   * https
+   * swift
+   * swift+http
+   * swift+https
+   * swift+config
+   * rbd
+   * sheepdog
+   * cinder
+   * vsphere
+   * database
+                   """))
     ]
-
-    def __new__(cls, *args, **kwargs):
-        CONF.register_opts(cls.artifact_type_opts, group=cls.get_type_name())
-        return base.VersionedObject.__new__(cls)
 
     @classmethod
     def list_artifact_type_opts(cls):
@@ -458,15 +482,6 @@ class BaseArtifact(base.VersionedObject):
     def validate_delete(cls, context, af):
         """Validation hook for deletion."""
         pass
-
-    @classmethod
-    def get_default_store(cls, context=None, af=None,
-                          field_name=None, blob_key=None):
-        """Return a default store type for artifact type."""
-        for t in CONF.enabled_artifact_types:
-            type_name, __, store_name = t.partition(':')
-            if type_name == cls.get_type_name():
-                return store_name
 
     def to_notification(self):
         """Return notification body that can be send to listeners.

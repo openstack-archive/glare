@@ -67,10 +67,6 @@ def save_blob_to_store(blob_id, blob, context, max_size,
     :param verifier:signature verified
     :return: tuple of values: (location_uri, size, checksums)
     """
-    if store_type not in set(CONF.glance_store.stores + ['database']):
-        LOG.warning("Incorrect backend configuration - scheme '%s' is not"
-                    " supported. Fallback to default store.", store_type)
-        store_type = None
     data = utils.LimitingReader(utils.CooperativeReader(blob), max_size)
 
     LOG.debug('Start uploading blob %s.', blob_id)

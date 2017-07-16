@@ -48,7 +48,7 @@ class TestArtifactHooks(base.BaseTestArtifactAPI):
     def test_upload_hook_inmemory(self):
         # enable in-memory processing
         self.config(in_memory_processing=True,
-                    group='hooks_artifact')
+                    group='artifact_type:hooks_artifact')
 
         # First check uploading with smaller limit fails
         with mock.patch('glare.objects.meta.file_utils.'

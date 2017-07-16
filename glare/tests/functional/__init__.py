@@ -283,6 +283,7 @@ class GlareServer(Server):
         self.send_identity_headers = False
         self.enabled_artifact_types = ''
         self.custom_artifact_types_modules = ''
+        self.artifact_type_section = ''
 
         self.conf_base = """[DEFAULT]
 debug = %(debug)s
@@ -307,6 +308,7 @@ filesystem_store_datadir=%(blob_dir)s
 default_store = %(default_store)s
 [database]
 connection = %(sql_connection)s
+%(artifact_type_section)s
 """
         self.paste_conf_base = """[pipeline:glare-api]
 pipeline = faultwrapper versionnegotiation trustedauth glarev1api
