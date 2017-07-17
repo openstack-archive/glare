@@ -423,8 +423,37 @@ class Engine(object):
         Notifier.notify(context, action_name, modified_af)
         return modified_af.to_dict()
 
+    @staticmethod
+    def _calculate_allowed_space(context, af, field_name, content_length=None,
+                                 blob_key=None):
+        """Calculate the maximum amount of data user can upload to a blob."""
+        # As a default we take the maximum blob size
+        max_allowed_size = af.get_max_blob_size(field_name)
+
+        if blob_key is not None:
+            # For folders we also compare it with the maximum folder size
+            blobs_dict = getattr(af, field_name)
+            overall_folder_size = sum(
+                blob["size"] for blob in blobs_dict.values()
+                if blob["size"] is not None)
+            max_folder_size_allowed = af.get_max_folder_size(
+                field_name) - overall_folder_size  # always non-negative
+            max_allowed_size = min(max_allowed_size,
+                                   max_folder_size_allowed)
+
+        if content_length is None:
+            # if no content_length was provided we have to allocate
+            # all allowed space for the blob
+            size = max_allowed_size
+        else:
+            if content_length > max_allowed_size:
+                raise exception.RequestEntityTooLarge()
+            size = content_length
+
+        return size
+
     def upload_blob(self, context, type_name, artifact_id, field_name, fd,
-                    content_type, blob_key=None):
+                    content_type, content_length=None, blob_key=None):
         """Upload Artifact blob.
 
         :param context: user context
@@ -433,6 +462,7 @@ class Engine(object):
         :param field_name: name of blob or blob dict field
         :param fd: file descriptor that Glare uses to upload the file
         :param content_type: data content-type
+        :param content_length: amount of data user wants to upload
         :param blob_key: if field_name is blob dict it specifies key
          in this dictionary
         :return: dict representation of updated artifact
@@ -454,7 +484,9 @@ class Engine(object):
                         "%(af)s") % {'blob': field_name, 'af': af.id}
                 raise exception.Conflict(message=msg)
             utils.validate_change_allowed(af, field_name)
-            blob = {'url': None, 'size': None, 'md5': None, 'sha1': None,
+            size = self._calculate_allowed_space(
+                context, af, field_name, content_length, blob_key)
+            blob = {'url': None, 'size': size, 'md5': None, 'sha1': None,
                     'sha256': None, 'id': blob_id, 'status': 'saving',
                     'external': False, 'content_type': content_type}
 
@@ -477,18 +509,6 @@ class Engine(object):
             except Exception as e:
                 raise exception.BadRequest(message=str(e))
 
-            max_allowed_size = af.get_max_blob_size(field_name)
-            # Check if we wanna upload to a folder (and not just to a Blob)
-            if blob_key is not None:
-                blobs_dict = getattr(af, field_name)
-                overall_folder_size = sum(
-                    blob["size"] for blob in blobs_dict.values()
-                    if blob["size"] is not None)
-                max_folder_size_allowed = af.get_max_folder_size(field_name) \
-                    - overall_folder_size  # always non-negative
-                max_allowed_size = min(max_allowed_size,
-                                       max_folder_size_allowed)
-
             default_store = getattr(
                 CONF, 'artifact_type:' + type_name).default_store
             # use global parameter if default store isn't set per artifact type
@@ -496,7 +516,7 @@ class Engine(object):
                 default_store = CONF.glance_store.default_store
 
             location_uri, size, checksums = store_api.save_blob_to_store(
-                blob_id, fd, context, max_allowed_size,
+                blob_id, fd, context, size,
                 store_type=default_store)
         except Exception:
             # if upload failed remove blob from db and storage

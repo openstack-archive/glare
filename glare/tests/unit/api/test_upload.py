@@ -17,6 +17,7 @@ import mock
 from six import BytesIO
 
 from glare.common import exception as exc
+from glare.common import store_api
 from glare.db import artifact_api
 from glare.tests import sample_artifact
 from glare.tests.unit import base
@@ -118,6 +119,8 @@ class TestArtifactUpload(base.BaseTestArtifactAPI):
         self.assertEqual('active', artifact['dict_of_blobs']['blb2']['status'])
 
     def test_upload_oversized_blob_dict(self):
+        # dict_of_blobs has a limit in 2000 bytes in it
+
         # external location shouldn't affect folder size
         ct = 'application/vnd+openstack.glare-custom-location+json'
         body = {'url': 'https://FAKE_LOCATION.com',
@@ -163,6 +166,62 @@ class TestArtifactUpload(base.BaseTestArtifactAPI):
             exc.RequestEntityTooLarge, self.controller.upload_blob,
             self.req, 'sample_artifact', self.sample_artifact['id'],
             'dict_of_blobs/d', BytesIO(b'd'), 'application/octet-stream')
+
+    def test_upload_with_content_length(self):
+        # dict_of_blobs has a limit in 2000 bytes in it
+
+        # external location shouldn't affect folder size
+        ct = 'application/vnd+openstack.glare-custom-location+json'
+        body = {'url': 'https://FAKE_LOCATION.com',
+                'md5': "fake", 'sha1': "fake_sha", "sha256": "fake_sha256"}
+        artifact = self.controller.upload_blob(
+            self.req, 'sample_artifact', self.sample_artifact['id'],
+            'dict_of_blobs/external', body, ct)
+        self.assertIsNone(artifact['dict_of_blobs']['external']['size'])
+        self.assertEqual('active',
+                         artifact['dict_of_blobs']['external']['status'])
+
+        # Error if we provide a content length bigger than max folder size
+        with mock.patch('glare.common.store_api.save_blob_to_store') as m:
+            self.assertRaises(
+                exc.RequestEntityTooLarge, self.controller.upload_blob,
+                self.req, 'sample_artifact', self.sample_artifact['id'],
+                'dict_of_blobs/d', BytesIO(b'd' * 2001),
+                'application/octet-stream', content_length=2001)
+            # Check that upload hasn't started
+            self.assertEqual(0, m.call_count)
+
+        # Try to cheat and provide content length lesser than we want to upload
+        with mock.patch('glare.common.store_api.save_blob_to_store',
+                        side_effect=store_api.save_blob_to_store) as m:
+            self.assertRaises(
+                exc.RequestEntityTooLarge, self.controller.upload_blob,
+                self.req, 'sample_artifact', self.sample_artifact['id'],
+                'dict_of_blobs/d', BytesIO(b'd' * 2001),
+                'application/octet-stream', content_length=100)
+            # Check that upload was called this time
+            self.assertEqual(1, m.call_count)
+
+        # Upload lesser amount of data works
+        self.controller.upload_blob(
+            self.req, 'sample_artifact', self.sample_artifact['id'],
+            'dict_of_blobs/a',
+            BytesIO(b'a' * 1800), 'application/octet-stream')
+        artifact = self.controller.show(self.req, 'sample_artifact',
+                                        self.sample_artifact['id'])
+        self.assertEqual(1800, artifact['dict_of_blobs']['a']['size'])
+        self.assertEqual('active', artifact['dict_of_blobs']['a']['status'])
+
+        # Now we have only 200 bytes left
+        # Uploading of 201 byte fails immediately
+        with mock.patch('glare.common.store_api.save_blob_to_store') as m:
+            self.assertRaises(
+                exc.RequestEntityTooLarge, self.controller.upload_blob,
+                self.req, 'sample_artifact', self.sample_artifact['id'],
+                'dict_of_blobs/d', BytesIO(b'd' * 201),
+                'application/octet-stream', content_length=201)
+            # Check that upload hasn't started
+            self.assertEqual(0, m.call_count)
 
     def test_existing_blob_dict_key(self):
         self.controller.upload_blob(

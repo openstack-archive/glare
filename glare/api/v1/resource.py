@@ -74,6 +74,23 @@ class RequestDeserializer(api_versioning.VersionedResource,
 
         return content_type
 
+    @staticmethod
+    def _get_content_length(req):
+        """Determine content length of the request body."""
+        if req.content_length is None:
+            return
+
+        try:
+            content_length = int(req.content_length)
+            if content_length < 0:
+                raise ValueError
+        except ValueError:
+            msg = _("Content-Length must be a non negative integer.")
+            LOG.error(msg)
+            raise exc.BadRequest(msg)
+
+        return content_length
+
     def _get_request_body(self, req):
         """Get request json body and convert it to python structures."""
         return self.from_json(req.body)
@@ -150,6 +167,7 @@ class RequestDeserializer(api_versioning.VersionedResource,
     @supported_versions(min_ver='1.0')
     def upload_blob(self, req):
         content_type = self._get_content_type(req)
+        content_length = self._get_content_length(req)
         if content_type == ('application/vnd+openstack.glare-custom-location'
                             '+json'):
             data = self._get_request_body(req)
@@ -167,7 +185,9 @@ class RequestDeserializer(api_versioning.VersionedResource,
         if self.is_valid_encoding(req) and self.is_valid_method(req):
             req.is_body_readable = True
 
-        return {'data': data, 'content_type': content_type}
+        return {'data': data,
+                'content_type': content_type,
+                'content_length': content_length}
 
 
 def log_request_progress(f):
@@ -305,7 +325,7 @@ class ArtifactsController(api_versioning.VersionedResource):
     @supported_versions(min_ver='1.0')
     @log_request_progress
     def upload_blob(self, req, type_name, artifact_id, blob_path, data,
-                    content_type):
+                    content_type, content_length=None):
         """Upload blob into Glare repo.
 
         :param req: User request
@@ -314,6 +334,7 @@ class ArtifactsController(api_versioning.VersionedResource):
         :param blob_path: path to artifact blob
         :param data: blob payload
         :param content_type: data content-type
+        :param content_length: amount of data user wants to upload
         :return: definition of requested artifact with uploaded blob
         """
         field_name, _sep, blob_key = blob_path.partition('/')
@@ -328,7 +349,7 @@ class ArtifactsController(api_versioning.VersionedResource):
         else:
             return self.engine.upload_blob(
                 req.context, type_name, artifact_id, field_name, data,
-                content_type, blob_key)
+                content_type, content_length, blob_key)
 
     @supported_versions(min_ver='1.0')
     @log_request_progress
