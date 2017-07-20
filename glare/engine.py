@@ -376,7 +376,10 @@ class Engine(object):
         if blob_key is not None:
             # Insert blob value in the folder
             folder = getattr(af, field_name)
-            folder[blob_key] = value
+            if value is not None:
+                folder[blob_key] = value
+            else:
+                del folder[blob_key]
             value = folder
         return af.update_blob(context, af.id, field_name, value)
 
@@ -605,3 +608,35 @@ class Engine(object):
                 os.remove(path)
 
         return data, meta
+
+    def delete_external_blob(self, context, type_name, artifact_id,
+                             field_name, blob_key=None):
+        """Delete artifact blob with external location.
+
+        :param context: user context
+        :param type_name: name of artifact type
+        :param artifact_id: id of artifact with the blob to delete
+        :param field_name: name of blob or blob dict field
+        :param blob_key: if field_name is blob dict it specifies key
+         in this dictionary
+        """
+        af = self._show_artifact(context, type_name, artifact_id)
+        action_name = 'artifact:delete_blob'
+        policy.authorize(action_name, af.to_dict(), context)
+
+        blob_name = "%s[%s]" % (field_name, blob_key)\
+            if blob_key else field_name
+
+        blob = self._get_blob_info(af, field_name, blob_key)
+        if blob is None:
+            msg = _("Blob %s wasn't found for artifact") % blob_name
+            raise exception.NotFound(message=msg)
+        if not blob['external']:
+            msg = _("Blob %s is not external") % blob_name
+            raise exception.Forbidden(message=msg)
+
+        modified_af = self._save_blob_info(
+            context, af, field_name, blob_key, None)
+
+        Notifier.notify(context, action_name, modified_af)
+        return modified_af.to_dict()

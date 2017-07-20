@@ -880,6 +880,120 @@ class TestBlobs(base.TestArtifact):
         # delete the artifact
         self.delete(url=url)
 
+    def test_delete_external_blob(self):
+        # Create artifact
+        art = self.create_artifact({'name': 'name5',
+                                    'version': '1.0',
+                                    'tags': ['tag1', 'tag2', 'tag3'],
+                                    'int1': 2048,
+                                    'float1': 987.654,
+                                    'str1': 'lalala',
+                                    'bool1': False,
+                                    'string_required': '123'})
+        self.assertIsNotNone(art['id'])
+
+        # Set custom location
+        url = '/sample_artifact/%s' % art['id']
+        body = jsonutils.dumps(
+            {'url': 'https://www.apache.org/licenses/LICENSE-2.0.txt',
+             'md5': "fake", 'sha1': "fake_sha", "sha256": "fake_sha256"})
+        headers = {'Content-Type':
+                   'application/vnd+openstack.glare-custom-location+json'}
+        art = self.put(url=url + '/blob', data=body,
+                       status=200, headers=headers)
+        self.assertEqual('active', art['blob']['status'])
+        self.assertEqual('fake', art['blob']['md5'])
+        self.assertEqual('fake_sha', art['blob']['sha1'])
+        self.assertEqual('fake_sha256', art['blob']['sha256'])
+        self.assertIsNone(art['blob']['size'])
+        self.assertIsNone(art['blob']['content_type'])
+        self.assertEqual('https://www.apache.org/licenses/LICENSE-2.0.txt',
+                         art['blob']['url'])
+        self.assertNotIn('id', art['blob'])
+
+        # Delete should work
+        art = self.delete(url=url + '/blob', status=200)
+        self.assertIsNone(art['blob'])
+
+        # Deletion of empty blob fails
+        self.delete(url=url + '/blob', status=404)
+
+        # Deletion of non-blob field fails
+        self.delete(url=url + '/int1', status=400)
+
+        # Deletion ofn non-existing field fails
+        self.delete(url=url + '/NONEXIST', status=400)
+
+        # Upload data
+        data = 'some_arbitrary_testing_data'
+        headers = {'Content-Type': 'application/octet-stream'}
+        art = self.put(url=url + '/blob', data=data, status=200,
+                       headers=headers)
+        self.assertEqual('active', art['blob']['status'])
+        md5 = hashlib.md5(data.encode('UTF-8')).hexdigest()
+        sha1 = hashlib.sha1(data.encode('UTF-8')).hexdigest()
+        sha256 = hashlib.sha256(data.encode('UTF-8')).hexdigest()
+        self.assertEqual(md5, art['blob']['md5'])
+        self.assertEqual(sha1, art['blob']['sha1'])
+        self.assertEqual(sha256, art['blob']['sha256'])
+
+        # Deletion of internal blob fails
+        self.delete(url=url + '/blob', status=403)
+
+    def test_delete_external_blob_dict(self):
+        # Create artifact
+        art = self.create_artifact({'name': 'name5',
+                                    'version': '1.0',
+                                    'tags': ['tag1', 'tag2', 'tag3'],
+                                    'int1': 2048,
+                                    'float1': 987.654,
+                                    'str1': 'lalala',
+                                    'bool1': False,
+                                    'string_required': '123'})
+        self.assertIsNotNone(art['id'])
+
+        # Set custom location
+        url = '/sample_artifact/%s' % art['id']
+        body = jsonutils.dumps(
+            {'url': 'https://www.apache.org/licenses/LICENSE-2.0.txt',
+             'md5': "fake", 'sha1': "fake_sha", "sha256": "fake_sha256"})
+        headers = {'Content-Type':
+                   'application/vnd+openstack.glare-custom-location+json'}
+        art = self.put(url=url + '/dict_of_blobs/blob', data=body,
+                       status=200, headers=headers)
+        self.assertEqual('active', art['dict_of_blobs']['blob']['status'])
+        self.assertEqual('fake', art['dict_of_blobs']['blob']['md5'])
+        self.assertEqual('fake_sha', art['dict_of_blobs']['blob']['sha1'])
+        self.assertEqual('fake_sha256', art['dict_of_blobs']['blob']['sha256'])
+        self.assertIsNone(art['dict_of_blobs']['blob']['size'])
+        self.assertIsNone(art['dict_of_blobs']['blob']['content_type'])
+        self.assertEqual('https://www.apache.org/licenses/LICENSE-2.0.txt',
+                         art['dict_of_blobs']['blob']['url'])
+        self.assertNotIn('id', art['dict_of_blobs']['blob'])
+
+        # Delete should work
+        art = self.delete(url=url + '/dict_of_blobs/blob', status=200)
+        self.assertNotIn('blob', art['dict_of_blobs'])
+
+        # Deletion of non-existing blob fails
+        self.delete(url=url + '/dict_of_blobs/NONEXIST', status=404)
+
+        # Upload data
+        data = 'some_arbitrary_testing_data'
+        headers = {'Content-Type': 'application/octet-stream'}
+        art = self.put(url=url + '/dict_of_blobs/blob', data=data, status=200,
+                       headers=headers)
+        self.assertEqual('active', art['dict_of_blobs']['blob']['status'])
+        md5 = hashlib.md5(data.encode('UTF-8')).hexdigest()
+        sha1 = hashlib.sha1(data.encode('UTF-8')).hexdigest()
+        sha256 = hashlib.sha256(data.encode('UTF-8')).hexdigest()
+        self.assertEqual(md5, art['dict_of_blobs']['blob']['md5'])
+        self.assertEqual(sha1, art['dict_of_blobs']['blob']['sha1'])
+        self.assertEqual(sha256, art['dict_of_blobs']['blob']['sha256'])
+
+        # Deletion of internal blob fails
+        self.delete(url=url + '/dict_of_blobs/blob', status=403)
+
 
 class TestTags(base.TestArtifact):
     def test_tags(self):

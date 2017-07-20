@@ -127,10 +127,9 @@ class TestArtifact(functional.FunctionalTest):
         return self._check_artifact_method("get", url, status=status,
                                            headers=headers)
 
-    def delete(self, url, status=204):
-        response = requests.delete(self._url(url), headers=self._headers())
-        self.assertEqual(status, response.status_code, response.text)
-        return response.text
+    def delete(self, url, status=204, headers=None):
+        return self._check_artifact_method("delete", url, status=status,
+                                           headers=headers)
 
     def patch(self, url, data, status=200, headers=None):
         if headers is None:

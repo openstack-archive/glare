@@ -93,8 +93,12 @@ class API(wsgi.Router):
                        action='upload_blob',
                        conditions={'method': ['PUT']})
         mapper.connect('/artifacts/{type_name}/{artifact_id}/{blob_path:.*?}',
+                       controller=glare_resource,
+                       action='delete_external_blob',
+                       conditions={'method': ['DELETE']})
+        mapper.connect('/artifacts/{type_name}/{artifact_id}/{blob_path:.*?}',
                        controller=reject_method_resource,
                        action='reject',
-                       allowed_methods='GET, PUT')
+                       allowed_methods='GET, PUT, DELETE')
 
         super(API, self).__init__(mapper)

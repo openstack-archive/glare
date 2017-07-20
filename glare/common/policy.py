@@ -77,6 +77,9 @@ artifact_policy_rules = [
                        "rule:admin_or_owner and "
                        "rule:artifact:download_deactivated",
                        "Policy to download blob from artifact"),
+    policy.RuleDefault("artifact:delete_blob", "rule:admin_or_owner",
+                       "Policy to delete blob with external location "
+                       "from artifact"),
 ]
 
 

@@ -322,6 +322,13 @@ class ArtifactsController(api_versioning.VersionedResource):
             result['next_marker'] = artifacts[-1]['id']
         return result
 
+    @staticmethod
+    def _parse_blob_path(blob_path):
+        field_name, _sep, blob_key = blob_path.partition('/')
+        if not blob_key:
+            blob_key = None
+        return field_name, blob_key
+
     @supported_versions(min_ver='1.0')
     @log_request_progress
     def upload_blob(self, req, type_name, artifact_id, blob_path, data,
@@ -337,9 +344,7 @@ class ArtifactsController(api_versioning.VersionedResource):
         :param content_length: amount of data user wants to upload
         :return: definition of requested artifact with uploaded blob
         """
-        field_name, _sep, blob_key = blob_path.partition('/')
-        if not blob_key:
-            blob_key = None
+        field_name, blob_key = self._parse_blob_path(blob_path)
         if content_type == ('application/vnd+openstack.glare-custom-location'
                             '+json'):
             url = data.pop('url')
@@ -362,13 +367,25 @@ class ArtifactsController(api_versioning.VersionedResource):
         :param blob_path: path to artifact blob
         :return: requested blob data
         """
-        field_name, _sep, blob_key = blob_path.partition('/')
-        if not blob_key:
-            blob_key = None
+        field_name, blob_key = self._parse_blob_path(blob_path)
         data, meta = self.engine.download_blob(
             req.context, type_name, artifact_id, field_name, blob_key)
         result = {'data': data, 'meta': meta}
         return result
+
+    @supported_versions(min_ver='1.1')
+    @log_request_progress
+    def delete_external_blob(self, req, type_name, artifact_id, blob_path):
+        """Delete blob with external location from Glare repo.
+
+        :param req: User request
+        :param type_name: Artifact type name
+        :param artifact_id: id of artifact with the blob to delete
+        :param blob_path: path to artifact blob
+        """
+        field_name, blob_key = self._parse_blob_path(blob_path)
+        return self.engine.delete_external_blob(
+            req.context, type_name, artifact_id, field_name, blob_key)
 
 
 class ResponseSerializer(api_versioning.VersionedResource,
@@ -475,6 +492,10 @@ class ResponseSerializer(api_versioning.VersionedResource,
             self._serialize_location(response, result)
         else:
             self._serialize_blob(response, result)
+
+    @supported_versions(min_ver='1.1')
+    def delete_external_blob(self, response, result):
+        self._prepare_json_response(response, result)
 
 
 def create_resource():

@@ -104,7 +104,7 @@ class RequestTest(base.BaseTestCase):
             ('/artifacts/type_name', ['PUT', 'DELETE', 'HEAD', 'PATCH']),
             ('/artifacts/type_name/artifact_id', ['PUT', 'HEAD', 'POST']),
             ('/artifacts/type_name/artifact_id/blob)name',
-             ['DELETE', 'HEAD', 'PATCH', 'POST']),
+             ['HEAD', 'PATCH', 'POST']),
         ]
         api = router.API(routes.Mapper())
         for uri, methods in unallowed_methods:
