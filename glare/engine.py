@@ -541,11 +541,6 @@ class Engine(object):
         blob_name = "%s[%s]" % (field_name, blob_key)\
             if blob_key else field_name
 
-        if af.status == 'deactivated' and not context.is_admin:
-            msg = _("Only admin is allowed to download artifact data "
-                    "when it's deactivated")
-            raise exception.Forbidden(message=msg)
-
         if af.status == 'deleted':
             msg = _("Cannot download data when artifact is deleted")
             raise exception.Forbidden(message=msg)

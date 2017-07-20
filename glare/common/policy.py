@@ -69,7 +69,13 @@ artifact_policy_rules = [
                        "Policy to set custom location for artifact"),
     policy.RuleDefault("artifact:upload", "rule:admin_or_owner",
                        "Policy to upload blob for artifact"),
-    policy.RuleDefault("artifact:download", "",
+    policy.RuleDefault("artifact:download_deactivated",
+                       "'deactivated':%(status)s and rule:context_is_admin "
+                       "or not 'deactivated':%(status)s",
+                       "Policy to download blob from deactivated artifact"),
+    policy.RuleDefault("artifact:download",
+                       "rule:admin_or_owner and "
+                       "rule:artifact:download_deactivated",
                        "Policy to download blob from artifact"),
 ]
 
