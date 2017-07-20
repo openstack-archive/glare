@@ -126,7 +126,7 @@ class TestMultiStore(base.TestArtifact):
         url = '/sample_artifact/%s' % art['id']
 
         # download not uploaded blob
-        self.get(url=url + '/blob', status=400)
+        self.get(url=url + '/blob', status=404)
 
         # download blob from not existing artifact
         self.get(url=url + '1/blob', status=404)

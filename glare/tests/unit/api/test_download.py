@@ -84,7 +84,7 @@ class TestArtifactDownload(base.BaseTestArtifactAPI):
         self.assertEqual('saving', self.sample_artifact['blob']['status'])
 
         # assert that we can't download while blob in saving status
-        self.assertRaises(exc.BadRequest, self.controller.download_blob,
+        self.assertRaises(exc.Conflict, self.controller.download_blob,
                           self.req, 'sample_artifact',
                           self.sample_artifact['id'], "blob")
 
