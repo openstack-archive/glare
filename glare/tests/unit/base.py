@@ -109,7 +109,7 @@ class BaseTestCase(testtools.TestCase):
         self._config_fixture.config(**kw)
 
     @staticmethod
-    def policy(**new_rules):
+    def policy(new_rules):
         enf = policy.init(use_conf=False)
         for rule_name, rule_check_str in new_rules.items():
             enf.rules[rule_name] = os_policy.RuleDefault(

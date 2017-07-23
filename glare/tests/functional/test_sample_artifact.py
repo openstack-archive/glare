@@ -994,6 +994,50 @@ class TestBlobs(base.TestArtifact):
         # Deletion of internal blob fails
         self.delete(url=url + '/dict_of_blobs/blob', status=403)
 
+    def test_internal_location(self):
+        self.set_user('admin')
+        # Create artifact
+        art = self.create_artifact({'name': 'name5'})
+        self.assertIsNotNone(art['id'])
+
+        url = '/sample_artifact/%s' % art['id']
+        headers = {'Content-Type':
+                   'application/vnd+openstack.glare-custom-location+json'}
+
+        # Setting locations with forbidden schemes fails
+        forbidden_schemes = ('file', 'filesystem', 'swift+config', 'sql')
+        for scheme in forbidden_schemes:
+            body = jsonutils.dumps(
+                {'md5': 'fake', 'sha1': 'fake_sha', 'sha256': 'fake_sha256',
+                 'location_type': 'internal',
+                 'url': scheme + '://FAKE_LOCATION.com'})
+            self.put(url=url + '/blob', data=body, status=403, headers=headers)
+
+        # Setting locations with unknown schemes fail
+        body = jsonutils.dumps(
+            {'md5': 'fake', 'sha1': 'fake_sha', 'sha256': 'fake_sha256',
+             'location_type': 'internal',
+             'url': 'UNKNOWN://FAKE_LOCATION.com'})
+        self.put(url=url + '/blob', data=body, status=400, headers=headers)
+
+        body = jsonutils.dumps(
+            {'md5': 'fake', 'sha1': 'fake_sha', 'sha256': 'fake_sha256',
+             'location_type': 'internal',
+             'url': 'https://FAKE_LOCATION.com'})
+        art = self.put(url=url + '/blob', data=body, status=200,
+                       headers=headers)
+
+        self.assertFalse(art['blob']['external'])
+        self.assertEqual('active', art['blob']['status'])
+        self.assertEqual('fake', art['blob']['md5'])
+        self.assertEqual('fake_sha', art['blob']['sha1'])
+        self.assertEqual('fake_sha256', art['blob']['sha256'])
+        self.assertIsNone(art['blob']['size'])
+        self.assertIsNone(art['blob']['content_type'])
+        self.assertEqual('/artifacts/sample_artifact/%s/blob' % art['id'],
+                         art['blob']['url'])
+        self.assertNotIn('id', art['blob'])
+
 
 class TestTags(base.TestArtifact):
     def test_tags(self):

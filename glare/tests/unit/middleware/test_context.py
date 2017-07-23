@@ -58,7 +58,7 @@ class TestContextMiddleware(base.BaseTestCase):
 
         # if we change the admin_role attribute, we should be able to use it
         req = self._build_request()
-        self.policy(context_is_admin='role:role1')
+        self.policy({'context_is_admin': 'role:role1'})
         self._build_middleware().process_request(req)
         self.assertTrue(req.context.is_admin)
 
@@ -70,14 +70,14 @@ class TestContextMiddleware(base.BaseTestCase):
 
         # accept role from config
         req = self._build_request(roles=['role1'])
-        self.policy(context_is_admin='role:rOLe1')
+        self.policy({'context_is_admin': 'role:rOLe1'})
         self._build_middleware().process_request(req)
         self.assertTrue(req.context.is_admin)
 
     def test_roles_stripping(self):
         # stripping extra spaces in request
         req = self._build_request(roles=['\trole1'])
-        self.policy(context_is_admin='role:role1')
+        self.policy({'context_is_admin': 'role:role1'})
         self._build_middleware().process_request(req)
         self.assertTrue(req.context.is_admin)
 

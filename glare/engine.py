@@ -22,6 +22,7 @@ from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
+import six.moves.urllib.parse as urlparse
 
 from glare.common import exception
 from glare.common import policy
@@ -385,13 +386,13 @@ class Engine(object):
 
     def add_blob_location(self, context, type_name, artifact_id, field_name,
                           location, blob_meta, blob_key=None):
-        """Add external location to blob.
+        """Add external/internal location to blob.
 
         :param context: user context
         :param type_name: name of artifact type
         :param artifact_id: id of the artifact to be updated
         :param field_name: name of blob or blob dict field
-        :param location: external blob url
+        :param location: blob url
         :param blob_meta: dictionary containing blob metadata like md5 checksum
         :param blob_key: if field_name is blob dict it specifies key
          in this dict
@@ -400,15 +401,32 @@ class Engine(object):
         blob_name = "%s[%s]" % (field_name, blob_key)\
             if blob_key else field_name
 
+        location_type = blob_meta.pop('location_type', 'external')
+
+        if location_type == 'external':
+            action_name = 'artifact:set_location'
+        elif location_type == 'internal':
+            scheme = urlparse.urlparse(location).scheme
+            if scheme in store_api.RESTRICTED_URI_SCHEMES:
+                msg = _("Forbidden to set internal locations with "
+                        "scheme '%s'") % scheme
+                raise exception.Forbidden(msg)
+            if scheme not in store_api.get_known_schemes():
+                msg = _("Unknown scheme '%s'") % scheme
+                raise exception.BadRequest(msg)
+            action_name = 'artifact:set_internal_location'
+        else:
+            msg = _("Invalid location type: %s") % location_type
+            raise exception.BadRequest(msg)
+
         blob = {'url': location, 'size': None, 'md5': blob_meta.get("md5"),
                 'sha1': blob_meta.get("sha1"), 'id': uuidutils.generate_uuid(),
                 'sha256': blob_meta.get("sha256"), 'status': 'active',
-                'external': True, 'content_type': None}
+                'external': location_type == 'external', 'content_type': None}
 
         lock_key = "%s:%s" % (type_name, artifact_id)
         with self.lock_engine.acquire(context, lock_key):
             af = self._show_artifact(context, type_name, artifact_id)
-            action_name = 'artifact:set_location'
             policy.authorize(action_name, af.to_dict(), context)
             if self._get_blob_info(af, field_name, blob_key):
                 msg = _("Blob %(blob)s already exists for artifact "

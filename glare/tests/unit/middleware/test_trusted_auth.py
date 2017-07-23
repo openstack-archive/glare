@@ -90,7 +90,7 @@ class TestTrustedAuthMiddleware(base.BaseTestCase):
 
         # if we change the admin_role attribute, we should be able to use it
         req = self._build_request('user1:tenant1:role1,role2')
-        self.policy(context_is_admin='role:role1')
+        self.policy({'context_is_admin': 'role:role1'})
         self._build_middleware().process_request(req)
         self.assertTrue(req.context.is_admin)
 
@@ -102,14 +102,14 @@ class TestTrustedAuthMiddleware(base.BaseTestCase):
 
         # accept role from config
         req = self._build_request('user1:tenant1:role1,role2')
-        self.policy(context_is_admin='role:rOLe1')
+        self.policy({'context_is_admin': 'role:rOLe1'})
         self._build_middleware().process_request(req)
         self.assertTrue(req.context.is_admin)
 
     def test_token_stripping(self):
         # stripping extra spaces in request
         req = self._build_request('   user1:tenant1:role1\t')
-        self.policy(context_is_admin='role:role1')
+        self.policy({'context_is_admin': 'role:role1'})
         self._build_middleware().process_request(req)
         self.assertTrue(req.context.is_admin)
         self.assertEqual('user1', req.context.user)

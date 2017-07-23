@@ -58,6 +58,8 @@ class RequestDeserializer(api_versioning.VersionedResource,
     about concrete artifact type structure.
     """
 
+    ALLOWED_LOCATION_TYPES = ('external', 'internal')
+
     @staticmethod
     def _get_content_type(req, expected=None):
         """Determine content type of the request body."""
@@ -175,10 +177,22 @@ class RequestDeserializer(api_versioning.VersionedResource,
                 msg = _("url is required when specifying external location. "
                         "Cannot find 'url' in request body: %s") % str(data)
                 raise exc.BadRequest(msg)
-            if 'md5' not in data:
-                msg = _("Incorrect blob metadata. MD5 must be specified "
-                        "for external location in artifact blob.")
+            location_type = data.get('location_type', 'external')
+            if location_type not in self.ALLOWED_LOCATION_TYPES:
+                msg = (_("Incorrect location type '%(location_type)s'. It "
+                         "must be one of the following %(allowed)s") %
+                       {'location_type': location_type,
+                        'allowed': ', '.join(self.ALLOWED_LOCATION_TYPES)})
                 raise exc.BadRequest(msg)
+            if location_type == 'external':
+                url = data.get('url')
+                if not url.startswith('http'):
+                    msg = _("Url '%s' doesn't have http(s) scheme") % url
+                    raise exc.BadRequest(msg)
+                if 'md5' not in data:
+                    msg = _("Incorrect blob metadata. MD5 must be specified "
+                            "for external location in artifact blob.")
+                    raise exc.BadRequest(msg)
         else:
             data = req.body_file
 
