@@ -94,7 +94,7 @@ class GlareFaultWrapperFilter(base_middleware.ConfigurableMiddleware):
             message = full_message
 
         if isinstance(ex, exception.GlareException):
-            message = ex.message
+            message = six.text_type(ex)
 
         if not webob_exc:
             webob_exc = self._map_exception_to_error(ex.__class__)
