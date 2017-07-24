@@ -111,10 +111,10 @@ class HookChecker(base.BaseArtifact):
     @classmethod
     def validate_upload(cls, context, af, field_name, fd):
         if CONF.hooks_artifact.in_memory_processing:
-            return cls._validate_upload_harddrive(
+            return cls._validate_upload_inmemory(
                 context, af, field_name, fd)
         else:
-            return cls._validate_upload_inmemory(
+            return cls._validate_upload_harddrive(
                 context, af, field_name, fd)
 
     @classmethod
