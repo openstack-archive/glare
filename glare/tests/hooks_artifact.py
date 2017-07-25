@@ -12,17 +12,14 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import io
 import os
 import shutil
-import zipfile
 
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_versionedobjects import fields
 
 from glare.common import exception
-from glare.common import utils
 from glare.objects import base
 from glare.objects.meta import file_utils
 from glare.objects.meta import wrappers
@@ -61,24 +58,6 @@ class HookChecker(base.BaseArtifact):
         return "hooks_artifact"
 
     @classmethod
-    def _validate_upload_inmemory(cls, context, af, field_name, fd):
-        flobj = io.BytesIO(fd.read())
-        while True:
-            data = fd.read(65536)
-            if data == b'':  # end of file reached
-                break
-            flobj.write(data)
-
-        zip_ref = zipfile.ZipFile(flobj, 'r')
-        for name in zip_ref.namelist():
-            if not name.endswith('/'):
-                file_utils.upload_content_file(
-                    context, af, utils.BlobIterator(zip_ref.read(name)),
-                    'content', name)
-        flobj.seek(0)
-        return flobj, None
-
-    @classmethod
     def _validate_upload_harddrive(cls, context, af, field_name, fd):
         path = None
         tdir = None
@@ -111,8 +90,8 @@ class HookChecker(base.BaseArtifact):
     @classmethod
     def validate_upload(cls, context, af, field_name, fd):
         if CONF.hooks_artifact.in_memory_processing:
-            return cls._validate_upload_inmemory(
-                context, af, field_name, fd)
+            return file_utils.unpack_zip_archive_in_memory(
+                context, af, 'content', fd)
         else:
             return cls._validate_upload_harddrive(
                 context, af, field_name, fd)
