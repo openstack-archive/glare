@@ -355,6 +355,30 @@ class Engine(object):
             af.db_api.delete(context, af.id)
         Notifier.notify(context, action_name, af)
 
+    @staticmethod
+    def _get_blob_info(af, field_name, blob_key=None):
+        """Return requested blob info"""
+        if blob_key:
+            if not af.is_blob_dict(field_name):
+                msg = _("%s is not a blob dict") % field_name
+                raise exception.BadRequest(msg)
+            return getattr(af, field_name).get(blob_key)
+        else:
+            if not af.is_blob(field_name):
+                msg = _("%s is not a blob") % field_name
+                raise exception.BadRequest(msg)
+            return getattr(af, field_name, None)
+
+    @staticmethod
+    def _save_blob_info(context, af, field_name, blob_key, value):
+        """Save blob instance in database."""
+        if blob_key is not None:
+            # Insert blob value in the folder
+            folder = getattr(af, field_name)
+            folder[blob_key] = value
+            value = folder
+        return af.update_blob(context, af.id, field_name, value)
+
     def add_blob_location(self, context, type_name, artifact_id, field_name,
                           location, blob_meta, blob_key=None):
         """Add external location to blob.
@@ -382,8 +406,14 @@ class Engine(object):
             af = self._show_artifact(context, type_name, artifact_id)
             action_name = 'artifact:set_location'
             policy.authorize(action_name, af.to_dict(), context)
-            modified_af = self._init_blob(
-                context, af, blob, field_name, blob_key)
+            if self._get_blob_info(af, field_name, blob_key):
+                msg = _("Blob %(blob)s already exists for artifact "
+                        "%(af)s") % {'blob': field_name, 'af': af.id}
+                raise exception.Conflict(message=msg)
+            utils.validate_change_allowed(af, field_name)
+            modified_af = self._save_blob_info(
+                context, af, field_name, blob_key, blob)
+
         LOG.info("External location %(location)s has been created "
                  "successfully for artifact %(artifact)s blob %(blob)s",
                  {'location': location, 'artifact': af.id,
@@ -410,18 +440,25 @@ class Engine(object):
         blob_name = "%s[%s]" % (field_name, blob_key) \
             if blob_key else field_name
         blob_id = uuidutils.generate_uuid()
-        # create an an empty blob instance in db with 'saving' status
-        blob = {'url': None, 'size': None, 'md5': None, 'sha1': None,
-                'sha256': None, 'id': blob_id, 'status': 'saving',
-                'external': False, 'content_type': content_type}
 
         lock_key = "%s:%s" % (type_name, artifact_id)
         with self.lock_engine.acquire(context, lock_key):
             af = self._show_artifact(context, type_name, artifact_id)
             action_name = "artifact:upload"
             policy.authorize(action_name, af.to_dict(), context)
-            modified_af = self._init_blob(
-                context, af, blob, field_name, blob_key)
+
+            # create an an empty blob instance in db with 'saving' status
+            if self._get_blob_info(af, field_name, blob_key):
+                msg = _("Blob %(blob)s already exists for artifact "
+                        "%(af)s") % {'blob': field_name, 'af': af.id}
+                raise exception.Conflict(message=msg)
+            utils.validate_change_allowed(af, field_name)
+            blob = {'url': None, 'size': None, 'md5': None, 'sha1': None,
+                    'sha256': None, 'id': blob_id, 'status': 'saving',
+                    'external': False, 'content_type': content_type}
+
+            modified_af = self._save_blob_info(
+                context, af, field_name, blob_key, blob)
 
         LOG.debug("Parameters validation for artifact %(artifact)s blob "
                   "upload passed for blob %(blob_name)s. "
@@ -479,50 +516,11 @@ class Engine(object):
 
         with self.lock_engine.acquire(context, lock_key):
             af = af.show(context, artifact_id)
-            if blob_key:
-                field_value = getattr(af, field_name)
-                field_value[blob_key] = blob
-            else:
-                field_value = blob
-            modified_af = af.update_blob(
-                context, af.id, field_name, field_value)
+            modified_af = self._save_blob_info(
+                context, af, field_name, blob_key, blob)
 
         Notifier.notify(context, action_name, modified_af)
         return modified_af.to_dict()
-
-    @staticmethod
-    def _init_blob(context, af, value, field_name, blob_key=None):
-        """Validate if given blob is ready for uploading.
-
-        :param af: current artifact object
-        :param value: dict representation of the blob
-        :param field_name: blob or blob dict field name
-        :param blob_key: indicates key name if field_name is a blob dict
-        """
-        if blob_key:
-            if not af.is_blob_dict(field_name):
-                msg = _("%s is not a blob dict") % field_name
-                raise exception.BadRequest(msg)
-            field_value = getattr(af, field_name)
-            if field_value.get(blob_key) is not None:
-                msg = (_("Cannot re-upload blob value to blob dict %(blob)s "
-                         "with key %(key)s for artifact %(af)s") %
-                       {'blob': field_name, 'key': blob_key, 'af': af.id})
-                raise exception.Conflict(message=msg)
-            field_value[blob_key] = value
-            value = field_value
-        else:
-            if not af.is_blob(field_name):
-                msg = _("%s is not a blob") % field_name
-                raise exception.BadRequest(msg)
-            field_value = getattr(af, field_name, None)
-            if field_value is not None:
-                msg = _("Cannot re-upload blob %(blob)s for artifact "
-                        "%(af)s") % {'blob': field_name, 'af': af.id}
-                raise exception.Conflict(message=msg)
-        utils.validate_change_allowed(af, field_name)
-
-        return af.update_blob(context, af.id, field_name, value)
 
     def download_blob(self, context, type_name, artifact_id, field_name,
                       blob_key=None):
@@ -543,14 +541,6 @@ class Engine(object):
         blob_name = "%s[%s]" % (field_name, blob_key)\
             if blob_key else field_name
 
-        # check if field is downloadable
-        if blob_key is None and not af.is_blob(field_name):
-            msg = _("%s is not a blob") % field_name
-            raise exception.BadRequest(msg)
-        if blob_key is not None and not af.is_blob_dict(field_name):
-            msg = _("%s is not a blob dict") % field_name
-            raise exception.BadRequest(msg)
-
         if af.status == 'deactivated' and not context.is_admin:
             msg = _("Only admin is allowed to download artifact data "
                     "when it's deactivated")
@@ -560,19 +550,13 @@ class Engine(object):
             msg = _("Cannot download data when artifact is deleted")
             raise exception.Forbidden(message=msg)
 
-        # get blob info from dict or directly
-        if blob_key is None:
-            blob = getattr(af, field_name)
-        else:
-            try:
-                blob = getattr(af, field_name)[blob_key]
-            except KeyError:
-                msg = _("Blob with name %s is not found") % blob_name
-                raise exception.NotFound(message=msg)
-
-        if blob is None or blob['status'] != 'active':
+        blob = self._get_blob_info(af, field_name, blob_key)
+        if blob is None:
+            msg = _("No data found for blob %s") % blob_name
+            raise exception.NotFound(message=msg)
+        if blob['status'] != 'active':
             msg = _("%s is not ready for download") % blob_name
-            raise exception.BadRequest(message=msg)
+            raise exception.Conflict(message=msg)
 
         meta = {'md5': blob.get('md5'),
                 'sha1': blob.get('sha1'),
