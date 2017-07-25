@@ -110,6 +110,11 @@ def unpack_zip_archive_in_memory(context, af, fd):
     :param fd: file
     :return io.BytesIO object - simple stream of in-memory bytes, None
     """
+    #  Warning: usage of this function is potentially harmful, because it
+    #  doesn't limit how much data it writes to ram. Careless usage in artifact
+    #  types may cause denial of the service.
+    #  Thus it should be used only with blobs with reduced max_blob_size
+
     flobj = io.BytesIO(fd.read())
     while True:
         data = fd.read(65536)
