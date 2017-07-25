@@ -91,7 +91,7 @@ class HookChecker(base.BaseArtifact):
     def validate_upload(cls, context, af, field_name, fd):
         if CONF.hooks_artifact.in_memory_processing:
             return file_utils.unpack_zip_archive_in_memory(
-                context, af, 'content', fd)
+                context, af, 'content', fd), None
         else:
             return cls._validate_upload_harddrive(
                 context, af, field_name, fd)

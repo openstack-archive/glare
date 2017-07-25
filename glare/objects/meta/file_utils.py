@@ -109,7 +109,7 @@ def unpack_zip_archive_in_memory(context, af, field_name, fd):
     :param af: artifact object
     :param field_name: blob dict name where to unpack the data
     :param fd: zip archive
-    :return io.BytesIO object - simple stream of in-memory bytes, None
+    :return io.BytesIO object - simple stream of in-memory bytes
     """
     #  Warning: usage of this function is potentially harmful, because it
     #  doesn't limit how much data it writes to ram. Careless usage in artifact
@@ -130,4 +130,4 @@ def unpack_zip_archive_in_memory(context, af, field_name, fd):
                 context, af, utils.BlobIterator(zip_ref.read(name)),
                 field_name, name)
     flobj.seek(0)
-    return flobj, None
+    return flobj
