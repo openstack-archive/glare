@@ -109,7 +109,7 @@ def unpack_zip_archive_in_memory(context, af, field_name, fd):
     :param af: artifact object
     :param field_name: blob dict name where to unpack the data
     :param fd: zip archive
-    :return io.BytesIO object - simple stream of in-memory bytes, None
+    :return io.BytesIO object - simple stream of in-memory bytes
     """
     flobj = io.BytesIO(fd.read())
     while True:
@@ -125,4 +125,4 @@ def unpack_zip_archive_in_memory(context, af, field_name, fd):
                 context, af, utils.BlobIterator(zip_ref.read(name)),
                 field_name, name)
     flobj.seek(0)
-    return flobj, None
+    return flobj
