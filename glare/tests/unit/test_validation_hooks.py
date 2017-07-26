@@ -12,6 +12,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import mock
 import os
 
 from glare.common import exception as exc
@@ -49,6 +50,12 @@ class TestArtifactHooks(base.BaseTestArtifactAPI):
         self.config(in_memory_processing=True,
                     group='hooks_artifact')
 
+        # First check uploading with smaller limit fails
+        with mock.patch('glare.objects.meta.file_utils.'
+                        'INMEMORY_OBJECT_SIZE_LIMIT', 817):
+            self.assertRaises(exc.RequestEntityTooLarge, self.test_upload_hook)
+
+        # Now try with standard limit
         self.test_upload_hook()
 
     def test_download_hook(self):
