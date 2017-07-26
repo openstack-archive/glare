@@ -313,6 +313,8 @@ class Engine(object):
                 try:
                     # call upload hook first
                     fd, path = af.validate_upload(context, af, field_name, fd)
+                except exception.GlareException:
+                    raise
                 except Exception as e:
                     raise exception.BadRequest(message=str(e))
 
@@ -447,6 +449,8 @@ class Engine(object):
                 # call download hook first
                 data, path = af.validate_download(
                     context, af, field_name, data)
+            except exception.GlareException:
+                raise
             except Exception as e:
                 raise exception.BadRequest(message=str(e))
 

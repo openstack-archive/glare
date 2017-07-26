@@ -24,12 +24,16 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 
+from glare.common import exception
 from glare.common import store_api
 from glare.common import utils
+from glare.i18n import _
 from glare.objects.meta import fields as glare_fields
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
+
+INMEMORY_OBJECT_SIZE_LIMIT = 134217728  # 128 megabytes
 
 
 def create_temporary_file(stream, suffix=''):
@@ -111,12 +115,14 @@ def unpack_zip_archive_in_memory(context, af, field_name, fd):
     :param fd: zip archive
     :return io.BytesIO object - simple stream of in-memory bytes
     """
-    flobj = io.BytesIO(fd.read())
-    while True:
-        data = fd.read(65536)
-        if data == b'':  # end of file reached
-            break
-        flobj.write(data)
+    flobj = io.BytesIO(fd.read(INMEMORY_OBJECT_SIZE_LIMIT))
+
+    # Raise exception if something left
+    data = fd.read(1)
+    if data:
+        msg = _("The zip you are trying to unpack is too big. "
+                "The system upper limit is %s") % INMEMORY_OBJECT_SIZE_LIMIT
+        raise exception.RequestEntityTooLarge(msg)
 
     zip_ref = zipfile.ZipFile(flobj, 'r')
     for name in zip_ref.namelist():
