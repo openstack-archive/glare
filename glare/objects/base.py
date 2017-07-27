@@ -27,6 +27,18 @@ from glare.objects.meta import validators
 from glare.objects.meta import wrappers
 
 global_artifact_opts = [
+    cfg.IntOpt('max_uploaded_data', default=1099511627776,  # 1 Terabyte
+               min=-1,
+               help=_("Defines how many bytes of data user can upload to "
+                      "storage. This parameter is global and doesn't take "
+                      "into account data of what type was uploaded. "
+                      "Value -1 means no limit.")),
+    cfg.IntOpt('max_artifact_number', default=100,
+               min=-1,
+               help=_("Defines how many artifacts user can have. This "
+                      "parameter is global and doesn't take "
+                      "into account artifacts of what type were created. "
+                      "Value -1 means no limit.")),
     cfg.BoolOpt('delayed_delete', default=False,
                 help=_("If False defines that artifacts must be deleted "
                        "immediately after the user call. Otherwise they just "
@@ -125,6 +137,12 @@ class BaseArtifact(base.VersionedObject):
     }
 
     artifact_type_opts = [
+        cfg.IntOpt('max_uploaded_data', min=-1,
+                   help=_("Defines how many bytes of data of this type user "
+                          "can upload to storage. Value -1 means no limit.")),
+        cfg.IntOpt('max_artifact_number', min=-1,
+                   help=_("Defines how many artifacts of this type user can "
+                          "have. Value -1 means no limit.")),
         cfg.BoolOpt('delayed_delete',
                     help=_(
                         "If False defines that artifacts must be deleted "
@@ -160,7 +178,7 @@ Possible values:
    * cinder
    * vsphere
    * database
-                   """))
+"""))
     ]
 
     @classmethod

@@ -33,6 +33,7 @@ from glare.i18n import _
 from glare import locking
 from glare.notification import Notifier
 from glare.objects.meta import registry
+from glare import quota
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
@@ -79,9 +80,10 @@ class Engine(object):
             filters.extend([('owner', 'eq:' + owner),
                             ('visibility', 'private')])
 
-        scope_id = "%s:%s:%s" % (type_name, name, version)
-        if visibility != 'public':
-            scope_id += ':%s' % owner
+        scope_id = owner
+        if visibility == 'public':
+            scope_id = "%s:%s:%s" % (type_name, name, version)
+
         lock = self.lock_engine.acquire(context, scope_id)
 
         try:
@@ -214,6 +216,7 @@ class Engine(object):
         # acquire scoped lock and execute artifact create
         with self._create_scoped_lock(context, type_name, af.name,
                                       af.version, context.tenant):
+            quota.verify_artifact_count(context, type_name)
             for field_name, value in values.items():
                 if af.is_blob(field_name) or af.is_blob_dict(field_name):
                     msg = _("Cannot add blob with this request. "
@@ -384,6 +387,10 @@ class Engine(object):
             value = folder
         return af.update_blob(context, af.id, field_name, value)
 
+    @staticmethod
+    def _generate_blob_name(field_name, blob_key=None):
+        return "%s[%s]" % (field_name, blob_key) if blob_key else field_name
+
     def add_blob_location(self, context, type_name, artifact_id, field_name,
                           location, blob_meta, blob_key=None):
         """Add external/internal location to blob.
@@ -398,8 +405,7 @@ class Engine(object):
          in this dict
         :return: dict representation of updated artifact
         """
-        blob_name = "%s[%s]" % (field_name, blob_key)\
-            if blob_key else field_name
+        blob_name = self._generate_blob_name(field_name, blob_key)
 
         location_type = blob_meta.pop('location_type', 'external')
 
@@ -444,12 +450,13 @@ class Engine(object):
         Notifier.notify(context, action_name, modified_af)
         return modified_af.to_dict()
 
-    @staticmethod
-    def _calculate_allowed_space(context, af, field_name, content_length=None,
-                                 blob_key=None):
-        """Calculate the maximum amount of data user can upload to a blob."""
+    def _calculate_allowed_space(self, context, af, field_name,
+                                 content_length=None, blob_key=None):
+        """Calculate the maximum amount of data user can upload to the blob."""
         # As a default we take the maximum blob size
-        max_allowed_size = af.get_max_blob_size(field_name)
+        blob_name = self._generate_blob_name(field_name, blob_key)
+
+        max_blob_size = af.get_max_blob_size(field_name)
 
         if blob_key is not None:
             # For folders we also compare it with the maximum folder size
@@ -457,18 +464,30 @@ class Engine(object):
             overall_folder_size = sum(
                 blob["size"] for blob in blobs_dict.values()
                 if blob["size"] is not None)
-            max_folder_size_allowed = af.get_max_folder_size(
+            available_folder_space = af.get_max_folder_size(
                 field_name) - overall_folder_size  # always non-negative
-            max_allowed_size = min(max_allowed_size,
-                                   max_folder_size_allowed)
+            max_blob_size = min(max_blob_size, available_folder_space)
+
+        # check quotas
+        quota_size = quota.verify_uploaded_data_amount(
+            context, af.get_type_name(), content_length)
 
         if content_length is None:
             # if no content_length was provided we have to allocate
-            # all allowed space for the blob
-            size = max_allowed_size
+            # all allowed space for the blob. It's minimum of max blob size
+            # and available quota limit. -1 means that user don't have upload
+            # limits.
+            size = max_blob_size if quota_size == -1 else min(
+                max_blob_size, quota_size)
         else:
-            if content_length > max_allowed_size:
-                raise exception.RequestEntityTooLarge()
+            if content_length > max_blob_size:
+                msg = _("Can't upload %(content_length)d bytes of data to "
+                        "blob %(blob_name)s. Its max allowed size is "
+                        "%(max_blob_size)d") % {
+                    'content_length': content_length,
+                    'blob_name': blob_name,
+                    'max_blob_size': max_blob_size}
+                raise exception.RequestEntityTooLarge(msg)
             size = content_length
 
         return size
@@ -488,9 +507,7 @@ class Engine(object):
          in this dictionary
         :return: dict representation of updated artifact
         """
-
-        blob_name = "%s[%s]" % (field_name, blob_key) \
-            if blob_key else field_name
+        blob_name = self._generate_blob_name(field_name, blob_key)
         blob_id = uuidutils.generate_uuid()
 
         lock_key = "%s:%s" % (type_name, artifact_id)
@@ -586,8 +603,7 @@ class Engine(object):
                                  read_only=True)
         policy.authorize("artifact:download", af.to_dict(), context)
 
-        blob_name = "%s[%s]" % (field_name, blob_key)\
-            if blob_key else field_name
+        blob_name = self._generate_blob_name(field_name, blob_key)
 
         if af.status == 'deleted':
             msg = _("Cannot download data when artifact is deleted")
@@ -642,8 +658,7 @@ class Engine(object):
         action_name = 'artifact:delete_blob'
         policy.authorize(action_name, af.to_dict(), context)
 
-        blob_name = "%s[%s]" % (field_name, blob_key)\
-            if blob_key else field_name
+        blob_name = self._generate_blob_name(field_name, blob_key)
 
         blob = self._get_blob_info(af, field_name, blob_key)
         if blob is None:
