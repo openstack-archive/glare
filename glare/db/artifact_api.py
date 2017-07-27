@@ -118,6 +118,32 @@ class ArtifactAPI(object):
                            marker=marker, limit=limit, sort=sort,
                            latest=latest)
 
+    @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
+           stop_max_attempt_number=20)
+    def count_artifact_number(self, context, type_name=None):
+        """Count the number of artifacts for the tenant.
+
+        :param context: user context
+        :param type_name: name of specific artifact type to count artifacts.
+         If None count artifacts of all types.
+        :return: number of artifacts for given tenant
+        """
+        session = api.get_session()
+        return api.count_artifact_number(context, session, type_name)
+
+    @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
+           stop_max_attempt_number=20)
+    def calculate_uploaded_data(self, context, type_name=None):
+        """Calculate the amount of uploaded data for tenant.
+
+        :param context: user context
+        :param type_name: name of specific artifact type to calculate data.
+         If None calculate data of artifacts of all types.
+        :return: amount of uploaded data for given user
+        """
+        session = api.get_session()
+        return api.calculate_uploaded_data(context, session, type_name)
+
 
 class ArtifactLockApi(locking.LockApiBase):
     @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
