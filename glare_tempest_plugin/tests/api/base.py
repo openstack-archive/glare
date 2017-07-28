@@ -16,9 +16,9 @@
 
 from glare_tempest_plugin import clients
 from tempest.common import credentials_factory as common_creds
-from tempest.common import dynamic_creds
 from tempest import config
 from tempest.lib import base
+from tempest.lib.common import dynamic_creds
 
 
 CONF = config.CONF
@@ -61,10 +61,13 @@ class BaseArtifactTest(base.BaseTestCase):
         identity_version = CONF.identity.auth_version
         if identity_version == 'v3':
             cls.admin_role = CONF.identity.admin_role
+            cls.identity_uri = CONF.identity.uri_v3
         else:
             cls.admin_role = 'admin'
+            cls.identity_uri = CONF.identity.uri
         cls.dynamic_cred = dynamic_creds.DynamicCredentialProvider(
             identity_version=CONF.identity.auth_version,
+            identity_uri=cls.identity_uri,
             name=cls.__name__, admin_role=cls.admin_role,
             admin_creds=common_creds.get_configured_admin_credentials(
                 'identity_admin'))
