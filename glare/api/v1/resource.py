@@ -17,6 +17,7 @@ deserialization of incoming requests."""
 
 import json
 import jsonpatch
+import jsonschema
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import encodeutils
@@ -46,6 +47,39 @@ list_configs = [
 CONF.register_opts(list_configs)
 
 supported_versions = api_versioning.VersionedResource.supported_versions
+
+QUOTA_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'quota_name': {
+            u'maxLength': 255,
+            u'minLength': 1,
+            u'pattern': u'^[^:]*:?[^:]*$',  # can have only 1 or 0 ':'
+            u'type': u'string'},
+        'quota_value': {'type': 'integer', u'minimum': -1},
+    },
+    'required': ['quota_name', 'quota_value']
+}
+
+QUOTA_INPUT_SCHEMA = {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "items": {
+        "properties": {
+            "project_id": {
+                u'maxLength': 255,
+                u'minLength': 1,
+                "type": "string"
+            },
+            "project_quotas": {
+                "items": QUOTA_SCHEMA,
+                "type": "array"
+            }
+        },
+        "type": "object",
+        "required": ["project_id", "project_quotas"]
+    },
+    "type": "array"
+}
 
 
 class RequestDeserializer(api_versioning.VersionedResource,
@@ -202,6 +236,24 @@ class RequestDeserializer(api_versioning.VersionedResource,
         return {'data': data,
                 'content_type': content_type,
                 'content_length': content_length}
+
+    @supported_versions(min_ver='1.1')
+    def set_quotas(self, req):
+        self._get_content_type(req, expected=['application/json'])
+        body = self._get_request_body(req)
+        try:
+            jsonschema.validate(body, QUOTA_INPUT_SCHEMA)
+        except jsonschema.exceptions.ValidationError as e:
+            raise exc.BadRequest(e)
+        values = {}
+        for item in body:
+            project_id = item['project_id']
+            values[project_id] = {}
+            for quota in item['project_quotas']:
+                values[project_id][quota['quota_name']] = quota['quota_value']
+        return {'values': values}
+
+    # TODO(mfedosin) add pagination to list of quotas
 
 
 def log_request_progress(f):
@@ -401,6 +453,38 @@ class ArtifactsController(api_versioning.VersionedResource):
         return self.engine.delete_external_blob(
             req.context, type_name, artifact_id, field_name, blob_key)
 
+    @supported_versions(min_ver='1.1')
+    @log_request_progress
+    def set_quotas(self, req, values):
+        """Set quota records in Glare.
+
+        :param req: user request
+        :param values: list with quota values to set
+        :return: definition of created quota
+        """
+        return self.engine.set_quotas(req.context, values)
+
+    @supported_versions(min_ver='1.1')
+    @log_request_progress
+    def list_all_quotas(self, req):
+        """Get detailed info about all available quotas.
+
+        :param req: user request
+        :return: definition of requested quotas for the project
+        """
+        return self.engine.list_all_quotas(req.context)
+
+    @supported_versions(min_ver='1.1')
+    @log_request_progress
+    def list_project_quotas(self, req, project_id):
+        """Get detailed info about project quotas.
+
+        :param req: user request
+        :param project_id: id of the project for which to show quotas
+        :return: definition of requested quotas for the project
+        """
+        return self.engine.list_project_quotas(req.context, project_id)
+
 
 class ResponseSerializer(api_versioning.VersionedResource,
                          wsgi.JSONResponseSerializer):
@@ -510,6 +594,37 @@ class ResponseSerializer(api_versioning.VersionedResource,
     @supported_versions(min_ver='1.1')
     def delete_external_blob(self, response, result):
         self._prepare_json_response(response, result)
+
+    @staticmethod
+    def _serialize_quota(quotas):
+        res = []
+        for project_id, project_quotas in quotas.items():
+            qouta_list = []
+            for qouta_name, quota_value in project_quotas.items():
+                qouta_list.append({
+                    'quota_name': qouta_name,
+                    'quota_value': quota_value,
+                })
+            res.append({
+                'project_id': project_id,
+                'project_quotas': qouta_list
+            })
+        return res
+
+    @supported_versions(min_ver='1.1')
+    def set_quotas(self, response, quota):
+        quota = self._serialize_quota(quota)
+        self._prepare_json_response(response, quota)
+
+    @supported_versions(min_ver='1.1')
+    def list_all_quotas(self, response, quota):
+        quota = self._serialize_quota(quota)
+        self._prepare_json_response(response, quota)
+
+    @supported_versions(min_ver='1.1')
+    def list_project_quotas(self, response, quota):
+        quota = self._serialize_quota(quota)
+        self._prepare_json_response(response, quota)
 
 
 def create_resource():

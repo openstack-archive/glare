@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import hashlib
 import operator
 import threading
 
@@ -608,6 +609,57 @@ def calculate_uploaded_data(context, session, type_name=None):
     if type_name is not None:
         query = query.filter(models.Artifact.type_name == type_name)
     return query.order_by(None).scalar() or 0
+
+
+def _generate_quota_id(project_id, quota_name, type_name=None):
+    quota_id = b"%s:%s" % (project_id.encode(), quota_name.encode())
+    if type_name is not None:
+        quota_id += b":%s" % type_name.encode()
+    return hashlib.md5(quota_id).hexdigest()
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+@utils.no_4byte_params
+def set_quotas(values, session):
+    """Create new quota instances in database"""
+    with session.begin():
+        for project_id, project_quotas in values.items():
+
+            # reset all project quotas
+            session.query(models.ArtifactQuota).filter(
+                models.ArtifactQuota.project_id == project_id).delete()
+
+            # generate new quotas
+            for quota_name, quota_value in project_quotas.items():
+                q = models.ArtifactQuota()
+                q.project_id = project_id
+                q.quota_name = quota_name
+                q.quota_value = quota_value
+                session.add(q)
+
+        # save all quotas
+        session.flush()
+
+    return values
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
+def get_all_quotas(session, project_id=None):
+    """List all available quotas."""
+    query = session.query(models.ArtifactQuota)
+    if project_id is not None:
+        query = query.filter(
+            models.ArtifactQuota.project_id == project_id)
+    quotas = query.order_by(models.ArtifactQuota.project_id).all()
+
+    res = {}
+    for quota in quotas:
+        res.setdefault(
+            quota.project_id, {})[quota.quota_name] = quota.quota_value
+
+    return res
 
 
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,

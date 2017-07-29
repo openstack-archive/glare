@@ -83,6 +83,13 @@ artifact_policy_rules = [
     policy.RuleDefault("artifact:delete_blob", "rule:admin_or_owner",
                        "Policy to delete blob with external location "
                        "from artifact"),
+    policy.RuleDefault("artifact:set_quotas", "rule:context_is_admin",
+                       "Policy to set quotas for projects"),
+    policy.RuleDefault("artifact:list_all_quotas", "rule:context_is_admin",
+                       "Policy to list all quotas for all projects"),
+    policy.RuleDefault("artifact:list_project_quotas",
+                       "project_id:%(project_id)s or rule:context_is_admin",
+                       "Policy to get info about project quotas"),
 ]
 
 

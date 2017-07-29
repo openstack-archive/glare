@@ -255,17 +255,27 @@ class ArtifactBlobData(BASE, ArtifactBase):
     data = Column(LargeBinary(length=(2 ** 32) - 1), nullable=False)
 
 
+class ArtifactQuota(BASE, ArtifactBase):
+    __tablename__ = 'glare_quotas'
+    __table_args__ = (
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8'},)
+    project_id = Column(String(255), primary_key=True)
+    quota_name = Column(String(32), primary_key=True)
+    quota_value = Column(BigInteger().with_variant(Integer, "sqlite"),
+                         nullable=False)
+
+
 def register_models(engine):
     """Create database tables for all models with the given engine."""
     models = (Artifact, ArtifactTag, ArtifactProperty, ArtifactBlob,
-              ArtifactLock)
+              ArtifactLock, ArtifactQuota)
     for model in models:
         model.metadata.create_all(engine)
 
 
 def unregister_models(engine):
     """Drop database tables for all models with the given engine."""
-    models = (ArtifactLock, ArtifactBlob, ArtifactProperty, ArtifactTag,
-              Artifact)
+    models = (ArtifactQuota, ArtifactLock, ArtifactBlob, ArtifactProperty,
+              ArtifactTag, Artifact)
     for model in models:
         model.metadata.drop_all(engine)
