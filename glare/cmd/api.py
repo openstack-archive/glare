@@ -26,7 +26,7 @@ import eventlet
 from oslo_utils import encodeutils
 
 eventlet.patcher.monkey_patch(all=False, socket=True, time=True,
-                              select=True, thread=True, os=True)
+                              select=True, thread=True, os=True, MySQLdb=True)
 
 # If ../glare/__init__.py exists, add ../ to Python search path, so that
 # it will override what happens to be installed in /usr/(local/)lib/python...
