@@ -128,33 +128,33 @@ blacklist_calls:
         #                xml.etree.cElementTree.iterparse,
         #                xml.etree.cElementTree.fromstring,
         #                xml.etree.cElementTree.XMLParser]
-        #    message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivilent function."
+        #    message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivalent function."
         #- xml_bad_ElementTree:
         #    qualnames: [xml.etree.ElementTree.parse,
         #                xml.etree.ElementTree.iterparse,
         #                xml.etree.ElementTree.fromstring,
         #                xml.etree.ElementTree.XMLParser]
-        #    message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivilent function."
+        #    message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivalent function."
         - xml_bad_expatreader:
             qualnames: [xml.sax.expatreader.create_parser]
-            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivilent function."
+            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivalent function."
         - xml_bad_expatbuilder:
             qualnames: [xml.dom.expatbuilder.parse,
                         xml.dom.expatbuilder.parseString]
-            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivilent function."
+            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivalent function."
         - xml_bad_sax:
             qualnames: [xml.sax.parse,
                         xml.sax.parseString,
                         xml.sax.make_parser]
-            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivilent function."
+            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivalent function."
         - xml_bad_minidom:
             qualnames: [xml.dom.minidom.parse,
                         xml.dom.minidom.parseString]
-            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivilent function."
+            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivalent function."
         - xml_bad_pulldom:
             qualnames: [xml.dom.pulldom.parse,
                         xml.dom.pulldom.parseString]
-            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivilent function."
+            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivalent function."
         - xml_bad_etree:
             qualnames: [lxml.etree.parse,
                         lxml.etree.fromstring,
@@ -162,7 +162,7 @@ blacklist_calls:
                         lxml.etree.GlobalParserTLS,
                         lxml.etree.getDefaultParser,
                         lxml.etree.check_docinfo]
-            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivilent function."
+            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivalent function."
 
 
 shell_injection:
@@ -203,7 +203,7 @@ blacklist_imports:
                       xml.dom.pulldom,
                       lxml.etree,
                       lxml]
-            message: "Using {module} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {module} with the equivilent defusedxml package."
+            message: "Using {module} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {module} with the equivalent defusedxml package."
             level: LOW
         - xml_libs_high:
             imports: [xmlrpclib]
