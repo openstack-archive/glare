@@ -29,6 +29,7 @@ import hashlib
 import os
 import re
 
+import glance_store
 from OpenSSL import crypto
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -580,3 +581,26 @@ def validate_change_allowed(af, field_name):
         msg = (_("Forbidden to change field '%s' after activation.")
                % field_name)
         raise exception.Forbidden(message=msg)
+
+
+def initialize_glance_store():
+    """Initialize glance store."""
+    glance_store.register_opts(CONF)
+    set_glance_store_config_defaults()
+    glance_store.create_stores(CONF)
+    glance_store.verify_default_store()
+
+
+def set_glance_store_config_defaults():
+    # By default glance and glare share common place to store data.
+    # To prevent possible collisions we have to set other glance_store default
+    # values for various backends.
+    cfg.set_defaults(glance_store.backend._list_opts()[1][1],
+                     # default '/var/lib/glance/images
+                     filesystem_store_datadir='/var/lib/glare/artifacts',
+                     # default 'images'
+                     rbd_store_pool='artifacts',
+                     # default '/openstack_glance
+                     vmware_store_image_dir='/openstack_glare',
+                     # default 'glance'
+                     swift_store_container='glare')

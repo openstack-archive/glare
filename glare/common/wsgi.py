@@ -33,7 +33,6 @@ from eventlet.green import socket
 from eventlet.green import ssl
 import eventlet.greenio
 import eventlet.wsgi
-import glance_store
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -212,13 +211,6 @@ def set_eventlet_hub():
                 reason=msg)
 
 
-def initialize_glance_store():
-    """Initialize glance store."""
-    glance_store.register_opts(CONF)
-    glance_store.create_stores(CONF)
-    glance_store.verify_default_store()
-
-
 def get_asynchronous_eventlet_pool(size=1000):
     """Return eventlet pool to caller.
 
@@ -361,7 +353,7 @@ class Server(object):
 
         self.configure_socket(old_conf, has_changed)
         if self.initialize_glance_store:
-            initialize_glance_store()
+            utils.initialize_glance_store()
 
     def reload(self):
         """Reload and re-apply configuration settings

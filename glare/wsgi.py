@@ -35,11 +35,11 @@ Sample apache mod_wsgi configuration:
 
 import os
 
-import glance_store
 from oslo_config import cfg
 from oslo_log import log as logging
 
 from glare.common import config
+from glare.common import utils
 
 
 CONF = cfg.CONF
@@ -47,8 +47,6 @@ logging.register_options(CONF)
 CONFIG_FILE = os.environ.get("GLARE_CONFIG_FILE", "etc/glare.conf")
 config.parse_args(args=["--config-file", CONFIG_FILE])
 
-glance_store.register_opts(CONF)
-glance_store.create_stores(CONF)
-glance_store.verify_default_store()
+utils.initialize_glance_store()
 
 application = config.load_paste_app('glare-api')
