@@ -590,6 +590,26 @@ def _do_blobs(artifact, new_blobs):
     return blobs_to_update
 
 
+def count_artifact_number(context, session, type_name=None):
+    """Return a number of artifacts for tenant."""
+    query = session.query(func.count(models.Artifact.id)).filter(
+        models.Artifact.owner == context.tenant)
+    if type_name is not None:
+        query = query.filter(models.Artifact.type_name == type_name)
+    return query.order_by(None).scalar() or 0
+
+
+def calculate_uploaded_data(context, session, type_name=None):
+    """Return the amount of uploaded data for tenant."""
+    query = session.query(
+        func.sum(models.ArtifactBlob.size)).join(
+        models.Artifact, aliased=True).filter(
+        models.Artifact.owner == context.tenant)
+    if type_name is not None:
+        query = query.filter(models.Artifact.type_name == type_name)
+    return query.order_by(None).scalar() or 0
+
+
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
 @utils.no_4byte_params
