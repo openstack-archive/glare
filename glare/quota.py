@@ -31,6 +31,14 @@ def verify_artifact_count(context, type_name):
     type_limit = getattr(
         CONF, 'artifact_type:' + type_name).max_artifact_number
 
+    # update limits if they were reassigned for project
+    project_id = context.tenant
+    quotas = list_quotas(project_id).get(project_id, {})
+    if 'max_artifact_number' in quotas:
+        global_limit = quotas['max_artifact_number']
+    if 'max_artifact_number:' + type_name in quotas:
+        type_limit = quotas['max_artifact_number:' + type_name]
+
     session = api.get_session()
     # the whole amount of created artifacts
     whole_number = api.count_artifact_number(context, session)
@@ -71,6 +79,14 @@ def verify_uploaded_data_amount(context, type_name, data_amount=None):
     global_limit = CONF.max_uploaded_data
     type_limit = getattr(CONF, 'artifact_type:' + type_name).max_uploaded_data
 
+    # update limits if they were reassigned for project
+    project_id = context.tenant
+    quotas = list_quotas(project_id).get(project_id, {})
+    if 'max_uploaded_data' in quotas:
+        global_limit = quotas['max_uploaded_data']
+    if 'max_uploaded_data:' + type_name in quotas:
+        type_limit = quotas['max_uploaded_data:' + type_name]
+
     session = api.get_session()
     # the whole amount of created artifacts
     whole_number = api.calculate_uploaded_data(context, session)
@@ -107,3 +123,13 @@ def verify_uploaded_data_amount(context, type_name, data_amount=None):
                     'type_number': type_number}
                 raise exception.RequestEntityTooLarge(msg)
     return res
+
+
+def set_quotas(values):
+    session = api.get_session()
+    return api.set_quotas(values, session)
+
+
+def list_quotas(project_id=None):
+    session = api.get_session()
+    return api.get_all_quotas(session, project_id)

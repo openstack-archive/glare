@@ -59,8 +59,9 @@ class Notifier(object):
         """
         af_notifier = cls._get_notifier()
         method = getattr(af_notifier, level.lower())
-        method({}, "%s.%s" % (cls.SERVICE_NAME, event_type),
-               body.to_notification())
+        if hasattr(body, 'to_notification'):
+            body = body.to_notification()
+        method({}, "%s.%s" % (cls.SERVICE_NAME, event_type), body)
         LOG.debug('Notification event %(event)s send successfully for '
                   'request %(request)s', {'event': event_type,
                                           'request': context.request_id})

@@ -12,9 +12,11 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import mock
 from six import BytesIO
 
 from glare.common import exception
+from glare.common import store_api
 from glare.tests.unit import base
 
 
@@ -192,3 +194,387 @@ class TestStaticQuotas(base.BaseTestArtifactAPI):
         self.controller.upload_blob(
             user1_req, 'images', img3['id'], 'image',
             BytesIO(b'a' * 1000), 'application/octet-stream', 1000)
+
+
+class TestDynamicQuotas(base.BaseTestArtifactAPI):
+    """Test dynamic quota limits."""
+
+    def test_count_artifact_number(self):
+        user1_req = self.get_fake_request(self.users['user1'])
+        user2_req = self.get_fake_request(self.users['user2'])
+        # initially there are no artifacts
+        self.assertEqual(
+            0, len(self.controller.list(user1_req, 'all')['artifacts']))
+        self.assertEqual(
+            0, len(self.controller.list(user2_req, 'all')['artifacts']))
+
+        values = {
+            user1_req.context.tenant: {
+                "max_artifact_number:images": 3,
+                "max_artifact_number:heat_templates": 15,
+                "max_artifact_number:murano_packages": 10,
+                "max_artifact_number": 10
+            },
+            user2_req.context.tenant: {
+                "max_artifact_number": 10
+            }
+        }
+
+        admin_req = self.get_fake_request(self.users["admin"])
+        # define several quotas
+        self.controller.set_quotas(admin_req, values)
+
+        # create 3 images for user1
+        for i in range(3):
+            img = self.controller.create(
+                user1_req, 'images', {'name': 'img%d' % i})
+
+        # creation of another image fails because of artifact type limit
+        self.assertRaises(exception.Forbidden, self.controller.create,
+                          user1_req, 'images', {'name': 'img4'})
+
+        # create 7 murano packages
+        for i in range(7):
+            self.controller.create(
+                user1_req, 'murano_packages', {'name': 'mp%d' % i})
+
+        # creation of another package fails because of global limit
+        self.assertRaises(exception.Forbidden, self.controller.create,
+                          user1_req, 'murano_packages', {'name': 'mp8'})
+
+        # delete an image and create another murano package work
+        self.controller.delete(user1_req, 'images', img['id'])
+        self.controller.create(user1_req, 'murano_packages', {'name': 'mp8'})
+
+        # user2 can create his own artifacts
+        for i in range(10):
+            self.controller.create(
+                user2_req, 'heat_templates', {'name': 'ht%d' % i})
+
+        # creation of another heat template fails because of global limit
+        self.assertRaises(exception.Forbidden, self.controller.create,
+                          user2_req, 'heat_templates', {'name': 'ht11'})
+
+        # disable global limit for user1 and try to create 15 heat templates
+        values = {
+            user1_req.context.tenant: {
+                "max_artifact_number:images": 3,
+                "max_artifact_number:heat_templates": 15,
+                "max_artifact_number:murano_packages": 10,
+                "max_artifact_number": -1
+            }
+        }
+        self.controller.set_quotas(admin_req, values)
+
+        for i in range(15):
+            self.controller.create(
+                user1_req, 'heat_templates', {'name': 'ht%d' % i})
+
+        # creation of another heat template fails because of type limit
+        self.assertRaises(exception.Forbidden, self.controller.create,
+                          user1_req, 'heat_templates', {'name': 'ht16'})
+
+        # disable type limit for heat templates and create 1 heat templates
+        values = {
+            user1_req.context.tenant: {
+                "max_artifact_number:images": 3,
+                "max_artifact_number:heat_templates": -1,
+                "max_artifact_number:murano_packages": 10,
+                "max_artifact_number": -1
+            }
+        }
+        self.controller.set_quotas(admin_req, values)
+
+        # now user1 can create another heat template
+        self.controller.create(
+            user1_req, 'heat_templates', {'name': 'ht16'})
+
+    def test_calculate_uploaded_data(self):
+        user1_req = self.get_fake_request(self.users['user1'])
+        user2_req = self.get_fake_request(self.users['user2'])
+        # initially there are no artifacts
+        self.assertEqual(
+            0, len(self.controller.list(user1_req, 'all')['artifacts']))
+        self.assertEqual(
+            0, len(self.controller.list(user2_req, 'all')['artifacts']))
+
+        values = {
+            user1_req.context.tenant: {
+                "max_uploaded_data:images": 1500,
+                "max_uploaded_data:sample_artifact": 300,
+                "max_uploaded_data:murano_packages": 1000,
+                "max_uploaded_data": 1000
+            },
+            user2_req.context.tenant: {
+                "max_uploaded_data": 1000
+            }
+        }
+
+        admin_req = self.get_fake_request(self.users["admin"])
+        # define several quotas
+        self.controller.set_quotas(admin_req, values)
+        # create 2 sample artifacts for user 1
+        art1 = self.controller.create(
+            user1_req, 'sample_artifact', {'name': 'art1'})
+        art2 = self.controller.create(
+            user1_req, 'sample_artifact', {'name': 'art2'})
+
+        # create 3 images for user1
+        img1 = self.controller.create(
+            user1_req, 'images', {'name': 'img1'})
+        img2 = self.controller.create(
+            user1_req, 'images', {'name': 'img2'})
+        img3 = self.controller.create(
+            user1_req, 'images', {'name': 'img3'})
+
+        # upload to art1 fails now because of type limit
+        self.assertRaises(
+            exception.RequestEntityTooLarge, self.controller.upload_blob,
+            user1_req, 'sample_artifact', art1['id'], 'blob',
+            BytesIO(b'a' * 301), 'application/octet-stream', 301)
+
+        # upload to img1 fails now because of global limit
+        self.assertRaises(
+            exception.RequestEntityTooLarge, self.controller.upload_blob,
+            user1_req, 'images', img1['id'], 'image',
+            BytesIO(b'a' * 1001), 'application/octet-stream', 1001)
+
+        # upload 300 bytes to 'blob' of art1
+        self.controller.upload_blob(
+            user1_req, 'sample_artifact', art1['id'], 'blob',
+            BytesIO(b'a' * 300), 'application/octet-stream',
+            content_length=300)
+
+        # upload another blob to art1 fails because of type limit
+        self.assertRaises(
+            exception.RequestEntityTooLarge, self.controller.upload_blob,
+            user1_req, 'sample_artifact', art1['id'],
+            'dict_of_blobs/blob', BytesIO(b'a'),
+            'application/octet-stream', 1)
+
+        # upload to art2 fails now because of type limit
+        self.assertRaises(
+            exception.RequestEntityTooLarge, self.controller.upload_blob,
+            user1_req, 'sample_artifact', art2['id'], 'blob',
+            BytesIO(b'a'), 'application/octet-stream', 1)
+
+        # delete art1 and check that upload to art2 works
+        self.controller.delete(user1_req, 'sample_artifact', art1['id'])
+        self.controller.upload_blob(
+            user1_req, 'sample_artifact', art2['id'], 'blob',
+            BytesIO(b'a' * 300), 'application/octet-stream', 300)
+
+        # upload 700 bytes to img1 works
+        self.controller.upload_blob(
+            user1_req, 'images', img1['id'], 'image',
+            BytesIO(b'a' * 700), 'application/octet-stream', 700)
+
+        # upload to img2 fails because of global limit
+        self.assertRaises(
+            exception.RequestEntityTooLarge, self.controller.upload_blob,
+            user1_req, 'images', img2['id'], 'image',
+            BytesIO(b'a'), 'application/octet-stream', 1)
+
+        # user2 can upload data to images
+        img1 = self.controller.create(
+            user2_req, 'images', {'name': 'img1'})
+        self.controller.upload_blob(
+            user2_req, 'images', img1['id'], 'image',
+            BytesIO(b'a' * 1000), 'application/octet-stream', 1000)
+
+        # disable global limit and try upload data from user1 again
+        values = {
+            user1_req.context.tenant: {
+                "max_uploaded_data:images": 1500,
+                "max_uploaded_data:sample_artifact": 300,
+                "max_uploaded_data:murano_packages": 1000,
+                "max_uploaded_data": -1
+            }
+        }
+        self.controller.set_quotas(admin_req, values)
+
+        self.controller.upload_blob(
+            user1_req, 'images', img2['id'], 'image',
+            BytesIO(b'a' * 800), 'application/octet-stream', 800)
+
+        # uploading more fails because of image type limit
+        self.assertRaises(
+            exception.RequestEntityTooLarge, self.controller.upload_blob,
+            user1_req, 'images', img3['id'], 'image',
+            BytesIO(b'a'), 'application/octet-stream', 1)
+
+        # disable type limit and try upload data from user1 again
+        values = {
+            user1_req.context.tenant: {
+                "max_uploaded_data:images": -1,
+                "max_uploaded_data:sample_artifact": 300,
+                "max_uploaded_data:murano_packages": 1000,
+                "max_uploaded_data": -1
+            }
+        }
+        self.controller.set_quotas(admin_req, values)
+        self.controller.upload_blob(
+            user1_req, 'images', img3['id'], 'image',
+            BytesIO(b'a' * 1000), 'application/octet-stream', 1000)
+
+    def test_quota_upload_no_content_length(self):
+        user1_req = self.get_fake_request(self.users['user1'])
+        user2_req = self.get_fake_request(self.users['user2'])
+        admin_req = self.get_fake_request(self.users['admin'])
+
+        values = {
+            user1_req.context.tenant: {
+                "max_uploaded_data:sample_artifact": 20,
+                "max_uploaded_data": 5
+            },
+            user2_req.context.tenant: {
+                "max_uploaded_data:sample_artifact": 7,
+                "max_uploaded_data": -1
+            },
+            admin_req.context.tenant: {
+                "max_uploaded_data:sample_artifact": -1,
+                "max_uploaded_data": -1
+            }
+        }
+
+        # define several quotas
+        self.controller.set_quotas(admin_req, values)
+
+        # create a sample artifacts for user 1
+        art1 = self.controller.create(
+            user1_req, 'sample_artifact', {'name': 'art1'})
+
+        # Max small_blob size is 10. User1 global quota is 5.
+        # Since user doesn't specify how many bytes he wants to upload,
+        # engine can't verify it before upload. Therefore it allocates
+        # 5 available bytes for user and begins upload. If uploaded data
+        # amount exceeds this limit RequestEntityTooLarge is raised and
+        # upload fails.
+        with mock.patch(
+                'glare.common.store_api.save_blob_to_store',
+                side_effect=store_api.save_blob_to_store) as mocked_save:
+            data = BytesIO(b'a' * 10)
+            self.assertRaises(
+                exception.RequestEntityTooLarge,
+                self.controller.upload_blob,
+                user1_req, 'sample_artifact', art1['id'], 'small_blob',
+                data, 'application/octet-stream',
+                content_length=None)
+            mocked_save.assert_called_once_with(
+                mock.ANY, data, user1_req.context, 5, store_type='database')
+
+        # check that blob wasn't uploaded
+        self.assertIsNone(
+            self.controller.show(
+                user1_req, 'sample_artifact', art1['id'])['small_blob'])
+
+        # try to upload with smaller amount that doesn't exceeds quota
+        with mock.patch(
+                'glare.common.store_api.save_blob_to_store',
+                side_effect=store_api.save_blob_to_store) as mocked_save:
+            data = BytesIO(b'a' * 4)
+            self.controller.upload_blob(
+                user1_req, 'sample_artifact', art1['id'], 'small_blob',
+                data, 'application/octet-stream',
+                content_length=None)
+            mocked_save.assert_called_once_with(
+                mock.ANY, data, user1_req.context, 5, store_type='database')
+
+        # check that blob was uploaded
+        blob = self.controller.show(
+            user1_req, 'sample_artifact', art1['id'])['small_blob']
+        self.assertEqual(4, blob['size'])
+        self.assertEqual('active', blob['status'])
+
+        # create a sample artifacts for user 2
+        art2 = self.controller.create(
+            user2_req, 'sample_artifact', {'name': 'art2'})
+
+        # Max small_blob size is 10. User1 has no global quota, but his
+        # type quota is 7.
+        # Since user doesn't specify how many bytes he wants to upload,
+        # engine can't verify it before upload. Therefore it allocates
+        # 7 available bytes for user and begins upload. If uploaded data
+        # amount exceeds this limit RequestEntityTooLarge is raised and
+        # upload fails.
+        with mock.patch(
+                'glare.common.store_api.save_blob_to_store',
+                side_effect=store_api.save_blob_to_store) as mocked_save:
+            data = BytesIO(b'a' * 10)
+            self.assertRaises(
+                exception.RequestEntityTooLarge,
+                self.controller.upload_blob,
+                user2_req, 'sample_artifact', art2['id'], 'small_blob',
+                data, 'application/octet-stream',
+                content_length=None)
+            mocked_save.assert_called_once_with(
+                mock.ANY, data, user2_req.context, 7, store_type='database')
+
+        # check that blob wasn't uploaded
+        self.assertIsNone(
+            self.controller.show(
+                user2_req, 'sample_artifact', art2['id'])['small_blob'])
+
+        # try to upload with smaller amount that doesn't exceeds quota
+        with mock.patch(
+                'glare.common.store_api.save_blob_to_store',
+                side_effect=store_api.save_blob_to_store) as mocked_save:
+            data = BytesIO(b'a' * 7)
+            self.controller.upload_blob(
+                user2_req, 'sample_artifact', art2['id'], 'small_blob',
+                data, 'application/octet-stream',
+                content_length=None)
+            mocked_save.assert_called_once_with(
+                mock.ANY, data, user2_req.context, 7, store_type='database')
+
+        # check that blob was uploaded
+        blob = self.controller.show(
+            user2_req, 'sample_artifact', art2['id'])['small_blob']
+        self.assertEqual(7, blob['size'])
+        self.assertEqual('active', blob['status'])
+
+        # create a sample artifacts for admin
+        arta = self.controller.create(
+            user2_req, 'sample_artifact', {'name': 'arta'})
+
+        # Max small_blob size is 10. Admin has no quotas at all.
+        # Since admin doesn't specify how many bytes he wants to upload,
+        # engine can't verify it before upload. Therefore it allocates
+        # 10 available bytes (max allowed small_blob size) for him and begins
+        # upload. If uploaded data amount exceeds this limit
+        # RequestEntityTooLarge is raised and upload fails.
+        with mock.patch(
+                'glare.common.store_api.save_blob_to_store',
+                side_effect=store_api.save_blob_to_store) as mocked_save:
+            data = BytesIO(b'a' * 11)
+            self.assertRaises(
+                exception.RequestEntityTooLarge,
+                self.controller.upload_blob,
+                admin_req, 'sample_artifact', arta['id'], 'small_blob',
+                data, 'application/octet-stream',
+                content_length=None)
+            mocked_save.assert_called_once_with(
+                mock.ANY, data, admin_req.context, 10, store_type='database')
+
+        # check that blob wasn't uploaded
+        self.assertIsNone(
+            self.controller.show(
+                admin_req, 'sample_artifact', arta['id'])['small_blob'])
+
+        # try to upload with smaller amount that doesn't exceeds quota
+        with mock.patch(
+                'glare.common.store_api.save_blob_to_store',
+                side_effect=store_api.save_blob_to_store) as mocked_save:
+            data = BytesIO(b'a' * 10)
+            self.controller.upload_blob(
+                admin_req, 'sample_artifact', arta['id'], 'small_blob',
+                data, 'application/octet-stream',
+                content_length=None)
+            mocked_save.assert_called_once_with(
+                mock.ANY, data, admin_req.context, 10, store_type='database')
+
+        # check that blob was uploaded
+        blob = self.controller.show(
+            admin_req, 'sample_artifact', arta['id'])['small_blob']
+        self.assertEqual(10, blob['size'])
+        self.assertEqual('active', blob['status'])

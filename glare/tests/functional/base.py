@@ -74,7 +74,7 @@ class TestArtifact(functional.FunctionalTest):
         super(TestArtifact, self).tearDown()
 
     def _url(self, path):
-        if 'schemas' in path:
+        if path.startswith('/schemas') or path.startswith('/quotas'):
             return 'http://127.0.0.1:%d%s' % (self.glare_port, path)
         else:
             return 'http://127.0.0.1:%d/artifacts%s' % (self.glare_port, path)

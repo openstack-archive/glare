@@ -101,4 +101,29 @@ class API(wsgi.Router):
                        action='reject',
                        allowed_methods='GET, PUT, DELETE')
 
+        # ---quotas---
+        mapper.connect('/quotas',
+                       controller=glare_resource,
+                       action='set_quotas',
+                       conditions={'method': ['PUT']})
+        mapper.connect('/quotas',
+                       controller=glare_resource,
+                       action='list_all_quotas',
+                       conditions={'method': ['GET']},
+                       body_reject=True)
+        mapper.connect('/quotas',
+                       controller=reject_method_resource,
+                       action='reject',
+                       allowed_methods='PUT, GET')
+
+        mapper.connect('/quotas/{project_id}',
+                       controller=glare_resource,
+                       action='list_project_quotas',
+                       conditions={'method': ['GET']},
+                       body_reject=True)
+        mapper.connect('/quotas/{project_id}',
+                       controller=reject_method_resource,
+                       action='reject',
+                       allowed_methods='GET')
+
         super(API, self).__init__(mapper)

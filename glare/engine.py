@@ -60,12 +60,23 @@ class Engine(object):
         # register all artifact types
         registry.ArtifactRegistry.register_all_artifacts()
 
-        # generate all schemas
+        # generate all schemas and quotas
         self.schemas = {}
+        self.quotas = {
+            'max_artifact_number': CONF.max_artifact_number,
+            'max_uploaded_data': CONF.max_uploaded_data
+        }
         for name, type_list in registry.ArtifactRegistry.obj_classes().items():
             type_name = type_list[0].get_type_name()
             self.schemas[type_name] = registry.ArtifactRegistry.\
                 get_artifact_type(type_name).gen_schemas()
+            type_conf_section = getattr(CONF, 'artifact_type:' + type_name)
+            if type_conf_section.max_artifact_number is not None:
+                self.quotas['max_artifact_number:' + type_name] = \
+                    type_conf_section.max_artifact_number
+            if type_conf_section.max_uploaded_data is not None:
+                self.quotas['max_uploaded_data:' + type_name] = \
+                    type_conf_section.max_uploaded_data
 
     lock_engine = locking.LockEngine(artifact_api.ArtifactLockApi())
 
@@ -673,3 +684,42 @@ class Engine(object):
 
         Notifier.notify(context, action_name, modified_af)
         return modified_af.to_dict()
+
+    @staticmethod
+    def set_quotas(context, values):
+        """Set quota records in Glare.
+
+        :param context: user request context
+        :param values: list with quota values to set
+        :return: definition of created quotas
+        """
+        action_name = "artifact:set_quotas"
+        policy.authorize(action_name, {}, context)
+        qs = quota.set_quotas(values)
+        Notifier.notify(context, action_name, qs)
+        return qs
+
+    def list_all_quotas(self, context):
+        """Get detailed info about all available quotas.
+
+        :param context: user request context
+        :return: definition of requested quotas for the project
+        """
+        action_name = "artifact:list_all_quotas"
+        policy.authorize(action_name, {}, context)
+        qs = quota.list_quotas()
+        qs[None] = self.quotas
+        return qs
+
+    def list_project_quotas(self, context, project_id):
+        """Get detailed info about project quotas.
+
+        :param context: user request context
+        :param project_id: id of the project for which to show quotas
+        :return: definition of requested quotas for the project
+        """
+        action_name = "artifact:list_project_quotas"
+        policy.authorize(action_name, {'project_id': project_id}, context)
+        qs = self.quotas.copy()
+        qs.update(quota.list_quotas(project_id)[project_id])
+        return {project_id: qs}
