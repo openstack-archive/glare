@@ -695,11 +695,7 @@ def create_lock(context, lock_key, session):
        stop_max_attempt_number=50)
 def delete_lock(context, lock_id, session):
     with session.begin():
-        try:
-            session.query(models.ArtifactLock).filter_by(id=lock_id).delete()
-        except orm.exc.NoResultFound:
-            msg = _("Cannot delete a lock with id %s.") % lock_id
-            raise exception.NotFound(msg)
+        session.query(models.ArtifactLock).filter_by(id=lock_id).delete()
 
 
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
@@ -735,9 +731,5 @@ def delete_blob_data(context, uri, session):
     """Delete blob data from database."""
     with session.begin():
         blob_data_id = uri[6:]
-        try:
-            session.query(
-                models.ArtifactBlobData).filter_by(id=blob_data_id).delete()
-        except orm.exc.NoResultFound:
-            msg = _("Cannot delete a blob data with id %s.") % blob_data_id
-            raise exception.NotFound(msg)
+        session.query(
+            models.ArtifactBlobData).filter_by(id=blob_data_id).delete()
