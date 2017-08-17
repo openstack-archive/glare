@@ -38,6 +38,7 @@ from oslo_utils import excutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from oslo_versionedobjects import fields
+import requests
 import six
 
 from glare.common import exception
@@ -604,3 +605,21 @@ def set_glance_store_config_defaults():
                      vmware_store_image_dir='/openstack_glare',
                      # default 'glance'
                      swift_store_container='glare')
+
+
+def get_system_ca_file():
+    """Return path to system default CA file."""
+    # Standard CA file locations for Debian/Ubuntu, RedHat/Fedora,
+    # Suse, FreeBSD/OpenBSD, MacOSX, and the bundled ca
+    ca_path = ['/etc/ssl/certs/ca-certificates.crt',
+               '/etc/pki/tls/certs/ca-bundle.crt',
+               '/etc/ssl/ca-bundle.pem',
+               '/etc/ssl/cert.pem',
+               '/System/Library/OpenSSL/certs/cacert.pem',
+               requests.certs.where()]
+    for ca in ca_path:
+        LOG.debug("Looking for ca file %s", ca)
+        if os.path.exists(ca):
+            LOG.debug("Using ca file %s", ca)
+            return ca
+    LOG.warning("System ca file could not be found.")
