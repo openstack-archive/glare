@@ -49,7 +49,7 @@ class HookChecker(base.BaseArtifact):
                                default=False, mutable=True),
     }
 
-    artifact_type_opts = base.BaseArtifact.artifact_type_opts + [
+    artifact_type_opts = [
         cfg.BoolOpt('in_memory_processing')
     ]
 

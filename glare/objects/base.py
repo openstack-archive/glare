@@ -136,7 +136,7 @@ class BaseArtifact(base.VersionedObject):
                          description="Artifact version(semver).")
     }
 
-    artifact_type_opts = [
+    common_artifact_type_opts = [
         cfg.IntOpt('max_uploaded_data', min=-1,
                    help=_("Defines how many bytes of data of this type user "
                           "can upload to storage. Value -1 means no limit.")),
@@ -181,9 +181,11 @@ Possible values:
 """))
     ]
 
+    artifact_type_opts = []
+
     @classmethod
     def list_artifact_type_opts(cls):
-        return cls.artifact_type_opts
+        return cls.artifact_type_opts + cls.common_artifact_type_opts
 
     db_api = artifact_api.ArtifactAPI()
 

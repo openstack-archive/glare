@@ -107,9 +107,10 @@ class ArtifactRegistry(vo_base.VersionedObjectRegistry):
         for type_name in set(CONF.enabled_artifact_types + ['all']):
             for af_type in supported_types:
                 if type_name == af_type.get_type_name():
-                    CONF.register_opts(
-                        af_type.artifact_type_opts,
-                        group='artifact_type:' + type_name)
+                    if af_type != 'all':
+                        CONF.register_opts(
+                            af_type.list_artifact_type_opts(),
+                            group='artifact_type:' + type_name)
                     cls.register(af_type)
                     break
             else:
