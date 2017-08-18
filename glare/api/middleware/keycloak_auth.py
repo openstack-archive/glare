@@ -19,9 +19,11 @@ from oslo_log import log as logging
 from oslo_middleware import base as base_middleware
 import pprint
 import requests
+from six.moves import urllib
 import webob.dec
 
 from glare.common import exception
+from glare.common import utils
 from glare.i18n import _
 
 LOG = logging.getLogger(__name__)
@@ -38,6 +40,19 @@ keycloak_oidc_opts = [
         help='Endpoint against which authorization will be performed'
     ),
     cfg.StrOpt(
+        'certfile',
+        help='Required if identity server requires client certificate'
+    ),
+    cfg.StrOpt(
+        'keyfile',
+        help='Required if identity server requires client certificate'
+    ),
+    cfg.StrOpt(
+        'cafile',
+        help='A PEM encoded Certificate Authority to use when verifying '
+             'HTTPs connections. Defaults to system CAs.'
+    ),
+    cfg.BoolOpt(
         'insecure',
         default=False,
         help='If True, SSL/TLS certificate verification is disabled'
@@ -67,18 +82,35 @@ class KeycloakAuthMiddleware(base_middleware.Middleware):
         mcserv_url = CONF.keycloak_oidc.memcached_server
         self.mcclient = memcache.Client(mcserv_url) if mcserv_url else None
 
+        self.certfile = CONF.keycloak_oidc.certfile
+        self.keyfile = CONF.keycloak_oidc.keyfile
+        self.cafile = CONF.keycloak_oidc.cafile or utils.get_system_ca_file()
+        self.insecure = CONF.keycloak_oidc.insecure
+        self.url_template = CONF.keycloak_oidc.auth_url + \
+            CONF.keycloak_oidc.user_info_endpoint_url
+
     def authenticate(self, access_token, realm_name):
         info = None
         if self.mcclient:
             info = self.mcclient.get(access_token)
 
         if info is None and CONF.keycloak_oidc.user_info_endpoint_url:
+
+            url = self.url_template % realm_name
+
+            verify = None
+            if urllib.parse.urlparse(url).scheme == "https":
+                verify = False if self.insecure else self.cafile
+
+            cert = (self.certfile, self.keyfile) \
+                if self.certfile and self.keyfile else None
+
             try:
                 resp = requests.get(
-                    CONF.keycloak_oidc.auth_url +
-                    (CONF.keycloak_oidc.user_info_endpoint_url % realm_name),
+                    url,
                     headers={"Authorization": "Bearer %s" % access_token},
-                    verify=not CONF.keycloak_oidc.insecure
+                    verify=verify,
+                    cert=cert
                 )
             except requests.ConnectionError:
                 msg = _("Can't connect to keycloak server with address '%s'."
