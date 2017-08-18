@@ -118,3 +118,20 @@ def delete_blob(uri, context):
 
 def get_known_schemes():
     return list(backend.get_known_schemes()) + ['sql']
+
+
+def read_data(flobj, limit=16777216):
+    """Read data into memory from the file-like object.
+
+    :param flobj: file-like object that contains data
+    :param limit: max file size that can be read into memory
+    :return: string with data from the object
+    """
+    bytes_read = 0
+    data = b''
+    for chunk in flobj:
+        bytes_read += len(chunk)
+        if bytes_read > limit:
+            raise exception.RequestEntityTooLarge()
+        data += chunk
+    return data
