@@ -433,7 +433,7 @@ class Server(object):
                                  keepalive=CONF.http_keepalive,
                                  socket_timeout=self.client_socket_timeout)
         except socket.error as err:
-            if err[0] != errno.EINVAL:
+            if err.args[0] != errno.EINVAL:
                 raise
 
         # waiting on async pools
