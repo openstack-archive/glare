@@ -14,6 +14,7 @@
 #    under the License.
 
 import abc
+import re
 import uuid
 
 from oslo_log import log as logging
@@ -103,6 +104,23 @@ class Version(Validator):
     def to_jsonschema(self):
         return {'pattern': ('/^([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]'
                             '+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/')}
+
+
+class Regex(Validator):
+
+    def __init__(self, pattern):
+        self.pattern = re.compile(pattern)
+
+    @staticmethod
+    def get_allowed_types():
+        return fields.StringField,
+
+    def __call__(self, value):
+        if not self.pattern.match(value):
+            raise ValueError
+
+    def to_jsonschema(self):
+        return {'pattern': self.pattern.pattern}
 
 
 @six.add_metaclass(abc.ABCMeta)

@@ -1602,6 +1602,23 @@ class TestUpdate(base.TestArtifact):
                   "value": 'c' * 11}]
         self.patch(url=url, data=patch, status=400)
 
+        # string_regex format it '^([0-9a-fA-F]){8}$'
+        patch = [{"op": "replace", "path": "/string_regex",
+                  "value": 'INVALID'}]
+        self.patch(url=url, data=patch, status=400)
+
+        patch = [{"op": "replace", "path": "/string_regex",
+                  "value": '167f808Z'}]
+        self.patch(url=url, data=patch, status=400)
+
+        patch = [{"op": "replace", "path": "/string_regex",
+                  "value": '167f80835'}]
+        self.patch(url=url, data=patch, status=400)
+
+        patch = [{"op": "replace", "path": "/string_regex",
+                  "value": '167f8083'}]
+        self.patch(url=url, data=patch)
+
         # test list has 3 elements maximum
         patch = [{"op": "add", "path": "/list_validators/-", "value": 'd'}]
         self.patch(url=url, data=patch, status=400)

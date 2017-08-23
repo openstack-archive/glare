@@ -440,6 +440,12 @@ fixtures = {
                                 u'required_on_activate': False,
                                 u'type': [u'string',
                                           u'null']},
+            u'string_regex': {u'filter_ops': [u'eq', u'neq', u'in'],
+                              u'glareType': u'String',
+                              u'maxLength': 255,
+                              u'pattern': u'^([0-9a-fA-F]){8}$',
+                              u'required_on_activate': False,
+                              u'type': [u'string', u'null']},
             u'string_required': {
                 u'filter_ops': [u'eq',
                                 u'neq',
