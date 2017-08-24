@@ -252,25 +252,21 @@ class TestArtifactUpload(base.BaseTestArtifactAPI):
                                         self.sample_artifact['id'])
         self.assertNotIn('blb', artifact['dict_of_blobs'])
 
-    @mock.patch('os.remove')
-    def test_upload_with_hook(self, mocked_os_remove):
+    def test_upload_with_hook(self):
         with mock.patch.object(
-                sample_artifact.SampleArtifact, 'validate_upload',
-                return_value=(BytesIO(b'aaa'), 'temporary_path')):
+                sample_artifact.SampleArtifact, 'pre_upload_hook',
+                return_value=BytesIO(b'ffff')):
             self.controller.upload_blob(
                 self.req, 'sample_artifact', self.sample_artifact['id'],
                 'blob', BytesIO(b'aaa'), 'application/octet-stream')
             artifact = self.controller.show(self.req, 'sample_artifact',
                                             self.sample_artifact['id'])
-            self.assertEqual(3, artifact['blob']['size'])
+            self.assertEqual(4, artifact['blob']['size'])
             self.assertEqual('active', artifact['blob']['status'])
-            # If temporary folder has been created it must be removed
-            mocked_os_remove.assert_called_once_with('temporary_path')
 
-    @mock.patch('os.remove')
-    def test_upload_with_hook_error(self, mocked_os_remove):
+    def test_upload_with_hook_error(self):
         with mock.patch.object(
-                sample_artifact.SampleArtifact, 'validate_upload',
+                sample_artifact.SampleArtifact, 'pre_upload_hook',
                 side_effect=Exception):
             self.assertRaises(
                 exc.BadRequest, self.controller.upload_blob,
@@ -280,7 +276,6 @@ class TestArtifactUpload(base.BaseTestArtifactAPI):
             art = self.controller.show(self.req, 'sample_artifact',
                                        self.sample_artifact['id'])
             self.assertEqual({}, art['dict_of_blobs'])
-            self.assertEqual(0, mocked_os_remove.call_count)
 
     def test_upload_nonexistent_field(self):
         self.assertRaises(

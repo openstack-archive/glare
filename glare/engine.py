@@ -14,7 +14,6 @@
 #    under the License.
 
 from copy import deepcopy
-import os
 
 import jsonpatch
 from oslo_config import cfg
@@ -145,8 +144,10 @@ class Engine(object):
     def _apply_patch(self, context, af, patch):
         # This function is a collection of hacks and workarounds to make
         # json patch apply changes to oslo_vo object.
-        action_names = {'artifact:update'}
+        action_names = ['update']
         af_dict = af.to_dict()
+        policy.authorize('artifact:update', af_dict, context)
+        af.pre_update_hook(context, af)
         try:
             for operation in patch._ops:
                 # apply the change to make sure that it's correct
@@ -174,19 +175,29 @@ class Engine(object):
                         to_visibility=af_dict['visibility']
                     )
                     if af_dict['visibility'] == 'public':
-                        af.validate_publish(context, af)
-                        action_names.add('artifact:publish')
+                        policy.authorize(
+                            'artifact:publish', af_dict, context)
+                        af.pre_publish_hook(context, af)
+                        action_names.append('publish')
                 elif field_name == 'status':
                     utils.validate_status_transition(
                         af, from_status=af.status, to_status=af_dict['status'])
                     if af_dict['status'] == 'deactivated':
-                        action_names.add('artifact:deactivate')
+                        policy.authorize(
+                            'artifact:deactivate', af_dict, context)
+                        af.pre_deactivate_hook(context, af)
+                        action_names.append('deactivate')
                     elif af_dict['status'] == 'active':
                         if af.status == 'deactivated':
-                            action_names.add('artifact:reactivate')
+                            policy.authorize(
+                                'artifact:reactivate', af_dict, context)
+                            af.pre_reactivate_hook(context, af)
+                            action_names.append('reactivate')
                         else:
-                            af.validate_activate(context, af)
-                            action_names.add('artifact:activate')
+                            policy.authorize(
+                                'artifact:activate', af_dict, context)
+                            af.pre_activate_hook(context, af)
+                            action_names.append('activate')
                 else:
                     utils.validate_change_allowed(af, field_name)
 
@@ -235,7 +246,9 @@ class Engine(object):
                     raise exception.BadRequest(msg)
                 utils.validate_change_allowed(af, field_name)
                 setattr(af, field_name, value)
+            artifact_type.pre_create_hook(context, af)
             af = af.create(context)
+            artifact_type.post_create_hook(context, af)
             # notify about new artifact
             Notifier.notify(context, action_name, af)
             # return artifact to the user
@@ -266,9 +279,6 @@ class Engine(object):
             if not updates:
                 return af.to_dict()
 
-            for action_name in action_names:
-                policy.authorize(action_name, af.to_dict(), context)
-
             if any(i in updates for i in ('name', 'version', 'visibility')):
                 # to change an artifact scope it's required to set a lock first
                 with self._create_scoped_lock(
@@ -279,8 +289,14 @@ class Engine(object):
             else:
                 modified_af = af.save(context)
 
+            # call post hooks for all operations when data is written in db and
+            # send broadcast notifications
             for action_name in action_names:
-                Notifier.notify(context, action_name, modified_af)
+                getattr(modified_af, 'post_%s_hook' % action_name)(
+                    context, modified_af)
+                Notifier.notify(
+                    context, 'artifact:' + action_name, modified_af)
+
             return modified_af.to_dict()
 
     def show(self, context, type_name, artifact_id):
@@ -353,7 +369,7 @@ class Engine(object):
         af = self._show_artifact(context, type_name, artifact_id)
         action_name = 'artifact:delete'
         policy.authorize(action_name, af.to_dict(), context)
-        af.validate_delete(context, af)
+        af.pre_delete_hook(context, af)
         blobs = af.delete(context, af)
 
         delayed_delete = getattr(
@@ -369,6 +385,7 @@ class Engine(object):
                 LOG.info("Blobs successfully deleted for artifact %s", af.id)
             # delete artifact itself
             af.db_api.delete(context, af.id)
+        af.post_delete_hook(context, af)
         Notifier.notify(context, action_name, af)
 
     @staticmethod
@@ -450,6 +467,8 @@ class Engine(object):
                         "%(af)s") % {'blob': field_name, 'af': af.id}
                 raise exception.Conflict(message=msg)
             utils.validate_change_allowed(af, field_name)
+            af.pre_add_location_hook(
+                context, af, field_name, location, blob_key)
             modified_af = self._save_blob_info(
                 context, af, field_name, blob_key, blob)
 
@@ -458,6 +477,8 @@ class Engine(object):
                  {'location': location, 'artifact': af.id,
                   'blob': blob_name})
 
+        modified_af.post_add_location_hook(
+            context, modified_af, field_name, blob_key)
         Notifier.notify(context, action_name, modified_af)
         return modified_af.to_dict()
 
@@ -548,11 +569,16 @@ class Engine(object):
                   {'artifact': af.id, 'blob_name': blob_name})
 
         # try to perform blob uploading to storage
-        path = None
         try:
             try:
                 # call upload hook first
-                fd, path = af.validate_upload(context, af, field_name, fd)
+                if hasattr(af, 'validate_upload'):
+                    LOG.warning("Method 'validate_upload' was deprecated. "
+                                "Please use 'pre_upload_hook' instead.")
+                    fd, path = af.validate_upload(context, af, field_name, fd)
+                else:
+                    fd = af.pre_upload_hook(
+                        context, af, field_name, blob_key, fd)
             except exception.GlareException:
                 raise
             except Exception as e:
@@ -576,9 +602,6 @@ class Engine(object):
                     blob_dict_attr = getattr(modified_af, field_name)
                     del blob_dict_attr[blob_key]
                     af.update_blob(context, af.id, field_name, blob_dict_attr)
-        finally:
-            if path:
-                os.remove(path)
 
         LOG.info("Successfully finished blob uploading for artifact "
                  "%(artifact)s blob field %(blob)s.",
@@ -594,6 +617,9 @@ class Engine(object):
             af = af.show(context, artifact_id)
             modified_af = self._save_blob_info(
                 context, af, field_name, blob_key, blob)
+
+        modified_af.post_upload_hook(
+            context, modified_af, field_name, blob_key)
 
         Notifier.notify(context, action_name, modified_af)
         return modified_af.to_dict()
@@ -628,6 +654,8 @@ class Engine(object):
             msg = _("%s is not ready for download") % blob_name
             raise exception.Conflict(message=msg)
 
+        af.pre_download_hook(context, af, field_name, blob_key)
+
         meta = {'md5': blob.get('md5'),
                 'sha1': blob.get('sha1'),
                 'sha256': blob.get('sha256'),
@@ -639,18 +667,14 @@ class Engine(object):
             meta['size'] = blob.get('size')
             meta['content_type'] = blob.get('content_type')
 
-        path = None
         try:
             # call download hook in the end
-            data, path = af.validate_download(
-                context, af, field_name, data)
+            data = af.post_download_hook(
+                context, af, field_name, blob_key, data)
         except exception.GlareException:
             raise
         except Exception as e:
             raise exception.BadRequest(message=str(e))
-        finally:
-            if path:
-                os.remove(path)
 
         return data, meta
 

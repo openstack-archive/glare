@@ -12,187 +12,115 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import mock
-import os
+import tempfile
 
-from glare.common import exception as exc
+from six import BytesIO
+
 from glare.tests.unit import base
 
 
 class TestArtifactHooks(base.BaseTestArtifactAPI):
 
-    def setUp(self):
-        super(TestArtifactHooks, self).setUp()
-        values = {'name': 'ttt', 'version': '1.0'}
-        self.hooks_artifact = self.controller.create(
-            self.req, 'hooks_artifact', values)
+    def test_create_hook(self):
+        values = {'name': 'ttt', 'version': '1.0', 'temp_dir': self.test_dir}
+        art = self.controller.create(self.req, 'hooks_artifact', values)
+        self.assertEqual(self.test_dir, art['temp_dir'])
+        self.assertIsNotNone(art['temp_file_path_create'])
+        with open(art['temp_file_path_create']) as f:
+            self.assertEqual('pre_create_hook was called\n', f.readline())
+            self.assertEqual('post_create_hook was called\n', f.readline())
 
-    def test_upload_hook(self):
-        var_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                               '../', 'var'))
-        data_path = os.path.join(var_dir, 'hooks.zip')
-        with open(data_path, "rb") as data:
-            self.controller.upload_blob(
-                self.req, 'hooks_artifact', self.hooks_artifact['id'], 'zip',
-                data, 'application/octet-stream')
-        artifact = self.controller.show(self.req, 'hooks_artifact',
-                                        self.hooks_artifact['id'])
-        self.assertEqual(818, artifact['zip']['size'])
-        self.assertEqual('active', artifact['zip']['status'])
-
-        self.assertEqual(11, artifact['content']['aaa.txt']['size'])
-        self.assertEqual(11, artifact['content']['folder1/bbb.txt']['size'])
-        self.assertEqual(
-            11, artifact['content']['folder1/folder2/ccc.txt']['size'])
-
-    def test_upload_hook_inmemory(self):
-        # enable in-memory processing
-        self.config(in_memory_processing=True,
-                    group='artifact_type:hooks_artifact')
-
-        # First check uploading with smaller limit fails
-        with mock.patch('glare.objects.meta.file_utils.'
-                        'INMEMORY_OBJECT_SIZE_LIMIT', 817):
-            self.assertRaises(exc.RequestEntityTooLarge, self.test_upload_hook)
-
-        # Now try with standard limit
-        self.test_upload_hook()
-
-    def test_download_hook(self):
-        # upload data
-        var_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                               '../', 'var'))
-        data_path = os.path.join(var_dir, 'hooks.zip')
-        with open(data_path, "rb") as data:
-            self.controller.upload_blob(
-                self.req, 'hooks_artifact', self.hooks_artifact['id'], 'zip',
-                data, 'application/octet-stream')
-
-        # download main 'zip'
-        data = self.controller.download_blob(
-            self.req, 'hooks_artifact', self.hooks_artifact['id'],
-            'zip')['data']
-        bytes_read = 0
-        for chunk in data:
-            bytes_read += len(chunk)
-        self.assertEqual(818, bytes_read)
-
-        # download a file from 'content'
-        data = self.controller.download_blob(
-            self.req, 'hooks_artifact', self.hooks_artifact['id'],
-            'content/folder1/bbb.txt')['data']
-        bytes_read = 0
-        for chunk in data:
-            bytes_read += len(chunk)
-        self.assertEqual(11, bytes_read)
-
-        # now forbid to download zip
-        changes = [{'op': 'replace', 'path': '/forbid_download_zip',
-                    'value': 'yes'}]
-        self.update_with_values(changes, art_type='hooks_artifact',
-                                art_id=self.hooks_artifact['id'])
-
-        artifact = self.controller.show(self.req, 'hooks_artifact',
-                                        self.hooks_artifact['id'])
-        self.assertEqual(True, artifact['forbid_download_zip'])
-
-        # download from 'zip' fails now
-        self.assertRaises(
-            exc.BadRequest, self.controller.download_blob,
-            self.req, 'hooks_artifact', self.hooks_artifact['id'], 'zip')
-
-        # download a 'content' file still works
-        data = self.controller.download_blob(
-            self.req, 'hooks_artifact', self.hooks_artifact['id'],
-            'content/folder1/folder2/ccc.txt')['data']
-        bytes_read = 0
-        for chunk in data:
-            bytes_read += len(chunk)
-        self.assertEqual(11, bytes_read)
-
-    def test_activation_hook(self):
-        # forbid to activate artifact
-        changes = [{'op': 'replace', 'path': '/forbid_activate',
-                    'value': 'yes'}]
-        self.update_with_values(changes, art_type='hooks_artifact',
-                                art_id=self.hooks_artifact['id'])
-
-        # activation fails now
-        changes = [{'op': 'replace', 'path': '/status',
-                    'value': 'active'}]
-        self.assertRaises(
-            exc.BadRequest, self.update_with_values, changes,
-            art_type='hooks_artifact', art_id=self.hooks_artifact['id'])
-
-        # unblock artifact activation
-        changes = [{'op': 'replace', 'path': '/forbid_activate',
-                    'value': 'no'}]
-        self.update_with_values(changes, art_type='hooks_artifact',
-                                art_id=self.hooks_artifact['id'])
-
-        # now activation works
-        changes = [{'op': 'replace', 'path': '/status',
-                    'value': 'active'}]
-        art = self.update_with_values(changes, art_type='hooks_artifact',
-                                      art_id=self.hooks_artifact['id'])
-        self.assertEqual('active', art['status'])
-
-    def test_publishing_hook(self):
+    def test_update_ops_hook(self):
         self.req = self.get_fake_request(user=self.users['admin'])
+        values = {'name': 'ttt', 'version': '1.0', 'temp_dir': self.test_dir}
+        art = self.controller.create(self.req, 'hooks_artifact', values)
+        self.assertEqual(self.test_dir, art['temp_dir'])
 
-        # activate artifact to begin
-        changes = [{'op': 'replace', 'path': '/status',
-                    'value': 'active'}]
+        changes = [{'op': 'replace', 'path': '/description',
+                    'value': 'some_string'},
+                   {'op': 'replace', 'path': '/status',
+                    'value': 'active'},
+                   {'op': 'replace', 'path': '/status',
+                    'value': 'deactivated'},
+                   {'op': 'replace', 'path': '/status',
+                    'value': 'active'},
+                   {'op': 'replace', 'path': '/visibility',
+                    'value': 'public'}]
         art = self.update_with_values(changes, art_type='hooks_artifact',
-                                      art_id=self.hooks_artifact['id'])
+                                      art_id=art['id'])
         self.assertEqual('active', art['status'])
-
-        # forbid to publish artifact
-        changes = [{'op': 'replace', 'path': '/forbid_publish',
-                    'value': 'yes'}]
-        self.update_with_values(changes, art_type='hooks_artifact',
-                                art_id=self.hooks_artifact['id'])
-
-        # publication fails now
-        changes = [{'op': 'replace', 'path': '/visibility',
-                    'value': 'public'}]
-        self.assertRaises(
-            exc.BadRequest, self.update_with_values, changes,
-            art_type='hooks_artifact', art_id=self.hooks_artifact['id'])
-
-        # unblock artifact publication
-        changes = [{'op': 'replace', 'path': '/forbid_publish',
-                    'value': 'no'}]
-        self.update_with_values(changes, art_type='hooks_artifact',
-                                art_id=self.hooks_artifact['id'])
-
-        # now publication works
-        changes = [{'op': 'replace', 'path': '/visibility',
-                    'value': 'public'}]
-        art = self.update_with_values(changes, art_type='hooks_artifact',
-                                      art_id=self.hooks_artifact['id'])
+        self.assertEqual('some_string', art['description'])
         self.assertEqual('public', art['visibility'])
 
-    def test_deletion_hook(self):
-        # forbid to activate artifact
-        changes = [{'op': 'replace', 'path': '/forbid_delete',
-                    'value': 'yes'}]
-        self.update_with_values(changes, art_type='hooks_artifact',
-                                art_id=self.hooks_artifact['id'])
+        actions = ['update', 'activate', 'deactivate', 'reactivate', 'publish']
+        for action in actions:
+            with open(art['temp_file_path_%s' % action]) as f:
+                self.assertEqual('pre_%s_hook was called\n' % action,
+                                 f.readline())
+                self.assertEqual('post_%s_hook was called\n' % action,
+                                 f.readline())
 
-        # deletion fails now
-        self.assertRaises(
-            exc.BadRequest, self.controller.delete, self.req,
-            'hooks_artifact', self.hooks_artifact['id'])
+    def test_upload_download_hooks(self):
+        temp_file_path = tempfile.mktemp(dir=self.test_dir)
+        self.config(temp_file_path=temp_file_path,
+                    group='artifact_type:hooks_artifact')
 
-        # unblock artifact deletion
-        changes = [{'op': 'replace', 'path': '/forbid_delete',
-                    'value': 'no'}]
-        self.update_with_values(changes, art_type='hooks_artifact',
-                                art_id=self.hooks_artifact['id'])
+        values = {'name': 'ttt', 'version': '1.0', 'temp_dir': self.test_dir}
+        art = self.controller.create(self.req, 'hooks_artifact', values)
 
-        # now deletion works
-        self.controller.delete(self.req, 'hooks_artifact',
-                               self.hooks_artifact['id'])
-        self.assertRaises(exc.NotFound, self.controller.show, self.req,
-                          'hooks_artifact', self.hooks_artifact['id'])
+        art = self.controller.upload_blob(
+            self.req, 'hooks_artifact', art['id'], 'blob',
+            BytesIO(b'aaa'), 'application/octet-stream')
+        self.assertEqual(3, art['blob']['size'])
+        self.assertEqual('active', art['blob']['status'])
+
+        self.controller.download_blob(
+            self.req, 'hooks_artifact', art['id'], 'blob')
+
+        with open(temp_file_path) as f:
+            self.assertEqual('pre_upload_hook was called\n', f.readline())
+            self.assertEqual('post_upload_hook was called\n', f.readline())
+            self.assertEqual('pre_download_hook was called\n', f.readline())
+            self.assertEqual('post_download_hook was called\n', f.readline())
+
+    def test_add_location_hook(self):
+
+        temp_file_path = tempfile.mktemp(dir=self.test_dir)
+        self.config(temp_file_path=temp_file_path,
+                    group='artifact_type:hooks_artifact')
+
+        values = {'name': 'ttt', 'version': '1.0', 'temp_dir': self.test_dir}
+        art = self.controller.create(self.req, 'hooks_artifact', values)
+
+        ct = 'application/vnd+openstack.glare-custom-location+json'
+
+        body = {'url': 'https://FAKE_LOCATION.com',
+                'md5': "fake", 'sha1': "fake_sha", "sha256": "fake_sha256"}
+        art = self.controller.upload_blob(
+            self.req, 'hooks_artifact', art['id'], 'blob', body, ct)
+        self.assertIsNone(art['blob']['size'])
+        self.assertEqual('active', art['blob']['status'])
+
+        # hook isn't called if we download external location
+        self.controller.download_blob(
+            self.req, 'hooks_artifact', art['id'], 'blob')
+
+        with open(temp_file_path) as f:
+            self.assertEqual(
+                'pre_add_location_hook was called\n', f.readline())
+            self.assertEqual(
+                'post_add_location_hook was called\n', f.readline())
+
+    def test_delete_hook(self):
+        temp_file_path = tempfile.mktemp(dir=self.test_dir)
+        self.config(temp_file_path=temp_file_path,
+                    group='artifact_type:hooks_artifact')
+
+        values = {'name': 'ttt', 'version': '1.0', 'temp_dir': self.test_dir}
+        art = self.controller.create(self.req, 'hooks_artifact', values)
+
+        self.controller.delete(self.req, 'hooks_artifact', art['id'])
+
+        with open(temp_file_path) as f:
+            self.assertEqual('pre_delete_hook was called\n', f.readline())
+            self.assertEqual('post_delete_hook was called\n', f.readline())

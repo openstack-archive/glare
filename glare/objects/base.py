@@ -478,29 +478,87 @@ Possible values:
         af_upd = cls.db_api.update_blob(context, af_id, {field_name: values})
         return cls.init_artifact(context, af_upd)
 
+    # Next comes a collection of hooks for various operations
+
     @classmethod
-    def validate_activate(cls, context, af):
-        """Validation hook for activation."""
+    def pre_create_hook(cls, context, af):
         pass
 
     @classmethod
-    def validate_upload(cls, context, af, field_name, fd):
-        """Validation hook for uploading."""
-        return fd, None
-
-    @classmethod
-    def validate_download(cls, context, af, field_name, fd):
-        """Validation hook for downloading."""
-        return fd, None
-
-    @classmethod
-    def validate_publish(cls, context, af):
-        """Validation hook for publishing."""
+    def post_create_hook(cls, context, af):
         pass
 
     @classmethod
-    def validate_delete(cls, context, af):
-        """Validation hook for deletion."""
+    def pre_update_hook(cls, context, af):
+        pass
+
+    @classmethod
+    def post_update_hook(cls, context, af):
+        pass
+
+    @classmethod
+    def pre_activate_hook(cls, context, af):
+        pass
+
+    @classmethod
+    def post_activate_hook(cls, context, af):
+        pass
+
+    @classmethod
+    def pre_publish_hook(cls, context, af):
+        pass
+
+    @classmethod
+    def post_publish_hook(cls, context, af):
+        pass
+
+    @classmethod
+    def pre_deactivate_hook(cls, context, af):
+        pass
+
+    @classmethod
+    def post_deactivate_hook(cls, context, af):
+        pass
+
+    @classmethod
+    def pre_reactivate_hook(cls, context, af):
+        pass
+
+    @classmethod
+    def post_reactivate_hook(cls, context, af):
+        pass
+
+    @classmethod
+    def pre_upload_hook(cls, context, af, field_name, blob_key, fd):
+        return fd
+
+    @classmethod
+    def post_upload_hook(cls, context, af, field_name, blob_key):
+        pass
+
+    @classmethod
+    def pre_add_location_hook(
+            cls, context, af, field_name, blob_key, location):
+        pass
+
+    @classmethod
+    def post_add_location_hook(cls, context, af, field_name, blob_key):
+        pass
+
+    @classmethod
+    def pre_download_hook(cls, context, af, field_name, blob_key):
+        pass
+
+    @classmethod
+    def post_download_hook(cls, context, af, field_name, blob_key, fd):
+        return fd
+
+    @classmethod
+    def pre_delete_hook(cls, context, af):
+        pass
+
+    @classmethod
+    def post_delete_hook(cls, context, af):
         pass
 
     def to_notification(self):
