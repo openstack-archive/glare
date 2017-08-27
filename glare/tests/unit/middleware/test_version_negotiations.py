@@ -31,14 +31,24 @@ class TestContextMiddleware(base.BaseTestCase):
         return version_negotiation.GlareVersionNegotiationFilter(None)
 
     def test_version_request(self):
+        _LINKS = [{
+            "rel": "describedby",
+            "type": "text/html",
+            "href": "http://docs.openstack.org/",
+        }]
         for path_info in ('/', '/versions'):
-            expected = {
-                "versions": [{
-                    "status": "EXPERIMENTAL",
-                    "min_version": "1.0",
-                    "version": "1.0",
-                    "id": "v1.0",
-                    "links": [{"href": "http://localhost/", "rel": "self"}]
+            expected = {'versions': [
+                {
+                    'version': '1.0',
+                    'status': 'STABLE',
+                    'links': _LINKS,
+                    'media-type': 'application/vnd.openstack.artifacts-1.0',
+                },
+                {
+                    'version': '1.1',
+                    'status': 'EXPERIMENTAL',
+                    'links': _LINKS,
+                    'media-type': 'application/vnd.openstack.artifacts-1.1',
                 }]
             }
             req = self._build_request(self.MIME_TYPE + '1.0', path_info)
@@ -58,7 +68,7 @@ class TestContextMiddleware(base.BaseTestCase):
     def test_latest_version(self):
         req = self._build_request(self.MIME_TYPE + 'latest', '/artifacts')
         self._build_middleware().process_request(req)
-        self.assertEqual('1.0', req.api_version_request.get_string())
+        self.assertEqual('1.1', req.api_version_request.get_string())
 
     def test_version_unknown(self):
         req = self._build_request('UNKNOWN', '/artifacts')
