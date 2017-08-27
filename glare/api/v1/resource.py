@@ -549,9 +549,8 @@ class ResponseSerializer(api_versioning.VersionedResource,
             params['marker'] = af_list['next_marker']
             next_query = urlparse.urlencode(params)
             body['next'] = '/artifacts/%s?%s' % (type_name, next_query)
-        response.unicode_body = six.text_type(json.dumps(body,
-                                                         ensure_ascii=False))
-        response.content_type = 'application/json'
+
+        self._prepare_json_response(response, body)
 
     @supported_versions(min_ver='1.0')
     def delete(self, response, result):
