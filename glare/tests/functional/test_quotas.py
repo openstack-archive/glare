@@ -243,12 +243,11 @@ max_artifact_number = 100
 
         url = '/quotas'
         # define several quotas
-        res = self._deserialize_quotas(self.put(url=url, data=values))
-        self.assertEqual(self._deserialize_quotas(values), res)
+        self.put(url=url, data=values)
 
         # get all quotas
-        res = self._deserialize_quotas(self.get(url=url))
-        global_quotas = res.pop(None)
+        res = self.get(url=url)
+        global_quotas = res['global_quotas']
         self.assertEqual({
             'max_artifact_number': 150,
             'max_artifact_number:heat_templates': 150,
@@ -258,11 +257,12 @@ max_artifact_number = 100
             'max_uploaded_data:images': 15000,
             'max_uploaded_data:murano_packages': 10000,
             'max_uploaded_data:sample_artifact': 3000}, global_quotas)
-        self.assertEqual(self._deserialize_quotas(values), res)
+        self.assertEqual(self._deserialize_quotas(values),
+                         self._deserialize_quotas(res['quotas']))
 
         # get user1 quotas
         res = self._deserialize_quotas(self.get(
-            url='/quotas/' + user1_tenant_id))
+            url='/project-quotas/' + user1_tenant_id))
         self.assertEqual({user1_tenant_id: {
             'max_artifact_number': 10,
             'max_artifact_number:heat_templates': 15,
@@ -274,8 +274,7 @@ max_artifact_number = 100
             'max_uploaded_data:sample_artifact': 3000}}, res)
 
         # get admin quotas
-        res = self._deserialize_quotas(self.get(
-            url='/quotas/' + admin_tenant_id))
+        res = self._deserialize_quotas(self.get(url='/project-quotas'))
         self.assertEqual({admin_tenant_id: {
             'max_artifact_number': 10,
             'max_artifact_number:heat_templates': 150,
@@ -292,8 +291,7 @@ max_artifact_number = 100
         self.get(url=url, status=403)
 
         # user1 can get his quotas
-        res = self._deserialize_quotas(self.get(
-            url='/quotas/' + user1_tenant_id))
+        res = self._deserialize_quotas(self.get(url='/project-quotas'))
         self.assertEqual({user1_tenant_id: {
             'max_artifact_number': 10,
             'max_artifact_number:heat_templates': 15,
@@ -305,7 +303,7 @@ max_artifact_number = 100
             'max_uploaded_data:sample_artifact': 3000}}, res)
 
         # user1 can't get user2 quotas
-        self.get(url=url + '/' + user2_tenant_id, status=403)
+        self.get(url='/project-quotas/' + user2_tenant_id, status=403)
 
 
 class TestStaticQuotas(base.TestArtifact):

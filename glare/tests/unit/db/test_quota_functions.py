@@ -146,8 +146,7 @@ class TestQuotaFunctions(base.BaseTestArtifactAPI):
             }
         }
 
-        res = api.set_quotas(values, self.session)
-        self.assertEqual(values, res)
+        api.set_quotas(values, self.session)
 
         res = api.get_all_quotas(self.session)
         self.assertEqual(values, res)
@@ -163,8 +162,7 @@ class TestQuotaFunctions(base.BaseTestArtifactAPI):
             "project2": {},
         }
 
-        res = api.set_quotas(new_values, self.session)
-        self.assertEqual(new_values, res)
+        api.set_quotas(new_values, self.session)
 
         # project3 should remain unchanged
         new_values['project3'] = {"max_uploaded_data": 1000}

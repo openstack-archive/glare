@@ -127,7 +127,7 @@ def verify_uploaded_data_amount(context, type_name, data_amount=None):
 
 def set_quotas(values):
     session = api.get_session()
-    return api.set_quotas(values, session)
+    api.set_quotas(values, session)
 
 
 def list_quotas(project_id=None):

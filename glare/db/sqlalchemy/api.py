@@ -641,8 +641,6 @@ def set_quotas(values, session):
         # save all quotas
         session.flush()
 
-    return values
-
 
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)

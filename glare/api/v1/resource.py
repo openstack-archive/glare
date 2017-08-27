@@ -460,9 +460,8 @@ class ArtifactsController(api_versioning.VersionedResource):
 
         :param req: user request
         :param values: list with quota values to set
-        :return: definition of created quota
         """
-        return self.engine.set_quotas(req.context, values)
+        self.engine.set_quotas(req.context, values)
 
     @supported_versions(min_ver='1.1')
     @log_request_progress
@@ -476,7 +475,7 @@ class ArtifactsController(api_versioning.VersionedResource):
 
     @supported_versions(min_ver='1.1')
     @log_request_progress
-    def list_project_quotas(self, req, project_id):
+    def list_project_quotas(self, req, project_id=None):
         """Get detailed info about project quotas.
 
         :param req: user request
@@ -599,32 +598,27 @@ class ResponseSerializer(api_versioning.VersionedResource,
     def _serialize_quota(quotas):
         res = []
         for project_id, project_quotas in quotas.items():
-            qouta_list = []
-            for qouta_name, quota_value in project_quotas.items():
-                qouta_list.append({
-                    'quota_name': qouta_name,
+            quota_list = []
+            for quota_name, quota_value in project_quotas.items():
+                quota_list.append({
+                    'quota_name': quota_name,
                     'quota_value': quota_value,
                 })
             res.append({
                 'project_id': project_id,
-                'project_quotas': qouta_list
+                'project_quotas': quota_list
             })
         return res
 
     @supported_versions(min_ver='1.1')
-    def set_quotas(self, response, quota):
-        quota = self._serialize_quota(quota)
-        self._prepare_json_response(response, quota)
+    def list_all_quotas(self, response, quotas):
+        quotas['quotas'] = self._serialize_quota(quotas['quotas'])
+        self._prepare_json_response(response, quotas)
 
     @supported_versions(min_ver='1.1')
-    def list_all_quotas(self, response, quota):
-        quota = self._serialize_quota(quota)
-        self._prepare_json_response(response, quota)
-
-    @supported_versions(min_ver='1.1')
-    def list_project_quotas(self, response, quota):
-        quota = self._serialize_quota(quota)
-        self._prepare_json_response(response, quota)
+    def list_project_quotas(self, response, quotas):
+        quotas = self._serialize_quota(quotas)
+        self._prepare_json_response(response, quotas)
 
 
 def create_resource():
