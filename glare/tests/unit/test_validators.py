@@ -42,6 +42,26 @@ class TestValidators(base.BaseTestArtifactAPI):
                          '{4}-([0-9a-fA-F]){4}-([0-9a-fA-F]){12}$')},
             validator.to_jsonschema())
 
+    def test_regex(self):
+        # test regex '^([0-9a-fA-F]){8}$'
+        validator = validators.Regex('^([0-9a-fA-F]){8}$')
+
+        # valid string - no exception
+        validator('167f8083')
+
+        # invalid string - ValueError
+        self.assertRaises(ValueError, validator, 'INVALID')
+        self.assertRaises(ValueError, validator, '167f808Z')
+        self.assertRaises(ValueError, validator, '167f80835')
+
+        # only strings can be applied as values
+        self.assertEqual((fields.StringField,),
+                         validators.UUID.get_allowed_types())
+
+        self.assertEqual(
+            {'pattern': '^([0-9a-fA-F]){8}$'},
+            validator.to_jsonschema())
+
     def test_allowed_values(self):
         # test that field may have preoccupied values
         validator_s = validators.AllowedValues(['aaa', 'bbb'])

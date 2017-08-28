@@ -94,6 +94,10 @@ class SampleArtifact(base_artifact.BaseArtifact):
         'string_mutable': Field(fields.StringField,
                                 required_on_activate=False,
                                 mutable=True),
+        'string_regex': Field(fields.StringField,
+                              required_on_activate=False,
+                              validators=[
+                                  validators.Regex('^([0-9a-fA-F]){8}$')]),
         'string_required': Field(fields.StringField,
                                  required_on_activate=True),
         'string_validators': Field(fields.StringField,
