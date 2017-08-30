@@ -106,7 +106,7 @@ def upgrade():
         sa.Column('status', sa.String(32), nullable=False),
         sa.Column('external', sa.Boolean()),
         sa.Column('url', sa.Text()),
-        sa.Column('key_name', sa.String(255)),
+        sa.Column('key_name', sa.String(2048)),
         sa.Column('content_type', sa.String(255)),
         sa.PrimaryKeyConstraint('id'),
         mysql_engine=MYSQL_ENGINE,
