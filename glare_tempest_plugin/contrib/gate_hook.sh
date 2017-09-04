@@ -12,3 +12,15 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+
+export DEVSTACK_GATE_INSTALL_TESTONLY=1
+export DEVSTACK_GATE_TEMPEST=1
+export DEVSTACK_GATE_TEMPEST_NOTESTS=1
+export KEEP_LOCALRC=1
+
+export DEVSTACK_LOCAL_CONFIG+=$'\n'"GLARE_CUSTOM_MODULES=glare.tests.sample_artifact"
+export DEVSTACK_LOCAL_CONFIG+=$'\n'"GLARE_ENABLED_TYPES=heat_templates,heat_environments,murano_packages,tosca_templates,images,sample_artifact"
+
+GATE_DEST=$BASE/new
+DEVSTACK_PATH=$GATE_DEST/devstack
+$GATE_DEST/devstack-gate/devstack-vm-gate.sh
