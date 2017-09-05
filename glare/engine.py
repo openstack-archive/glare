@@ -47,12 +47,14 @@ class Engine(object):
      - requests artifact definition from artifact type registry;
      - check access permission(ro, rw);
      - lock artifact for update if needed;
-     - pass data to base artifact to execute all business logic operations
+     - pass data to base artifact type to execute all business logic operations
        with database;
+     - check quotas during upload;
+     - call operations pre- and post- hooks;
      - notify other users about finished operation.
 
     Engine should not include any business logic and validation related
-    to Artifacts. Engine should not know any internal details of artifact
+    to artifacts types. Engine should not know any internal details of artifact
     type, because this part of the work is done by Base artifact type.
     """
     def __init__(self):
@@ -143,7 +145,7 @@ class Engine(object):
 
     def _apply_patch(self, context, af, patch):
         # This function is a collection of hacks and workarounds to make
-        # json patch apply changes to oslo_vo object.
+        # json patch apply changes to artifact object.
         action_names = ['update']
         af_dict = af.to_dict()
         policy.authorize('artifact:update', af_dict, context)
@@ -285,19 +287,17 @@ class Engine(object):
                         context, type_name, updates.get('name', af.name),
                         updates.get('version', af.version), af.owner,
                         updates.get('visibility', af.visibility)):
-                    modified_af = af.save(context)
+                    af = af.save(context)
             else:
-                modified_af = af.save(context)
+                af = af.save(context)
 
             # call post hooks for all operations when data is written in db and
             # send broadcast notifications
             for action_name in action_names:
-                getattr(modified_af, 'post_%s_hook' % action_name)(
-                    context, modified_af)
-                Notifier.notify(
-                    context, 'artifact:' + action_name, modified_af)
+                getattr(af, 'post_%s_hook' % action_name)(context, af)
+                Notifier.notify(context, 'artifact:' + action_name, af)
 
-            return modified_af.to_dict()
+            return af.to_dict()
 
     def show(self, context, type_name, artifact_id):
         """Show detailed artifact info.
@@ -390,7 +390,7 @@ class Engine(object):
 
     @staticmethod
     def _get_blob_info(af, field_name, blob_key=None):
-        """Return requested blob info"""
+        """Return requested blob info."""
         if blob_key:
             if not af.is_blob_dict(field_name):
                 msg = _("%s is not a blob dict") % field_name
@@ -469,18 +469,16 @@ class Engine(object):
             utils.validate_change_allowed(af, field_name)
             af.pre_add_location_hook(
                 context, af, field_name, location, blob_key)
-            modified_af = self._save_blob_info(
-                context, af, field_name, blob_key, blob)
+            af = self._save_blob_info(context, af, field_name, blob_key, blob)
 
         LOG.info("External location %(location)s has been created "
                  "successfully for artifact %(artifact)s blob %(blob)s",
                  {'location': location, 'artifact': af.id,
                   'blob': blob_name})
 
-        modified_af.post_add_location_hook(
-            context, modified_af, field_name, blob_key)
-        Notifier.notify(context, action_name, modified_af)
-        return modified_af.to_dict()
+        af.post_add_location_hook(context, af, field_name, blob_key)
+        Notifier.notify(context, action_name, af)
+        return af.to_dict()
 
     def _calculate_allowed_space(self, context, af, field_name,
                                  content_length=None, blob_key=None):
@@ -541,7 +539,11 @@ class Engine(object):
         """
         blob_name = self._generate_blob_name(field_name, blob_key)
         blob_id = uuidutils.generate_uuid()
+        blob_info = {'url': None, 'size': None, 'md5': None, 'sha1': None,
+                     'sha256': None, 'id': blob_id, 'status': 'saving',
+                     'external': False, 'content_type': content_type}
 
+        # Step 1. Initialize blob
         lock_key = "%s:%s" % (type_name, artifact_id)
         with self.lock_engine.acquire(context, lock_key):
             af = self._show_artifact(context, type_name, artifact_id)
@@ -554,21 +556,18 @@ class Engine(object):
                         "%(af)s") % {'blob': field_name, 'af': af.id}
                 raise exception.Conflict(message=msg)
             utils.validate_change_allowed(af, field_name)
-            size = self._calculate_allowed_space(
+            blob_info['size'] = self._calculate_allowed_space(
                 context, af, field_name, content_length, blob_key)
-            blob = {'url': None, 'size': size, 'md5': None, 'sha1': None,
-                    'sha256': None, 'id': blob_id, 'status': 'saving',
-                    'external': False, 'content_type': content_type}
 
-            modified_af = self._save_blob_info(
-                context, af, field_name, blob_key, blob)
+            af = self._save_blob_info(
+                context, af, field_name, blob_key, blob_info)
 
         LOG.debug("Parameters validation for artifact %(artifact)s blob "
                   "upload passed for blob %(blob_name)s. "
                   "Start blob uploading to backend.",
                   {'artifact': af.id, 'blob_name': blob_name})
 
-        # try to perform blob uploading to storage
+        # Step 2. Call pre_upload_hook and upload data to the store
         try:
             try:
                 # call upload hook first
@@ -591,38 +590,32 @@ class Engine(object):
                 default_store = CONF.glance_store.default_store
 
             location_uri, size, checksums = store_api.save_blob_to_store(
-                blob_id, fd, context, size,
+                blob_id, fd, context, blob_info['size'],
                 store_type=default_store)
+            blob_info.update({'url': location_uri,
+                              'status': 'active',
+                              'size': size})
+            blob_info.update(checksums)
         except Exception:
             # if upload failed remove blob from db and storage
             with excutils.save_and_reraise_exception(logger=LOG):
-                if blob_key is None:
-                    af.update_blob(context, af.id, field_name, None)
-                else:
-                    blob_dict_attr = getattr(modified_af, field_name)
-                    del blob_dict_attr[blob_key]
-                    af.update_blob(context, af.id, field_name, blob_dict_attr)
+                self._save_blob_info(
+                    context, af, field_name, blob_key, None)
 
         LOG.info("Successfully finished blob uploading for artifact "
                  "%(artifact)s blob field %(blob)s.",
                  {'artifact': af.id, 'blob': blob_name})
 
-        # update blob info and activate it
-        blob.update({'url': location_uri,
-                     'status': 'active',
-                     'size': size})
-        blob.update(checksums)
-
+        # Step 3. Change blob status to 'active'
         with self.lock_engine.acquire(context, lock_key):
             af = af.show(context, artifact_id)
-            modified_af = self._save_blob_info(
-                context, af, field_name, blob_key, blob)
+            af = self._save_blob_info(
+                context, af, field_name, blob_key, blob_info)
 
-        modified_af.post_upload_hook(
-            context, modified_af, field_name, blob_key)
+        af.post_upload_hook(context, af, field_name, blob_key)
 
-        Notifier.notify(context, action_name, modified_af)
-        return modified_af.to_dict()
+        Notifier.notify(context, action_name, af)
+        return af.to_dict()
 
     def download_blob(self, context, type_name, artifact_id, field_name,
                       blob_key=None):
@@ -703,18 +696,17 @@ class Engine(object):
             msg = _("Blob %s is not external") % blob_name
             raise exception.Forbidden(message=msg)
 
-        modified_af = self._save_blob_info(
-            context, af, field_name, blob_key, None)
+        af = self._save_blob_info(context, af, field_name, blob_key, None)
 
-        Notifier.notify(context, action_name, modified_af)
-        return modified_af.to_dict()
+        Notifier.notify(context, action_name, af)
+        return af.to_dict()
 
     @staticmethod
     def set_quotas(context, values):
         """Set quota records in Glare.
 
         :param context: user request context
-        :param values: list with quota values to set
+        :param values: dict with quota values to set
         """
         action_name = "artifact:set_quotas"
         policy.authorize(action_name, {}, context)
@@ -725,7 +717,8 @@ class Engine(object):
         """Get detailed info about all available quotas.
 
         :param context: user request context
-        :return: definition of requested quotas for the project
+        :return: dict with definitions of redefined quotas for all projects
+         and global defaults
         """
         action_name = "artifact:list_all_quotas"
         policy.authorize(action_name, {}, context)
