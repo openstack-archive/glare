@@ -253,6 +253,11 @@ Possible values:
         """
         values = self.obj_changes_to_primitive()
         values['type_name'] = self.get_type_name()
+
+        LOG.debug("Sending request to create artifact of type '%(type_name)s'."
+                  " New values are %(values)s",
+                  {'type_name': self.get_type_name(), 'values': values})
+
         af_vals = self.db_api.save(context, None, values)
         return self.init_artifact(context, af_vals)
 
@@ -262,8 +267,13 @@ Possible values:
         :param context: user context
         :return: updated artifact object
         """
-        updated_af = self.db_api.save(context, self.id,
-                                      self.obj_changes_to_primitive())
+        values = self.obj_changes_to_primitive()
+
+        LOG.debug("Sending request to update artifact '%(af_id)s'. "
+                  "New values are %(values)s",
+                  {'af_id': self.id, 'values': values})
+
+        updated_af = self.db_api.save(context, self.id, values)
         return self.init_artifact(context, updated_af)
 
     @classmethod

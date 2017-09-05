@@ -94,11 +94,11 @@ class LockEngine(object):
         """
         if lock_key is not None and len(lock_key) < self.MAX_LOCK_LENGTH:
             lock_id = self.lock_api.create_lock(context, lock_key)
-            LOG.info("Lock %(lock_id)s acquired for lock_key %(lock_key)s",
-                     {'lock_id': lock_id, 'lock_key': lock_key})
+            LOG.debug("Lock %(lock_id)s acquired for lock_key %(lock_key)s",
+                      {'lock_id': lock_id, 'lock_key': lock_key})
         else:
             lock_id = None
-            LOG.info("No lock for lock_key %s", lock_key)
+            LOG.debug("No lock for lock_key %s", lock_key)
 
         return Lock(context, lock_id, lock_key, self.release)
 
@@ -109,5 +109,5 @@ class LockEngine(object):
         """
         if lock.lock_id is not None:
             self.lock_api.delete_lock(lock.context, lock.lock_id)
-            LOG.info("Lock %(lock_id)s released for lock_key %(key)s",
-                     {'lock_id': lock.lock_id, 'key': lock.lock_key})
+            LOG.debug("Lock %(lock_id)s released for lock_key %(key)s",
+                      {'lock_id': lock.lock_id, 'key': lock.lock_key})
