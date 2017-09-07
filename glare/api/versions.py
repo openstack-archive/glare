@@ -18,7 +18,6 @@ from oslo_serialization import jsonutils
 from six.moves import http_client
 import webob.dec
 
-from glare.api.v1 import api_version_request
 from glare.i18n import _
 
 
@@ -52,45 +51,39 @@ Related options:
 CONF = cfg.CONF
 CONF.register_opts(versions_opts)
 
+_LINKS = [{
+    "rel": "describedby",
+    "type": "text/html",
+    "href": "http://docs.openstack.org/",
+}]
+
 
 class Controller(object):
 
-    """A controller that reports which API versions are supported."""
+    """A controller that reports which API versions are there."""
 
     @staticmethod
-    def index(req, is_multi):
-        """Respond to a request for all OpenStack API versions.
+    def index(req):
+        """Respond to a request for all OpenStack Glare API versions.
 
-        :param is_multi: defines if multiple choices should be response status
-         or not
         :param req: user request object
         :return: list of supported API versions
         """
-        def build_version_object(max_version, min_version, status, path=None):
-            url = CONF.public_endpoint or req.host_url
-            return {
-                'id': 'v%s' % max_version,
-                'links': [
-                    {
-                        'rel': 'self',
-                        'href': '%s/%s/' % (url, path) if path else
-                        '%s/' % url,
-                    },
-                ],
-                'status': status,
-                'min_version': min_version,
-                'version': max_version
-            }
-
-        microv_max = api_version_request.APIVersionRequest.max_version()
-        microv_min = api_version_request.APIVersionRequest.min_version()
-        version_objs = [build_version_object(microv_max.get_string(),
-                                             microv_min.get_string(),
-                                             'EXPERIMENTAL')]
-        return_status = (http_client.MULTIPLE_CHOICES if is_multi else
-                         http_client.OK)
+        version_objs = [
+            {
+                'version': '1.0',
+                'status': 'STABLE',
+                'links': _LINKS,
+                'media-type': 'application/vnd.openstack.artifacts-1.0',
+            },
+            {
+                'version': '1.1',
+                'status': 'EXPERIMENTAL',
+                'links': _LINKS,
+                'media-type': 'application/vnd.openstack.artifacts-1.1',
+            }]
         response = webob.Response(request=req,
-                                  status=return_status,
+                                  status=http_client.MULTIPLE_CHOICES,
                                   content_type='application/json')
         response.body = jsonutils.dump_as_bytes(dict(versions=version_objs))
         return response

@@ -20,6 +20,10 @@ from glare.i18n import _
 
 REST_API_VERSION_HISTORY = """REST API Version History:
 
+    * 1.1 Added dynamic quotas API request. Added a possibility to delete blobs
+    with external locations. Added a possibility to define system locations to
+    blobs.
+
     * 1.0 - First stable API version that supports microversion. If API version
     is not specified in the request then API v1.0 is used as default API
     version.
@@ -33,7 +37,7 @@ class APIVersionRequest(object):
     """
 
     _MIN_API_VERSION = "1.0"
-    _MAX_API_VERSION = "1.0"
+    _MAX_API_VERSION = "1.1"
     _DEFAULT_API_VERSION = "1.0"
 
     def __init__(self, version_string):

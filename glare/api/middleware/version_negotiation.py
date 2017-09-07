@@ -67,9 +67,7 @@ class GlareVersionNegotiationFilter(base_middleware.ConfigurableMiddleware):
 
         # determine if this is request for versions
         if req.path_info in ('/versions', '/'):
-            is_multi = req.path_info == '/'
-            return artifacts_versions.Controller.index(
-                req, is_multi=is_multi)
+            return artifacts_versions.Controller.index(req)
 
         # determine api version from request
         req_version = GlareVersionNegotiationFilter.get_version_from_accept(
