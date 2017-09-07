@@ -79,12 +79,13 @@ class BaseTestCase(testtools.TestCase):
         self.config(
             custom_artifact_types_modules=[
                 'glare.tests.sample_artifact',
-                'glare.tests.hooks_artifact'
+                'glare.tests.hooks_artifact',
+                'glare.tests.unpacking_artifact'
             ],
             enabled_artifact_types=[
-                'hooks_artifact', 'sample_artifact', 'images',
-                'heat_templates', 'heat_environments', 'murano_packages',
-                'tosca_templates']
+                'unpacking_artifact', 'hooks_artifact', 'sample_artifact',
+                'images', 'heat_templates', 'heat_environments',
+                'murano_packages', 'tosca_templates']
         )
 
         location.SCHEME_TO_CLS_MAP = {}
