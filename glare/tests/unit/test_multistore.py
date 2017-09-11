@@ -26,7 +26,8 @@ class TestMultistore(base.BaseTestCase):
                  'tosca_templates': 'sheepdog',
                  'murano_packages': 'vsphere',
                  'sample_artifact': 'database',
-                 'hooks_artifact': 'database'}
+                 'hooks_artifact': 'database',
+                 'unpacking_artifact': 'database'}
 
         # create engine and register new artifact types
         engine.Engine()
