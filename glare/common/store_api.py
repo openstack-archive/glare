@@ -91,6 +91,43 @@ def save_blob_to_store(blob_id, blob, context, max_size,
 
 
 @utils.error_handler(error_map)
+def save_blobs_to_store(blobs, context, max_size,
+                        store_type=None, verifier=None):
+    """Save several files to specified store.
+
+    :param store_type: type of the store, None means save to default store.
+    :param blobs: list of tuples (blob_data_id, data)
+    :param context: user context
+    :param verifier:signature verified
+    :return: dict {blob_data_id: (location_uri, size, checksums)}
+    """
+    # wrap data in CooperativeReader
+    blobs = [(blob_data_id,
+              utils.LimitingReader(utils.CooperativeReader(data), max_size))
+             for (blob_data_id, data) in blobs]
+
+    if store_type == 'database':
+        locations = database_api.add_to_backend_batch(blobs, context, verifier)
+    else:
+        locations = []
+        for blob_data_id, data in blobs:
+            (location, __, __, __) = backend.add_to_backend(
+                CONF, blob_data_id, data, 0, store_type, context, verifier)
+            locations.append(location)
+
+    # combine location, size and checksums together
+    res = {}
+    for i in range(len(locations)):
+        data = blobs[i][1]
+        checksums = {"md5": data.md5.hexdigest(),
+                     "sha1": data.sha1.hexdigest(),
+                     "sha256": data.sha256.hexdigest()}
+        res[blobs[i][0]] = (locations[i], data.bytes_read, checksums)
+
+    return res
+
+
+@utils.error_handler(error_map)
 def load_from_store(uri, context):
     """Load file from store backend.
 
