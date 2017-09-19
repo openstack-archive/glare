@@ -16,7 +16,6 @@ import io
 import zipfile
 
 from glare.common import exception
-from glare.common import utils
 from glare.objects import base
 from glare.objects.meta import file_utils
 from glare.objects.meta import wrappers
@@ -49,10 +48,9 @@ class Unpacker(base.BaseArtifact):
             raise exception.RequestEntityTooLarge(msg)
 
         zip_ref = zipfile.ZipFile(flobj, 'r')
-        for name in zip_ref.namelist():
-            if not name.endswith('/'):
-                file_utils.upload_content_file(
-                    context, af, utils.BlobIterator(zip_ref.read(name)),
-                    'content', name)
+
+        file_utils.unpack_zip_archive_to_artifact_folder(
+            context, af, zip_ref, 'content')
+
         flobj.seek(0)
         return flobj
