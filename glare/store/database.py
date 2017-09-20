@@ -24,6 +24,10 @@ class DatabaseStoreAPI(base_api.BaseStoreAPI):
         session = db_api.get_session()
         return db_api.save_blob_data(context, blob_id, data, session)
 
+    def add_to_backend_batch(self, blobs, context, verifier=None):
+        session = db_api.get_session()
+        return db_api.save_blob_data_batch(context, blobs, session)
+
     def get_from_store(self, uri, context):
         session = db_api.get_session()
         return db_api.get_blob_data(context, uri, session)

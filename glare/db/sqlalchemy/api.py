@@ -708,6 +708,27 @@ def save_blob_data(context, blob_data_id, data, session):
 
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
        stop_max_attempt_number=50)
+def save_blob_data_batch(context, blobs, session):
+    """Perform batch uploading to database."""
+    with session.begin():
+
+        locations = []
+
+        # blobs is a list of tuples (blob_data_id, data)
+        for blob_data_id, data in blobs:
+            blob_data = models.ArtifactBlobData()
+            blob_data.id = blob_data_id
+            blob_data.data = data.read()
+            session.add(blob_data)
+            locations.append("sql://" + blob_data.id)
+
+        session.flush()
+
+    return locations
+
+
+@retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,
+       stop_max_attempt_number=50)
 def get_blob_data(context, uri, session):
     """Download blob data from database."""
 
