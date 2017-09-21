@@ -30,7 +30,8 @@ artifacts_group = cfg.OptGroup(name="artifacts",
 
 ArtifactGroup = [
     cfg.StrOpt("catalog_type",
-               default="artifact"),
+               default="artifact",
+               help="Catalog type of Artifacts API"),
     cfg.StrOpt("endpoint_type",
                default="publicURL",
                choices=["publicURL", "adminURL", "internalURL"],
