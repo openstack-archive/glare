@@ -20,8 +20,6 @@ DEVSTACK_PATH="$BASE/new"
 
 (cd $DEVSTACK_PATH/tempest/; sudo pip install -r requirements.txt -r test-requirements.txt)
 
-(cd $DEVSTACK_PATH/; sudo sh -c 'cp -rf glare/glare_tempest_plugin/contrib/tempest.conf /etc/tempest.conf')
-
 sudo cp $DEVSTACK_PATH/tempest/etc/logging.conf.sample $DEVSTACK_PATH/tempest/etc/logging.conf
 
 (cd $DEVSTACK_PATH/glare/; sudo pip install -r requirements.txt -r test-requirements.txt)
