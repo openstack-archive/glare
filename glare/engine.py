@@ -93,10 +93,9 @@ class Engine(object):
             filters.extend([('owner', 'eq:' + owner),
                             ('visibility', 'private')])
 
-        scope_id = owner
-        if visibility == 'public':
-            scope_id = "%s:%s:%s" % (type_name, name, version)
-
+        scope_id = "%s:%s:%s" % (type_name, name, version)
+        if visibility != 'public':
+            scope_id += ':%s' % owner
         lock = self.lock_engine.acquire(context, scope_id)
 
         try:
