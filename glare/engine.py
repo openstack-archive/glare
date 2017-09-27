@@ -73,10 +73,10 @@ class Engine(object):
             self.schemas[type_name] = registry.ArtifactRegistry.\
                 get_artifact_type(type_name).gen_schemas()
             type_conf_section = getattr(CONF, 'artifact_type:' + type_name)
-            if type_conf_section.max_artifact_number is not None:
+            if type_conf_section.max_artifact_number != -1:
                 self.config_quotas['max_artifact_number:' + type_name] = \
                     type_conf_section.max_artifact_number
-            if type_conf_section.max_uploaded_data is not None:
+            if type_conf_section.max_uploaded_data != -1:
                 self.config_quotas['max_uploaded_data:' + type_name] = \
                     type_conf_section.max_uploaded_data
 
