@@ -40,22 +40,24 @@ def verify_artifact_count(context, type_name):
         type_limit = quotas['max_artifact_number:' + type_name]
 
     session = api.get_session()
-    # the whole amount of created artifacts
-    whole_number = api.count_artifact_number(context, session)
 
-    if global_limit != -1 and whole_number >= global_limit:
-        msg = _("Can't create artifact because of global quota "
-                "limit is %(global_limit)d artifacts. "
-                "You have %(whole_number)d artifact(s).") % {
-            'global_limit': global_limit, 'whole_number': whole_number}
-        raise exception.Forbidden(msg)
+    if global_limit != -1:
+        # the whole amount of created artifacts
+        whole_number = api.count_artifact_number(context, session)
 
-    if type_limit is not None:
+        if whole_number >= global_limit:
+            msg = _("Can't create artifact because of global quota "
+                    "limit is %(global_limit)d artifacts. "
+                    "You have %(whole_number)d artifact(s).") % {
+                'global_limit': global_limit, 'whole_number': whole_number}
+            raise exception.Forbidden(msg)
+
+    if type_limit != -1:
         # the amount of artifacts for specific type
         type_number = api.count_artifact_number(
             context, session, type_name)
 
-        if type_limit != -1 and type_number >= type_limit:
+        if type_number >= type_limit:
             msg = _("Can't create artifact because of quota limit for "
                     "artifact type '%(type_name)s' is %(type_limit)d "
                     "artifacts. You have %(type_number)d artifact(s) "
@@ -88,11 +90,11 @@ def verify_uploaded_data_amount(context, type_name, data_amount=None):
         type_limit = quotas['max_uploaded_data:' + type_name]
 
     session = api.get_session()
-    # the whole amount of created artifacts
-    whole_number = api.calculate_uploaded_data(context, session)
     res = -1
 
     if global_limit != -1:
+        # the whole amount of created artifacts
+        whole_number = api.calculate_uploaded_data(context, session)
         if data_amount is None:
             res = global_limit - whole_number
         elif whole_number + data_amount > global_limit:
@@ -104,24 +106,23 @@ def verify_uploaded_data_amount(context, type_name, data_amount=None):
                 'whole_number': whole_number}
             raise exception.RequestEntityTooLarge(msg)
 
-    if type_limit is not None:
+    if type_limit != -1:
         # the amount of artifacts for specific type
         type_number = api.calculate_uploaded_data(
             context, session, type_name)
-        if type_limit != -1:
-            if data_amount is None:
-                available = type_limit - type_number
-                res = available if res == -1 else min(res, available)
-            elif type_number + data_amount > type_limit:
-                msg = _("Can't upload %(data_amount)d byte(s) because of "
-                        "quota limit for artifact type '%(type_name)s': "
-                        "%(type_limit)d. You have %(type_number)d bytes "
-                        "uploaded for this type.") % {
-                    'data_amount': data_amount,
-                    'type_name': type_name,
-                    'type_limit': type_limit,
-                    'type_number': type_number}
-                raise exception.RequestEntityTooLarge(msg)
+        if data_amount is None:
+            available = type_limit - type_number
+            res = available if res == -1 else min(res, available)
+        elif type_number + data_amount > type_limit:
+            msg = _("Can't upload %(data_amount)d byte(s) because of "
+                    "quota limit for artifact type '%(type_name)s': "
+                    "%(type_limit)d. You have %(type_number)d bytes "
+                    "uploaded for this type.") % {
+                'data_amount': data_amount,
+                'type_name': type_name,
+                'type_limit': type_limit,
+                'type_number': type_number}
+            raise exception.RequestEntityTooLarge(msg)
     return res
 
 
