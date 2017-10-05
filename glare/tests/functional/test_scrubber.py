@@ -58,7 +58,7 @@ class TestScrubber(base.TestArtifact):
 
         # add external location
         body = jsonutils.dumps(
-            {'url': 'https://www.apache.org/licenses/LICENSE-2.0.txt',
+            {'url': self._url(url + '/small_blob'),
              'md5': "fake", 'sha1': "fake_sha", "sha256": "fake_sha256"})
         headers = {'Content-Type':
                    'application/vnd+openstack.glare-custom-location+json'}

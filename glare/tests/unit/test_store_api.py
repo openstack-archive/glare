@@ -15,19 +15,19 @@
 import os
 import tempfile
 
+import mock
 from six import BytesIO
 
 from glare.common import exception as exc
 from glare.common import store_api
 from glare.tests.unit import base
+from glare.tests import utils
 
 
 class TestStoreAPI(base.BaseTestArtifactAPI):
 
-    def test_read_data(self):
-        """Read data from file, http and database."""
-
-        # test local temp file
+    def test_read_data_filesystem(self):
+        # test local read from temp file
         tfd, path = tempfile.mkstemp()
         try:
             os.write(tfd, b'a' * 1000)
@@ -45,7 +45,8 @@ class TestStoreAPI(base.BaseTestArtifactAPI):
         finally:
             os.remove(path)
 
-        # test sql object
+    def test_read_data_database(self):
+        # test read from sql object
         values = {'name': 'ttt', 'version': '1.0'}
         self.sample_artifact = self.controller.create(
             self.req, 'sample_artifact', values)
@@ -60,15 +61,32 @@ class TestStoreAPI(base.BaseTestArtifactAPI):
         self.assertRaises(exc.RequestEntityTooLarge,
                           store_api.read_data, flobj['data'], limit=99)
 
-        # test external http
-        flobj = store_api.load_from_store(
-            'https://www.apache.org/licenses/LICENSE-2.0.txt',
-            self.req.context
-        )
-        self.assertEqual(3967, len(store_api.read_data(flobj)))
-        flobj = store_api.load_from_store(
-            'https://www.apache.org/licenses/LICENSE-2.0.txt',
-            self.req.context
-        )
-        self.assertRaises(exc.RequestEntityTooLarge,
-                          store_api.read_data, flobj, limit=3966)
+    def test_read_data_http(self):
+        request = mock.patch('requests.Session.request')
+        try:
+            self.request = request.start()
+            self.request.return_value = utils.fake_response(
+                content=b'a' * 1000)
+            # test read from external http
+            flobj = store_api.load_from_store(
+                'http://localhost/test_file.txt',
+                self.req.context
+            )
+            self.assertEqual(1000, len(store_api.read_data(flobj)))
+        finally:
+            request.stop()
+
+    def test_read_data_http_too_large_data(self):
+        request = mock.patch('requests.Session.request')
+        try:
+            self.request = request.start()
+            self.request.return_value = utils.fake_response(
+                content=b'a' * 1000)
+            flobj = store_api.load_from_store(
+                'http://localhost/test_file.txt',
+                self.req.context
+            )
+            self.assertRaises(exc.RequestEntityTooLarge,
+                              store_api.read_data, flobj, limit=999)
+        finally:
+            request.stop()

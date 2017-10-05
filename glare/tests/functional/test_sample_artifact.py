@@ -827,10 +827,17 @@ class TestBlobs(base.TestArtifact):
                                     'string_required': '123'})
         self.assertIsNotNone(art['id'])
 
+        # Create auxiliary artifact and upload data there
+        aux = self.create_artifact({'name': 'auxiliary'})
+        url = '/sample_artifact/%s/blob' % aux['id']
+        data = b'a' * 1000
+        self.put(url=url, data=data)
+        data_url = self._url(url)
+
         # Set custom location
         url = '/sample_artifact/%s' % art['id']
         body = jsonutils.dumps(
-            {'url': 'https://www.apache.org/licenses/LICENSE-2.0.txt',
+            {'url': data_url,
              'md5': "fake", 'sha1': "fake_sha", "sha256": "fake_sha256"})
         headers = {'Content-Type':
                    'application/vnd+openstack.glare-custom-location+json'}
@@ -851,8 +858,7 @@ class TestBlobs(base.TestArtifact):
         self.assertEqual('fake_sha256', art['blob']['sha256'])
         self.assertIsNone(art['blob']['size'])
         self.assertIsNone(art['blob']['content_type'])
-        self.assertEqual('https://www.apache.org/licenses/LICENSE-2.0.txt',
-                         art['blob']['url'])
+        self.assertEqual(data_url, art['blob']['url'])
         self.assertNotIn('id', art['blob'])
 
         # Set custom location
@@ -866,8 +872,7 @@ class TestBlobs(base.TestArtifact):
         self.assertIsNotNone(art['dict_of_blobs']['blob']['md5'])
         self.assertIsNone(art['dict_of_blobs']['blob']['size'])
         self.assertIsNone(art['dict_of_blobs']['blob']['content_type'])
-        self.assertEqual('https://www.apache.org/licenses/LICENSE-2.0.txt',
-                         art['dict_of_blobs']['blob']['url'])
+        self.assertEqual(data_url, art['dict_of_blobs']['blob']['url'])
         self.assertNotIn('id', art['dict_of_blobs']['blob'])
         # test re-add failed
         self.put(url=url + '/dict_of_blobs/blob', data=body, status=409,
@@ -892,10 +897,17 @@ class TestBlobs(base.TestArtifact):
                                     'string_required': '123'})
         self.assertIsNotNone(art['id'])
 
+        # Create auxiliary artifact and upload data there
+        aux = self.create_artifact({'name': 'auxiliary'})
+        url = '/sample_artifact/%s/blob' % aux['id']
+        data = b'a' * 1000
+        self.put(url=url, data=data)
+        data_url = self._url(url)
+
         # Set custom location
         url = '/sample_artifact/%s' % art['id']
         body = jsonutils.dumps(
-            {'url': 'https://www.apache.org/licenses/LICENSE-2.0.txt',
+            {'url': data_url,
              'md5': "fake", 'sha1': "fake_sha", "sha256": "fake_sha256"})
         headers = {'Content-Type':
                    'application/vnd+openstack.glare-custom-location+json'}
@@ -907,8 +919,7 @@ class TestBlobs(base.TestArtifact):
         self.assertEqual('fake_sha256', art['blob']['sha256'])
         self.assertIsNone(art['blob']['size'])
         self.assertIsNone(art['blob']['content_type'])
-        self.assertEqual('https://www.apache.org/licenses/LICENSE-2.0.txt',
-                         art['blob']['url'])
+        self.assertEqual(data_url, art['blob']['url'])
         self.assertNotIn('id', art['blob'])
 
         # Delete should work
@@ -952,10 +963,17 @@ class TestBlobs(base.TestArtifact):
                                     'string_required': '123'})
         self.assertIsNotNone(art['id'])
 
+        # Create auxiliary artifact and upload data there
+        aux = self.create_artifact({'name': 'auxiliary'})
+        url = '/sample_artifact/%s/blob' % aux['id']
+        data = b'a' * 1000
+        self.put(url=url, data=data)
+        data_url = self._url(url)
+
         # Set custom location
         url = '/sample_artifact/%s' % art['id']
         body = jsonutils.dumps(
-            {'url': 'https://www.apache.org/licenses/LICENSE-2.0.txt',
+            {'url': data_url,
              'md5': "fake", 'sha1': "fake_sha", "sha256": "fake_sha256"})
         headers = {'Content-Type':
                    'application/vnd+openstack.glare-custom-location+json'}
@@ -967,8 +985,7 @@ class TestBlobs(base.TestArtifact):
         self.assertEqual('fake_sha256', art['dict_of_blobs']['blob']['sha256'])
         self.assertIsNone(art['dict_of_blobs']['blob']['size'])
         self.assertIsNone(art['dict_of_blobs']['blob']['content_type'])
-        self.assertEqual('https://www.apache.org/licenses/LICENSE-2.0.txt',
-                         art['dict_of_blobs']['blob']['url'])
+        self.assertEqual(data_url, art['dict_of_blobs']['blob']['url'])
         self.assertNotIn('id', art['dict_of_blobs']['blob'])
 
         # Delete should work
