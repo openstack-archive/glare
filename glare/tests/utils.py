@@ -19,6 +19,7 @@ import functools
 import os
 import shlex
 import shutil
+import six
 import socket
 import subprocess
 
@@ -26,6 +27,7 @@ import fixtures
 from oslo_config import cfg
 from oslo_config import fixture as cfg_fixture
 from oslo_log import log
+import requests
 import testtools
 
 from glare.common import config
@@ -374,3 +376,37 @@ def safe_mkdirs(path):
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
+
+
+class FakeHTTPResponse(object):
+    def __init__(self, status=200, headers=None, data=None, *args, **kwargs):
+        data = data or b'some_data'
+        self.data = six.BytesIO(data)
+        self.read = self.data.read
+        self.status = status
+        self.headers = headers or {'content-length': len(data)}
+        if not kwargs.get('no_response_body', False):
+            self.body = None
+
+    def getheader(self, name, default=None):
+        return self.headers.get(name.lower(), default)
+
+    def getheaders(self):
+        return self.headers or {}
+
+    def read(self, amt):
+        self.data.read(amt)
+
+    def release_conn(self):
+        pass
+
+    def close(self):
+        self.data.close()
+
+
+def fake_response(status_code=200, headers=None, content=None, **kwargs):
+    r = requests.models.Response()
+    r.status_code = status_code
+    r.headers = headers or {}
+    r.raw = FakeHTTPResponse(status_code, headers, content, kwargs)
+    return r
