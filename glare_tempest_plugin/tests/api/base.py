@@ -53,8 +53,8 @@ class BaseArtifactTest(base.BaseTestCase):
         if not hasattr(cls, "os"):
             creds = cls.get_configured_isolated_creds(
                 type_of_creds='primary')
-            cls.os = clients.Manager(credentials=creds)
-        cls.artifacts_client = cls.os.artifacts_client
+            cls.os_primary = clients.Manager(credentials=creds)
+        cls.artifacts_client = cls.os_primary.artifacts_client
 
     @classmethod
     def get_configured_isolated_creds(cls, type_of_creds='admin'):
