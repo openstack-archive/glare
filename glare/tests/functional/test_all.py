@@ -32,8 +32,7 @@ class TestAll(base.TestArtifact):
         # get all possible artifacts
         url = '/all?sort=name:asc&limit=100'
         res = self.get(url=url, status=200)['all']
-        from pprint import pformat
-        self.assertEqual(54, len(res), pformat(res))
+        self.assertEqual(54, len(res))
 
         # get artifacts with latest versions
         url = '/all?version=latest&sort=name:asc'
