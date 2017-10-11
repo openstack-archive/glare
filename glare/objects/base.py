@@ -571,6 +571,14 @@ Possible values:
     def post_delete_hook(cls, context, af):
         pass
 
+    @classmethod
+    def format_all(cls, values):
+        """Specify output format for 'all' artifact meta-type
+
+        :param values: dict with values that need to be formatted
+        """
+        return values
+
     def to_notification(self):
         """Return notification body that can be send to listeners.
 

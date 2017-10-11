@@ -89,3 +89,37 @@ class TestAll(base.TestArtifact):
         # get is okay
         new_art = self.get(url=url)
         self.assertEqual(new_art['id'], art['id'])
+
+    def test_format_all(self):
+        # Test that we used right output formatting for each type
+        art1 = self.create_artifact(data={'name': 'aaa'})
+        # Sample artifact adds metadata that contains its name in upper case
+        self.assertEqual('AAA', art1['__some_meta_information__'])
+
+        # 'Image' doesn't
+        art2 = self.create_artifact(
+            data={'name': 'aaa'},
+            type_name='images')
+        self.assertEqual('aaa', art2['name'])
+
+        # fetch all artifacts
+        url = '/all?sort=created_at:asc'
+        res = self.get(url=url, status=200)['all']
+        self.assertEqual(2, len(res))
+
+        self.assertEqual('sample_artifact', res[0]['type_name'])
+        self.assertEqual('AAA', res[0]['__some_meta_information__'])
+
+        self.assertEqual('images', res[1]['type_name'])
+        self.assertNotIn('__some_meta_information__', res[1])
+
+        # fetch artifacts by id
+        url = '/all/%s' % art1['id']
+        res = self.get(url=url, status=200)
+        self.assertEqual('sample_artifact', res['type_name'])
+        self.assertEqual('AAA', res['__some_meta_information__'])
+
+        url = '/all/%s' % art2['id']
+        res = self.get(url=url, status=200)
+        self.assertEqual('images', res['type_name'])
+        self.assertNotIn('__some_meta_information__', res)
