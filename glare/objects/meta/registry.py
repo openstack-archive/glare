@@ -89,6 +89,8 @@ class ArtifactRegistry(vo_base.VersionedObjectRegistry):
     returning appropriate artifact types based on artifact type name.
     """
 
+    enabled_types = {}
+
     @classmethod
     def register_all_artifacts(cls):
         """Register all artifacts in Glare."""
@@ -116,6 +118,10 @@ class ArtifactRegistry(vo_base.VersionedObjectRegistry):
             else:
                 raise exception.TypeNotFound(name=type_name)
 
+            # Fill enabled_types
+            for name, af_type in cls.obj_classes().items():
+                cls.enabled_types[af_type[0].get_type_name()] = af_type[0]
+
     @classmethod
     def get_artifact_type(cls, type_name):
         """Return artifact type based on artifact type name.
@@ -123,10 +129,9 @@ class ArtifactRegistry(vo_base.VersionedObjectRegistry):
         :param type_name: name of artifact type
         :return: artifact class
         """
-        for name, af_type in cls.obj_classes().items():
-            if af_type[0].get_type_name() == type_name:
-                return af_type[0]
-        raise exception.TypeNotFound(name=type_name)
+        if type_name not in cls.enabled_types:
+            raise exception.TypeNotFound(name=type_name)
+        return cls.enabled_types[type_name]
 
     @classmethod
     def reset_registry(cls):
