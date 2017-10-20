@@ -16,6 +16,7 @@ from oslo_versionedobjects import fields
 
 from glare.common import exception
 from glare.objects import base
+from glare.objects.meta import registry
 from glare.objects.meta import wrappers
 
 
@@ -48,3 +49,9 @@ class All(base.BaseArtifact):
     @classmethod
     def get_type_name(cls):
         return "all"
+
+    def to_dict(self):
+        # Use specific method of artifact type to convert it to dict
+        values = self.obj_to_primitive()['versioned_object.data']
+        return registry.ArtifactRegistry.get_artifact_type(
+            self.type_name).format_all(values)
