@@ -195,6 +195,224 @@ class TestStaticQuotas(base.BaseTestArtifactAPI):
             user1_req, 'images', img3['id'], 'image',
             BytesIO(b'a' * 1000), 'application/octet-stream', 1000)
 
+    def test_max_artifact_number_change_global_config_values(self):
+        user1_req = self.get_fake_request(self.users['user1'])
+        # initially there are no artifacts
+        self.assertEqual(
+            0, len(self.controller.list(user1_req, 'all')['artifacts']))
+
+        arts = []
+
+        # set global limit on 5 artifacts
+        self.config(max_artifact_number=5)
+
+        # create 5 artifacts for user1
+        for i in range(5):
+            arts.append(self.controller.create(
+                user1_req, 'images', {'name': 'img%d' % i}))
+
+        # creation of another image fails because of the limit
+        self.assertRaises(exception.Forbidden, self.controller.create,
+                          user1_req, 'images', {'name': 'failed_img'})
+
+        # increase the global limit to 10 artifacts
+        self.config(max_artifact_number=10)
+
+        # now user can create 5 new artifacts
+        for i in range(5, 10):
+            arts.append(self.controller.create(
+                user1_req, 'images', {'name': 'img%d' % i}))
+
+        # creation of another image fails because of the limit
+        self.assertRaises(exception.Forbidden, self.controller.create,
+                          user1_req, 'images', {'name': 'failed_img'})
+
+        # decrease the global limit to 5 artifacts again
+        self.config(max_artifact_number=5)
+
+        # delete 5 artifacts
+        for i in range(5):
+            self.controller.delete(user1_req, 'images', arts[i]['id'])
+        self.assertEqual(
+            5, len(self.controller.list(user1_req, 'all')['artifacts']))
+
+        # creation of another image still fails because of the limit
+        self.assertRaises(exception.Forbidden, self.controller.create,
+                          user1_req, 'images', {'name': 'failed_img'})
+
+        # deletion of another artifact should unblock image creation
+        self.controller.delete(user1_req, 'images', arts[5]['id'])
+        self.controller.create(user1_req, 'images', {'name': 'okay_img'})
+
+    def test_max_artifact_number_change_type_config_values(self):
+        user1_req = self.get_fake_request(self.users['user1'])
+        # initially there are no artifacts
+        self.assertEqual(
+            0, len(self.controller.list(user1_req, 'all')['artifacts']))
+
+        arts = []
+
+        # set type limit on 5 artifacts
+        self.config(max_artifact_number=5,
+                    group='artifact_type:images')
+
+        # create 5 artifacts for user1
+        for i in range(5):
+            arts.append(self.controller.create(
+                user1_req, 'images', {'name': 'img%d' % i}))
+
+        # creation of another image fails because of the limit
+        self.assertRaises(exception.Forbidden, self.controller.create,
+                          user1_req, 'images', {'name': 'failed_img'})
+
+        # increase the type limit to 10 artifacts
+        self.config(max_artifact_number=10,
+                    group='artifact_type:images')
+
+        # create 5 new artifacts
+        for i in range(5, 10):
+            arts.append(self.controller.create(
+                user1_req, 'images', {'name': 'img%d' % i}))
+
+        # creation of another image fails because of the limit
+        self.assertRaises(exception.Forbidden, self.controller.create,
+                          user1_req, 'images', {'name': 'failed_img'})
+
+        # decrease the global limit to 5 artifacts again
+        self.config(max_artifact_number=5,
+                    group='artifact_type:images')
+
+        # delete 5 artifacts
+        for i in range(5):
+            self.controller.delete(user1_req, 'images', arts[i]['id'])
+        self.assertEqual(
+            5, len(self.controller.list(user1_req, 'all')['artifacts']))
+
+        # creation of another image still fails because of the limit
+        self.assertRaises(exception.Forbidden, self.controller.create,
+                          user1_req, 'images', {'name': 'failed_img'})
+
+        # deletion of another artifact should unblock image creation
+        self.controller.delete(user1_req, 'images', arts[5]['id'])
+        self.controller.create(user1_req, 'images', {'name': 'okay_img'})
+
+    def test_max_uploaded_data_change_global_config_values(self):
+        user1_req = self.get_fake_request(self.users['user1'])
+
+        # set global limit on 1000 bytes
+        self.config(max_uploaded_data=1000)
+
+        arts = []
+
+        # create 5 images for user1 and upload 200 bytes to each
+        for i in range(5):
+            art = self.controller.create(
+                user1_req, 'images', {'name': 'img%d' % i})
+            art = self.controller.upload_blob(
+                user1_req, 'images', art['id'], 'image',
+                BytesIO(b'a' * 200), 'application/octet-stream', 200)
+            arts.append(art)
+
+        # now all uploads fail
+        new_art = self.controller.create(
+            user1_req, 'images', {'name': 'new_img'})
+        self.assertRaises(
+            exception.RequestEntityTooLarge, self.controller.upload_blob,
+            user1_req, 'images', new_art['id'], 'image',
+            BytesIO(b'a'), 'application/octet-stream', 1)
+
+        # increase the global limit to 2000 bytes
+        self.config(max_uploaded_data=2000)
+
+        # now user can 5 new artifacts and upload 200 bytes to each
+        for i in range(5, 10):
+            art = self.controller.create(
+                user1_req, 'images', {'name': 'img%d' % i})
+            art = self.controller.upload_blob(
+                user1_req, 'images', art['id'], 'image',
+                BytesIO(b'a' * 200), 'application/octet-stream', 200)
+            arts.append(art)
+
+        # new uploads still fail, because we reached the new limit
+        self.assertRaises(
+            exception.RequestEntityTooLarge, self.controller.upload_blob,
+            user1_req, 'images', new_art['id'], 'image',
+            BytesIO(b'a'), 'application/octet-stream', 1)
+
+        # decrease the global limit to 1000 bytes again
+        self.config(max_uploaded_data=1000)
+
+        # delete 6 artifacts
+        for i in range(6):
+            self.controller.delete(user1_req, 'images', arts[i]['id'])
+        self.assertEqual(
+            5, len(self.controller.list(user1_req, 'all')['artifacts']))
+
+        # now we can upload data to new_art
+        self.controller.upload_blob(
+            user1_req, 'images', new_art['id'], 'image',
+            BytesIO(b'a' * 200), 'application/octet-stream', 200)
+
+    def test_max_max_uploaded_data_change_type_config_values(self):
+        user1_req = self.get_fake_request(self.users['user1'])
+
+        # set type limit on 1000 bytes
+        self.config(max_uploaded_data=1000,
+                    group='artifact_type:images')
+
+        arts = []
+
+        # create 5 images for user1 and upload 200 bytes to each
+        for i in range(5):
+            art = self.controller.create(
+                user1_req, 'images', {'name': 'img%d' % i})
+            art = self.controller.upload_blob(
+                user1_req, 'images', art['id'], 'image',
+                BytesIO(b'a' * 200), 'application/octet-stream', 200)
+            arts.append(art)
+
+        # now all uploads fail
+        new_art = self.controller.create(
+            user1_req, 'images', {'name': 'new_img'})
+        self.assertRaises(
+            exception.RequestEntityTooLarge, self.controller.upload_blob,
+            user1_req, 'images', new_art['id'], 'image',
+            BytesIO(b'a'), 'application/octet-stream', 1)
+
+        # increase the type limit to 2000 bytes
+        self.config(max_uploaded_data=2000,
+                    group='artifact_type:images')
+
+        # now user can 5 new artifacts and upload 200 bytes to each
+        for i in range(5, 10):
+            art = self.controller.create(
+                user1_req, 'images', {'name': 'img%d' % i})
+            art = self.controller.upload_blob(
+                user1_req, 'images', art['id'], 'image',
+                BytesIO(b'a' * 200), 'application/octet-stream', 200)
+            arts.append(art)
+
+        # new uploads still fail, because we reached the new limit
+        self.assertRaises(
+            exception.RequestEntityTooLarge, self.controller.upload_blob,
+            user1_req, 'images', new_art['id'], 'image',
+            BytesIO(b'a'), 'application/octet-stream', 1)
+
+        # decrease the type limit to 1000 bytes again
+        self.config(max_uploaded_data=1000,
+                    group='artifact_type:images')
+
+        # delete 6 artifacts
+        for i in range(6):
+            self.controller.delete(user1_req, 'images', arts[i]['id'])
+        self.assertEqual(
+            5, len(self.controller.list(user1_req, 'all')['artifacts']))
+
+        # now we can upload data to new_art
+        self.controller.upload_blob(
+            user1_req, 'images', new_art['id'], 'image',
+            BytesIO(b'a' * 200), 'application/octet-stream', 200)
+
 
 class TestDynamicQuotas(base.BaseTestArtifactAPI):
     """Test dynamic quota limits."""
