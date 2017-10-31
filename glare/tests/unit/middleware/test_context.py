@@ -42,7 +42,7 @@ class TestContextMiddleware(base.BaseTestCase):
         self._build_middleware().process_request(req)
         self.assertEqual('token1', req.context.auth_token)
         self.assertEqual('user1', req.context.user)
-        self.assertEqual('tenant1', req.context.tenant)
+        self.assertEqual('tenant1', req.context.project_id)
         self.assertEqual(['role1', 'role2'], req.context.roles)
 
     def test_is_admin_flag(self):
@@ -88,7 +88,7 @@ class TestContextMiddleware(base.BaseTestCase):
         middleware.process_request(req)
         self.assertIsNone(req.context.auth_token)
         self.assertIsNone(req.context.user)
-        self.assertIsNone(req.context.tenant)
+        self.assertIsNone(req.context.project_id)
         self.assertEqual([], req.context.roles)
         self.assertFalse(req.context.is_admin)
         self.assertTrue(req.context.read_only)

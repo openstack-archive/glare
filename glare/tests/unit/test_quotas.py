@@ -427,13 +427,13 @@ class TestDynamicQuotas(base.BaseTestArtifactAPI):
             0, len(self.controller.list(user2_req, 'all')['artifacts']))
 
         values = {
-            user1_req.context.tenant: {
+            user1_req.context.project_id: {
                 "max_artifact_number:images": 3,
                 "max_artifact_number:heat_templates": 15,
                 "max_artifact_number:murano_packages": 10,
                 "max_artifact_number": 10
             },
-            user2_req.context.tenant: {
+            user2_req.context.project_id: {
                 "max_artifact_number": 10
             }
         }
@@ -475,7 +475,7 @@ class TestDynamicQuotas(base.BaseTestArtifactAPI):
 
         # disable global limit for user1 and try to create 15 heat templates
         values = {
-            user1_req.context.tenant: {
+            user1_req.context.project_id: {
                 "max_artifact_number:images": 3,
                 "max_artifact_number:heat_templates": 15,
                 "max_artifact_number:murano_packages": 10,
@@ -494,7 +494,7 @@ class TestDynamicQuotas(base.BaseTestArtifactAPI):
 
         # disable type limit for heat templates and create 1 heat templates
         values = {
-            user1_req.context.tenant: {
+            user1_req.context.project_id: {
                 "max_artifact_number:images": 3,
                 "max_artifact_number:heat_templates": -1,
                 "max_artifact_number:murano_packages": 10,
@@ -517,13 +517,13 @@ class TestDynamicQuotas(base.BaseTestArtifactAPI):
             0, len(self.controller.list(user2_req, 'all')['artifacts']))
 
         values = {
-            user1_req.context.tenant: {
+            user1_req.context.project_id: {
                 "max_uploaded_data:images": 1500,
                 "max_uploaded_data:sample_artifact": 300,
                 "max_uploaded_data:murano_packages": 1000,
                 "max_uploaded_data": 1000
             },
-            user2_req.context.tenant: {
+            user2_req.context.project_id: {
                 "max_uploaded_data": 1000
             }
         }
@@ -602,7 +602,7 @@ class TestDynamicQuotas(base.BaseTestArtifactAPI):
 
         # disable global limit and try upload data from user1 again
         values = {
-            user1_req.context.tenant: {
+            user1_req.context.project_id: {
                 "max_uploaded_data:images": 1500,
                 "max_uploaded_data:sample_artifact": 300,
                 "max_uploaded_data:murano_packages": 1000,
@@ -623,7 +623,7 @@ class TestDynamicQuotas(base.BaseTestArtifactAPI):
 
         # disable type limit and try upload data from user1 again
         values = {
-            user1_req.context.tenant: {
+            user1_req.context.project_id: {
                 "max_uploaded_data:images": -1,
                 "max_uploaded_data:sample_artifact": 300,
                 "max_uploaded_data:murano_packages": 1000,
@@ -641,15 +641,15 @@ class TestDynamicQuotas(base.BaseTestArtifactAPI):
         admin_req = self.get_fake_request(self.users['admin'])
 
         values = {
-            user1_req.context.tenant: {
+            user1_req.context.project_id: {
                 "max_uploaded_data:sample_artifact": 20,
                 "max_uploaded_data": 5
             },
-            user2_req.context.tenant: {
+            user2_req.context.project_id: {
                 "max_uploaded_data:sample_artifact": 7,
                 "max_uploaded_data": -1
             },
-            admin_req.context.tenant: {
+            admin_req.context.project_id: {
                 "max_uploaded_data:sample_artifact": -1,
                 "max_uploaded_data": -1
             }

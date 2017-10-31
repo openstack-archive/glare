@@ -32,7 +32,7 @@ def verify_artifact_count(context, type_name):
         CONF, 'artifact_type:' + type_name).max_artifact_number
 
     # update limits if they were reassigned for project
-    project_id = context.tenant
+    project_id = context.project_id
     quotas = list_quotas(project_id).get(project_id, {})
     if 'max_artifact_number' in quotas:
         global_limit = quotas['max_artifact_number']
@@ -82,7 +82,7 @@ def verify_uploaded_data_amount(context, type_name, data_amount=None):
     type_limit = getattr(CONF, 'artifact_type:' + type_name).max_uploaded_data
 
     # update limits if they were reassigned for project
-    project_id = context.tenant
+    project_id = context.project_id
     quotas = list_quotas(project_id).get(project_id, {})
     if 'max_uploaded_data' in quotas:
         global_limit = quotas['max_uploaded_data']
