@@ -386,11 +386,11 @@ def _apply_query_base_filters(query, context):
         return query
 
     # If anonymous user, return only public artifacts.
-    # However, if context.tenant has a value, return both
+    # However, if context.project_id has a value, return both
     # public and private artifacts of the owner.
-    if context.tenant is not None:
+    if context.project_id is not None:
         query = query.filter(
-            or_(models.Artifact.owner == context.tenant,
+            or_(models.Artifact.owner == context.project_id,
                 models.Artifact.visibility == 'public'))
     else:
         query = query.filter(
@@ -592,7 +592,7 @@ def _do_blobs(artifact, new_blobs):
 def count_artifact_number(context, session, type_name=None):
     """Return a number of artifacts for tenant."""
     query = session.query(func.count(models.Artifact.id)).filter(
-        models.Artifact.owner == context.tenant)
+        models.Artifact.owner == context.project_id)
     if type_name is not None:
         query = query.filter(models.Artifact.type_name == type_name)
     return query.order_by(None).scalar() or 0
@@ -603,7 +603,7 @@ def calculate_uploaded_data(context, session, type_name=None):
     query = session.query(
         func.sum(models.ArtifactBlob.size)).join(
         models.Artifact, aliased=True).filter(
-        models.Artifact.owner == context.tenant)
+        models.Artifact.owner == context.project_id)
     if type_name is not None:
         query = query.filter(models.Artifact.type_name == type_name)
     return query.order_by(None).scalar() or 0

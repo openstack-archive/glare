@@ -314,7 +314,7 @@ class ArtifactsController(api_versioning.VersionedResource):
         :param values: dict with artifact fields
         :return: definition of created artifact
         """
-        if req.context.tenant is None or req.context.read_only:
+        if req.context.project_id is None or req.context.read_only:
             msg = _("It's forbidden to anonymous users to create artifacts.")
             raise exc.Forbidden(msg)
         if not values.get('name'):

@@ -232,14 +232,14 @@ class Engine(object):
             'id': uuidutils.generate_uuid(),
             'name': values.pop('name'),
             'version': version,
-            'owner': context.tenant,
+            'owner': context.project_id,
             'created_at': timeutils.utcnow(),
             'updated_at': timeutils.utcnow()
         }
         af = artifact_type.init_artifact(context, init_values)
         # acquire scoped lock and execute artifact create
         with self._create_scoped_lock(context, type_name, af.name,
-                                      af.version, context.tenant):
+                                      af.version, context.project_id):
             quota.verify_artifact_count(context, type_name)
             for field_name, value in values.items():
                 if af.is_blob(field_name) or af.is_blob_dict(field_name):
@@ -735,7 +735,7 @@ class Engine(object):
         :param project_id: id of the project for which to show quotas
         :return: definition of requested quotas for the project
         """
-        project_id = project_id or context.tenant
+        project_id = project_id or context.project_id
         action_name = "artifact:list_project_quotas"
         policy.authorize(action_name, {'project_id': project_id}, context)
         qs = self.config_quotas.copy()

@@ -41,7 +41,7 @@ class TestTrustedAuthMiddleware(base.BaseTestCase):
 
         self.assertEqual(token, req.context.auth_token)
         self.assertEqual('user1', req.context.user)
-        self.assertEqual('tenant1', req.context.tenant)
+        self.assertEqual('tenant1', req.context.project_id)
         self.assertEqual(['role1', 'role2'], req.context.roles)
         self.assertIn('service_catalog', req.context.to_dict())
 
@@ -123,7 +123,7 @@ class TestTrustedAuthMiddleware(base.BaseTestCase):
         middleware.process_request(req)
         self.assertIsNone(req.context.auth_token)
         self.assertIsNone(req.context.user)
-        self.assertIsNone(req.context.tenant)
+        self.assertIsNone(req.context.project_id)
         self.assertEqual([], req.context.roles)
         self.assertFalse(req.context.is_admin)
         self.assertTrue(req.context.read_only)
