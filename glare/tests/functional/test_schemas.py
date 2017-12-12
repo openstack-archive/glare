@@ -929,6 +929,7 @@ fixtures = {
                            u'filter_ops': [u'eq', u'neq', u'in'],
                            u'glareType': u'String',
                            u'maxLength': 255,
+                           u'sortable': True,
                            u'type': [u'string', u'null']},
 
         }),

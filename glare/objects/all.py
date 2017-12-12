@@ -28,7 +28,8 @@ class All(base.BaseArtifact):
 
     fields = {
         'type_name': Field(fields.StringField,
-                           description="Name of artifact type."),
+                           description="Name of artifact type.",
+                           sortable=True),
     }
 
     @classmethod

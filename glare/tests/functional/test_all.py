@@ -55,6 +55,12 @@ class TestAll(base.TestArtifact):
         for art in res:
             self.assertIn(art['type_name'], ('images', 'heat_templates'))
 
+        # get all artifacts sorted by type_name
+        url = '/all?sort=type_name:asc&limit=100'
+        res = self.get(url=url, status=200)['artifacts']
+        self.assertEqual(54, len(res))
+        self.assertEqual(sorted(res, key=lambda x: x['type_name']), res)
+
     def test_all_readonlyness(self):
         self.create_artifact(data={'name': 'all'}, type_name='all', status=403)
         art = self.create_artifact(data={'name': 'image'}, type_name='images')
