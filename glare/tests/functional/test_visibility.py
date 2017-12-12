@@ -97,7 +97,7 @@ class TestVisibility(base.TestArtifact):
         # Now admin sees 2 artifacts with the same name/version
         self.set_user("admin")
         url = '/sample_artifact?name=my_art&version=1'
-        self.assertEqual(2, len(self.get(url=url)['sample_artifact']))
+        self.assertEqual(2, len(self.get(url=url)['artifacts']))
 
         # Admin can activate and publish artifact art3
         url = '/sample_artifact/%s' % art3['id']
@@ -109,12 +109,12 @@ class TestVisibility(base.TestArtifact):
         # After that user1 sees 2 artifacts with the same name/version as well
         self.set_user("user1")
         url = '/sample_artifact?name=my_art&version=1'
-        self.assertEqual(2, len(self.get(url=url)['sample_artifact']))
+        self.assertEqual(2, len(self.get(url=url)['artifacts']))
 
         # User2 still sees only his public artifact
         self.set_user("user2")
         url = '/sample_artifact?name=my_art&version=1'
-        self.assertEqual(1, len(self.get(url=url)['sample_artifact']))
+        self.assertEqual(1, len(self.get(url=url)['artifacts']))
 
         # Admin is able to create a private artifact with the same name/version
         self.set_user("admin")
@@ -122,7 +122,7 @@ class TestVisibility(base.TestArtifact):
 
         # And he sees 3 artifacts
         url = '/sample_artifact?name=my_art&version=1'
-        self.assertEqual(3, len(self.get(url=url)['sample_artifact']))
+        self.assertEqual(3, len(self.get(url=url)['artifacts']))
 
         # But he can't publish his artifact, because this name/version already
         # exists in public scope
@@ -160,7 +160,7 @@ class TestVisibility(base.TestArtifact):
                                     type_name='heat_templates')
         # User 1 sees his 2 artifacts
         url = '/all?name=my_art&version=1'
-        self.assertEqual(2, len(self.get(url=url)['all']))
+        self.assertEqual(2, len(self.get(url=url)['artifacts']))
 
         self.set_user('user2')
         self.create_artifact(data={'name': 'my_art', 'version': 1.0},
@@ -169,11 +169,11 @@ class TestVisibility(base.TestArtifact):
                              type_name='heat_templates')
         # User 2 sees his 2 artifacts
         url = '/all?name=my_art&version=1'
-        self.assertEqual(2, len(self.get(url=url)['all']))
+        self.assertEqual(2, len(self.get(url=url)['artifacts']))
 
         # Admin sees 4 artifacts from both users
         self.set_user("admin")
-        self.assertEqual(4, len(self.get(url=url)['all']))
+        self.assertEqual(4, len(self.get(url=url)['artifacts']))
 
         # After publishing art1 and art2 user 2 can see 4 artifacts as well
         url = '/sample_artifact/%s' % art1['id']
@@ -190,4 +190,4 @@ class TestVisibility(base.TestArtifact):
 
         self.set_user("user2")
         url = '/all?name=my_art&version=1'
-        self.assertEqual(4, len(self.get(url=url)['all']))
+        self.assertEqual(4, len(self.get(url=url)['artifacts']))

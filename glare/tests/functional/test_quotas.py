@@ -341,7 +341,7 @@ max_artifact_number = 10
     def test_count_artifact_number(self):
         # initially there are no artifacts
         result = self.get('/all')
-        self.assertEqual([], result['all'])
+        self.assertEqual([], result['artifacts'])
 
         # create 3 images for user1
         for i in range(3):
@@ -381,7 +381,7 @@ max_artifact_number = 10
 
         # initially there are no artifacts
         result = self.get('/all')
-        self.assertEqual([], result['all'])
+        self.assertEqual([], result['artifacts'])
 
         # create 2 sample artifacts for user1
         art1 = self.create_artifact(data={'name': 'art1'})
@@ -510,7 +510,7 @@ class TestDynamicQuotas(base.TestArtifact):
         self.set_user('user1')
         # initially there are no artifacts
         result = self.get('/all')
-        self.assertEqual([], result['all'])
+        self.assertEqual([], result['artifacts'])
 
         # create 3 images for user1
         for i in range(3):
@@ -659,7 +659,7 @@ class TestDynamicQuotas(base.TestArtifact):
         self.set_user('user1')
         # initially there are no artifacts
         result = self.get('/all')
-        self.assertEqual([], result['all'])
+        self.assertEqual([], result['artifacts'])
 
         # create 2 sample artifacts for user1
         art1 = self.create_artifact(data={'name': 'art1'})

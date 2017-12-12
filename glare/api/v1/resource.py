@@ -539,7 +539,8 @@ class ResponseSerializer(api_versioning.VersionedResource,
 
         type_name = af_list['type_name']
         body = {
-            type_name: af_list['artifacts'],
+            'type_name': type_name,
+            'artifacts': af_list['artifacts'],
             'first': '/artifacts/%s' % type_name,
             'schema': '/schemas/%s' % type_name,
         }

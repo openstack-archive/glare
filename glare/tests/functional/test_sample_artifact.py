@@ -41,33 +41,33 @@ class TestList(base.TestArtifact):
         # sort by 'next' url
         url = '/sample_artifact?limit=1&sort=int1:asc,name:desc'
         result = self.get(url=url)
-        self.assertEqual([art_list[0]], result['sample_artifact'])
+        self.assertEqual([art_list[0]], result['artifacts'])
         marker = result['next']
         result = self.get(url=marker[10:])
-        self.assertEqual([art_list[1]], result['sample_artifact'])
+        self.assertEqual([art_list[1]], result['artifacts'])
 
         # sort by custom marker
         url = '/sample_artifact?sort=int1:asc&marker=%s' % art_list[1]['id']
         result = self.get(url=url)
-        self.assertEqual(art_list[2:], result['sample_artifact'])
+        self.assertEqual(art_list[2:], result['artifacts'])
         url = '/sample_artifact?sort=int1:desc&marker=%s' % art_list[1]['id']
         result = self.get(url=url)
-        self.assertEqual(art_list[:1], result['sample_artifact'])
+        self.assertEqual(art_list[:1], result['artifacts'])
         url = '/sample_artifact' \
               '?sort=float1:asc,name:desc&marker=%s' % art_list[1]['id']
         result = self.get(url=url)
-        self.assertEqual([art_list[0]], result['sample_artifact'])
+        self.assertEqual([art_list[0]], result['artifacts'])
 
         # paginate by name in desc order with limit 2
         url = '/sample_artifact?limit=2&sort=name:desc'
         result = self.get(url=url)
-        self.assertEqual(art_list[4:2:-1], result['sample_artifact'])
+        self.assertEqual(art_list[4:2:-1], result['artifacts'])
         marker = result['next']
         result = self.get(url=marker[10:])
-        self.assertEqual(art_list[2:0:-1], result['sample_artifact'])
+        self.assertEqual(art_list[2:0:-1], result['artifacts'])
         marker = result['next']
         result = self.get(url=marker[10:])
-        self.assertEqual([art_list[0]], result['sample_artifact'])
+        self.assertEqual([art_list[0]], result['artifacts'])
 
     def test_list_base_filters(self):
         # Create artifact
@@ -108,43 +108,43 @@ class TestList(base.TestArtifact):
         self.get(url=url, status=400)
 
         url = '/sample_artifact?name=name0'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual([art_list[0]], result)
 
         url = '/sample_artifact?tags=tag4'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[4:], result)
 
         url = '/sample_artifact?name=eq:name0'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:1], result)
 
         url = '/sample_artifact?str1=eq:bugaga'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:5], result)
 
         url = '/sample_artifact?int1=eq:2048'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[5:], result)
 
         url = '/sample_artifact?float1=eq:123.456'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:5], result)
 
         url = '/sample_artifact?name=neq:name0'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[1:], result)
 
         url = '/sample_artifact?name=in:name,name0'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:1], result)
 
         url = '/sample_artifact?name=in:not_exist,name0'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:1], result)
 
         url = '/sample_artifact?name=not_exist'
-        result = self.get(url=url)['sample_artifact']
+        result = self.get(url=url)['artifacts']
         self.assertEqual([], result)
 
         url = '/sample_artifact?name=bla:name1'
@@ -157,31 +157,31 @@ class TestList(base.TestArtifact):
         self.get(url=url, status=400)
 
         url = '/sample_artifact?tags=tag4,tag5'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[5:], result)
 
         url = '/sample_artifact?tags-any=tag4'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[4:], result)
 
         url = '/sample_artifact?tags=tag4,tag_not_exist,tag5'
-        result = self.get(url=url)['sample_artifact']
+        result = self.get(url=url)['artifacts']
         self.assertEqual([], result)
 
         url = '/sample_artifact?tags-any=tag4,tag_not_exist,tag5'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[4:], result)
 
         url = '/sample_artifact?tags=tag_not_exist,tag_not_exist_1'
-        result = self.get(url=url)['sample_artifact']
+        result = self.get(url=url)['artifacts']
         self.assertEqual([], result)
 
         url = '/sample_artifact?tags'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list, result)
 
         url = '/sample_artifact?tags='
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list, result)
 
         url = '/sample_artifact?tags=eq:tag0'
@@ -194,27 +194,27 @@ class TestList(base.TestArtifact):
         self.get(url=url, status=400)
 
         url = '/sample_artifact?visibility=private'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:5], result)
 
         url = '/sample_artifact?visibility=public'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[5:], result)
 
         url = '/sample_artifact?visibility=eq:private'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:5], result)
 
         url = '/sample_artifact?visibility=eq:public'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[5:], result)
 
         url = '/sample_artifact?visibility=neq:private'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[5:], result)
 
         url = '/sample_artifact?visibility=neq:public'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:5], result)
 
         url = '/sample_artifact?visibility=blabla'
@@ -224,51 +224,51 @@ class TestList(base.TestArtifact):
         self.get(url=url, status=400)
 
         url = '/sample_artifact?name=eq:name0&name=name1&tags=tag1'
-        result = self.get(url=url)['sample_artifact']
+        result = self.get(url=url)['artifacts']
         self.assertEqual([], result)
 
         url = '/sample_artifact?int1=gt:2000'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[5:], result)
 
         url = '/sample_artifact?int1=lte:1024'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:5], result)
 
         url = '/sample_artifact?int1=gt:1000&int1=lt:2000'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:5], result)
 
         url = '/sample_artifact?int1=lt:2000'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:5], result)
 
         url = '/sample_artifact?float1=gt:200.000'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[5:], result)
 
         url = '/sample_artifact?float1=gt:100.00&float1=lt:200.00'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:5], result)
 
         url = '/sample_artifact?float1=lt:200.00'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:5], result)
 
         url = '/sample_artifact?float1=lt:200'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:5], result)
 
         url = '/sample_artifact?float1=lte:123.456'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:5], result)
 
         url = '/sample_artifact?bool1=True'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:5], result)
 
         url = '/sample_artifact?bool1=False'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[5:], result)
 
     def test_artifact_list_dict_filters(self):
@@ -299,28 +299,28 @@ class TestList(base.TestArtifact):
 
         # test list filters
         url = '/sample_artifact?list_of_str=aaa&sort=name'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:3], result)
 
         url = '/sample_artifact?list_of_str=ccc&sort=name'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual([art_list[0], art_list[4]], result)
 
         url = '/sample_artifact?list_of_str=eee&sort=name'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual([], result)
 
         # test dict filters
         url = '/sample_artifact?dict_of_str=aaa&sort=name'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:3], result)
 
         url = '/sample_artifact?dict_of_str=ccc&sort=name'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual([art_list[0], art_list[4]], result)
 
         url = '/sample_artifact?dict_of_str=eee&sort=name'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual([], result)
 
     def test_list_dict_prop_filters(self):
@@ -348,23 +348,23 @@ class TestList(base.TestArtifact):
         art_list.sort(key=lambda x: x['name'])
 
         url = '/sample_artifact?dict_of_str.pr1=val1'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:2], result)
 
         url = '/sample_artifact?dict_of_int.1=10'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[3:4], result)
 
         url = '/sample_artifact?dict_of_str.pr1=val999'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual([], result)
 
         url = '/sample_artifact?dict_of_str.pr1=eq:val1'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[:2], result)
 
         url = '/sample_artifact?dict_of_str.'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual([], result)
 
         for op in ['gt', 'gte', 'lt', 'lte']:
@@ -375,11 +375,11 @@ class TestList(base.TestArtifact):
         self.get(url=url, status=400)
 
         url = '/sample_artifact?dict_of_str.pr1='
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual([], result)
 
         url = '/sample_artifact?dict_of_str.pr1='
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual([], result)
 
         url = '/sample_artifact?dict_of_str'
@@ -392,7 +392,7 @@ class TestList(base.TestArtifact):
         self.get(url=url, status=400)
 
         url = '/sample_artifact?dict_of_str.bla=val1'
-        result = sort_results(self.get(url=url)['sample_artifact'])
+        result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual([], result)
 
         url = '/sample_artifact?dict_of_int.1=lala'
@@ -415,40 +415,40 @@ class TestList(base.TestArtifact):
         url = '/sample_artifact?sort=name:asc'
         result = self.get(url=url)
         expected = sort_results(art_list)
-        self.assertEqual(expected, result['sample_artifact'])
+        self.assertEqual(expected, result['artifacts'])
 
         # sorted by string 'desc'
         url = '/sample_artifact?sort=name:desc'
         result = self.get(url=url)
         expected = sort_results(art_list)
         expected.reverse()
-        self.assertEqual(expected, result['sample_artifact'])
+        self.assertEqual(expected, result['artifacts'])
 
         # sorted by int 'asc'
         url = '/sample_artifact?sort=int1:asc'
         result = self.get(url=url)
         expected = sort_results(art_list, target='int1')
-        self.assertEqual(expected, result['sample_artifact'])
+        self.assertEqual(expected, result['artifacts'])
 
         # sorted by int 'desc'
         url = '/sample_artifact?sort=int1:desc'
         result = self.get(url=url)
         expected = sort_results(art_list, target='int1')
         expected.reverse()
-        self.assertEqual(expected, result['sample_artifact'])
+        self.assertEqual(expected, result['artifacts'])
 
         # sorted by float 'asc'
         url = '/sample_artifact?sort=float1:asc'
         result = self.get(url=url)
         expected = sort_results(art_list, target='float1')
-        self.assertEqual(expected, result['sample_artifact'])
+        self.assertEqual(expected, result['artifacts'])
 
         # sorted by float 'desc'
         url = '/sample_artifact?sort=float1:desc'
         result = self.get(url=url)
         expected = sort_results(art_list, target='float1')
         expected.reverse()
-        self.assertEqual(expected, result['sample_artifact'])
+        self.assertEqual(expected, result['artifacts'])
 
         # sorted by unsorted 'asc'
         url = '/sample_artifact?sort=bool1:asc'
@@ -475,7 +475,7 @@ class TestList(base.TestArtifact):
         result = self.get(url=url)
         expected = sort_results(art_list)
         expected.reverse()
-        self.assertEqual(expected, result['sample_artifact'])
+        self.assertEqual(expected, result['artifacts'])
 
         # sorted by list
         url = '/sample_artifact?sort=list_of_int:asc'
@@ -493,7 +493,7 @@ class TestList(base.TestArtifact):
         url = '/sample_artifact?sort=name:asc,int1:desc'
         result = self.get(url=url)
         expected = sort_results(sort_results(art_list), target='int1')
-        self.assertEqual(expected, result['sample_artifact'])
+        self.assertEqual(expected, result['artifacts'])
 
     def test_list_versions(self):
         # Create artifacts with versions
@@ -530,7 +530,7 @@ class TestList(base.TestArtifact):
 
         expected_result = sort_results(art_list, target='version')
         url = '/sample_artifact'
-        result = sort_results(self.get(url=url)['sample_artifact'],
+        result = sort_results(self.get(url=url)['artifacts'],
                               target='version')
         self.assertEqual(expected_result, result)
 
@@ -546,13 +546,13 @@ class TestList(base.TestArtifact):
             status=409)
 
         url = '/sample_artifact?name=name&version=gte:2.0.0'
-        result = sort_results(self.get(url=url)['sample_artifact'],
+        result = sort_results(self.get(url=url)['artifacts'],
                               target='version')
         self.assertEqual(expected_result[3:], result)
 
         url = ('/sample_artifact?'
                'name=name&version=gte:1.1&version=lt:2.0.1-beta')
-        result = sort_results(self.get(url=url)['sample_artifact'],
+        result = sort_results(self.get(url=url)['artifacts'],
                               target='version')
         self.assertEqual(expected_result[2:4], result)
 
@@ -570,12 +570,12 @@ class TestList(base.TestArtifact):
 
         # Sorting by version 'asc'
         url = '/sample_artifact?name=name&sort=version:asc'
-        result = self.get(url=url)['sample_artifact']
+        result = self.get(url=url)['artifacts']
         self.assertEqual(art_list, result)
 
         # Sorting by version 'desc'
         url = '/sample_artifact?name=name&sort=version:desc'
-        result = self.get(url=url)['sample_artifact']
+        result = self.get(url=url)['artifacts']
         self.assertEqual(list(reversed(art_list)), result)
 
     def test_list_latest_filter(self):
@@ -605,7 +605,7 @@ class TestList(base.TestArtifact):
                  'bool1': True})
 
         url = '/sample_artifact?version=latest&sort=name:asc'
-        res = self.get(url=url, status=200)['sample_artifact']
+        res = self.get(url=url, status=200)['artifacts']
         self.assertEqual(2, len(res))
         self.assertEqual('20.0.0', res[0]['version'])
         self.assertEqual('1000.0.1', res[1]['version'])
@@ -613,24 +613,24 @@ class TestList(base.TestArtifact):
         self.patch('/sample_artifact/' + res[0]['id'], self.make_active)
 
         url = '/sample_artifact?version=latest&sort=name:asc&status=drafted'
-        res = self.get(url=url, status=200)['sample_artifact']
+        res = self.get(url=url, status=200)['artifacts']
         self.assertEqual(2, len(res))
         self.assertEqual('2.0.1', res[0]['version'])
         self.assertEqual('1000.0.1', res[1]['version'])
 
         url = '/sample_artifact?version=latest&sort=name:asc&int1=2050'
-        res = self.get(url=url, status=200)['sample_artifact']
+        res = self.get(url=url, status=200)['artifacts']
         self.assertEqual(2, len(res))
         self.assertEqual('2.0.0', res[0]['version'])
         self.assertEqual('99.0.0', res[1]['version'])
 
         url = '/sample_artifact?version=latest&name=group1'
-        res = self.get(url=url, status=200)['sample_artifact']
+        res = self.get(url=url, status=200)['artifacts']
         self.assertEqual(1, len(res))
         self.assertEqual('20.0.0', res[0]['version'])
 
         url = '/sample_artifact?version=latest&name=group2'
-        res = self.get(url=url, status=200)['sample_artifact']
+        res = self.get(url=url, status=200)['artifacts']
         self.assertEqual(1, len(res))
         self.assertEqual('1000.0.1', res[0]['version'])
 
@@ -648,7 +648,7 @@ class TestList(base.TestArtifact):
         response_url = u'/artifacts/sample_artifact?name=' \
                        u'%D0%9F%D0%A0%D0%98%D0%92%D0%95%D0%A2'
         result = self.get(url=url, headers=headers)
-        self.assertEqual(art1, result['sample_artifact'][0])
+        self.assertEqual(art1, result['artifacts'][0])
         self.assertEqual(response_url, result['first'])
 
 
@@ -658,8 +658,9 @@ class TestBlobs(base.TestArtifact):
         url = '/sample_artifact'
         response = self.get(url=url, status=200)
         expected = {'first': '/artifacts/sample_artifact',
-                    'sample_artifact': [],
-                    'schema': '/schemas/sample_artifact'}
+                    'artifacts': [],
+                    'schema': '/schemas/sample_artifact',
+                    'type_name': 'sample_artifact'}
         self.assertEqual(expected, response)
 
         # Create a test artifact
@@ -1362,7 +1363,7 @@ class TestArtifactOps(base.TestArtifact):
         self.delete(url=url, status=204)
         self.get(url=url, status=404)
         self.assertEqual(0, len(self.get(
-            url='/sample_artifact')['sample_artifact']))
+            url='/sample_artifact')['artifacts']))
 
     def test_deactivate(self):
         # test artifact deactivate for non-active artifact

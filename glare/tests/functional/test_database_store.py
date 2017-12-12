@@ -42,8 +42,9 @@ default_store = database
         url = '/sample_artifact'
         response = self.get(url=url, status=200)
         expected = {'first': '/artifacts/sample_artifact',
-                    'sample_artifact': [],
-                    'schema': '/schemas/sample_artifact'}
+                    'artifacts': [],
+                    'schema': '/schemas/sample_artifact',
+                    'type_name': 'sample_artifact'}
         self.assertEqual(expected, response)
 
         # Create a test artifact

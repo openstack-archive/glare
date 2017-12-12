@@ -31,26 +31,26 @@ class TestAll(base.TestArtifact):
 
         # get all possible artifacts
         url = '/all?sort=name:asc&limit=100'
-        res = self.get(url=url, status=200)['all']
+        res = self.get(url=url, status=200)['artifacts']
         self.assertEqual(54, len(res))
 
         # get artifacts with latest versions
         url = '/all?version=latest&sort=name:asc'
-        res = self.get(url=url, status=200)['all']
+        res = self.get(url=url, status=200)['artifacts']
         self.assertEqual(18, len(res))
         for art in res:
             self.assertEqual('2.0.0', art['version'])
 
         # get images only
         url = '/all?type_name=images&sort=name:asc'
-        res = self.get(url=url, status=200)['all']
+        res = self.get(url=url, status=200)['artifacts']
         self.assertEqual(9, len(res))
         for art in res:
             self.assertEqual('images', art['type_name'])
 
         # get images and heat_templates
         url = '/all?type_name=in:images,heat_templates&sort=name:asc'
-        res = self.get(url=url, status=200)['all']
+        res = self.get(url=url, status=200)['artifacts']
         self.assertEqual(18, len(res))
         for art in res:
             self.assertIn(art['type_name'], ('images', 'heat_templates'))
@@ -103,7 +103,7 @@ class TestAll(base.TestArtifact):
 
         # fetch all artifacts
         url = '/all?sort=created_at:asc'
-        res = self.get(url=url, status=200)['all']
+        res = self.get(url=url, status=200)['artifacts']
         self.assertEqual(2, len(res))
 
         self.assertEqual('sample_artifact', res[0]['type_name'])

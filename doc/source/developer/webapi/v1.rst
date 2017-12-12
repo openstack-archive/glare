@@ -594,10 +594,11 @@ enabled artifact types.
        .. code-block:: javascript
 
             {
-                "<type_name>": [<JSON_list_with_artifacts_data>],
+                "artifacts": [<JSON_list_with_artifacts_data>],
                 "first": "/artifacts/<type_name>",
                 "schema": "/schemas/<type_name>",
-                "next": "<url_to_the_next_page>"
+                "next": "<url_to_the_next_page>",
+                "type_name": "<type_name>"
             }
 
 * **Create a new artifact**
@@ -968,7 +969,7 @@ For this example, we have an artifact type 'example_type' with fields:
       .. code-block:: javascript
 
         {
-            "example_type": [{
+            "artifacts": [{
                 "status": "drafted",
                 "name": "new_art",
                 "id": "art_id1",
@@ -994,7 +995,8 @@ For this example, we have an artifact type 'example_type' with fields:
                 "visibility": "private"
             }],
             "first": "/artifacts/example_type",
-            "schema": "/schemas/example_type"
+            "schema": "/schemas/example_type",
+            "type_name": "example_type"
         }
 
   Request:
@@ -1010,7 +1012,7 @@ For this example, we have an artifact type 'example_type' with fields:
       .. code-block:: javascript
 
         {
-            "example_type": [{
+            "artifacts": [{
                 "status": "drafted",
                 "name": "old_art",
                 "id": "art_id2",
@@ -1028,7 +1030,8 @@ For this example, we have an artifact type 'example_type' with fields:
                 "visibility": "private"
             }],
             "first": "/artifacts/example_type?name=eq%3Aold_art",
-            "schema": "/schemas/example_type"
+            "schema": "/schemas/example_type",
+            "type_name": "example_type"
         }
 
 4. Update artifact
