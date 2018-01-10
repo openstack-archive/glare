@@ -238,6 +238,15 @@ class TestReaders(base.BaseTestCase):
 
         self.assertEqual(BYTES, bytes_read)
 
+    def test_blob_iterator_big_data(self):
+        BYTES = 1000000
+        bytes_read = 0
+        stream = [b'*'] * BYTES
+        for chunk in utils.BlobIterator(stream):
+            bytes_read += len(chunk)
+
+        self.assertEqual(BYTES, bytes_read)
+
 
 class TestKeyCert(base.BaseTestCase):
 

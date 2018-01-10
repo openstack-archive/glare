@@ -518,6 +518,7 @@ class BlobIterator(object):
         while bytes_left > 0:
             data = self.data[i * self.chunk_size:(i + 1) * self.chunk_size]
             bytes_left -= len(data)
+            i += 1
             yield data
         raise StopIteration()
 
