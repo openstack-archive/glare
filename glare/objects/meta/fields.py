@@ -155,7 +155,7 @@ class LinkFieldType(fields.FieldType):
                       ) % {'link': value, 'field': field})
             # try to find the referenced artifact
             try:
-                obj.db_api.get(obj.obj_context, result[3])
+                obj.db_api.get(obj.obj_context, None, result[3])
             except exception.NotFound:
                 raise ValueError(
                     _("Link %(link)s is not valid in field %(field)s, because "
