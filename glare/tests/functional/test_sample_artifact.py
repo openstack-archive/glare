@@ -2410,6 +2410,22 @@ class TestUpdate(base.TestArtifact):
         url = '/sample_artifact/%s' % art1['id']
         self.patch(url=url, data=data, status=400)
 
+    def test_update_invalid_activation(self):
+        data = {'name': 'ttt'}
+        art1 = self.create_artifact(data=data)
+
+        data = [{'op': 'replace',
+                 'path': '/string_required',
+                 'value': 'aaa'}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=200)
+
+        data = [{'op': 'replace_invalid',
+                 'path': '/status',
+                 'value': 'active'}]
+        url = '/sample_artifact/%s' % art1['id']
+        self.patch(url=url, data=data, status=400)
+
 
 class TestLinks(base.TestArtifact):
     def test_manage_links(self):
