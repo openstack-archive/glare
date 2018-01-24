@@ -128,7 +128,7 @@ def create_or_update(context, artifact_id, values, session):
             artifact.id = values.pop('id')
         else:
             # update the existing artifact
-            artifact = _get(context, artifact_id, session)
+            artifact = _get(context, None, artifact_id, session)
 
         if 'version' in values:
             values['version'] = semver_db.parse(values['version'])
@@ -164,10 +164,12 @@ def create_or_update(context, artifact_id, values, session):
         return artifact.to_dict()
 
 
-def _get(context, artifact_id, session):
+def _get(context, type_name, artifact_id, session):
     try:
         query = _do_artifacts_query(context, session).filter_by(
             id=artifact_id)
+        if type_name is not None:
+            query = query.filter_by(type_name=type_name)
         artifact = query.one()
     except orm.exc.NoResultFound:
         msg = _("Artifact with id=%s not found.") % artifact_id
@@ -176,8 +178,8 @@ def _get(context, artifact_id, session):
     return artifact
 
 
-def get(context, artifact_id, session):
-    return _get(context, artifact_id, session).to_dict()
+def get(context, type_name, artifact_id, session):
+    return _get(context, type_name, artifact_id, session).to_dict()
 
 
 def get_all(context, session, filters=None, marker=None, limit=None,
@@ -274,7 +276,7 @@ def _get_all(context, session, filters=None, marker=None, limit=None,
 
     marker_artifact = None
     if marker is not None:
-        marker_artifact = get(context, marker, session)
+        marker_artifact = get(context, None, marker, session)
 
     query = _do_paginate_query(query=query, limit=limit,
                                marker=marker_artifact, sort=sort)

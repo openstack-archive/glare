@@ -157,7 +157,7 @@ class TestVisibility(base.TestArtifact):
         art1 = self.create_artifact(data={'name': 'my_art', 'version': 1.0},
                                     type_name='images')
         art2 = self.create_artifact(data={'name': 'my_art', 'version': 1.0},
-                                    type_name='heat_templates')
+                                    type_name='sample_artifact')
         # User 1 sees his 2 artifacts
         url = '/all?name=my_art&version=1'
         self.assertEqual(2, len(self.get(url=url)['all']))
@@ -166,7 +166,7 @@ class TestVisibility(base.TestArtifact):
         self.create_artifact(data={'name': 'my_art', 'version': 1.0},
                              type_name='images')
         self.create_artifact(data={'name': 'my_art', 'version': 1.0},
-                             type_name='heat_templates')
+                             type_name='sample_artifact')
         # User 2 sees his 2 artifacts
         url = '/all?name=my_art&version=1'
         self.assertEqual(2, len(self.get(url=url)['all']))
@@ -176,8 +176,10 @@ class TestVisibility(base.TestArtifact):
         self.assertEqual(4, len(self.get(url=url)['all']))
 
         # After publishing art1 and art2 user 2 can see 4 artifacts as well
-        url = '/sample_artifact/%s' % art1['id']
-        patch = [{"op": "replace", "path": "/string_required", "value": "gg"}]
+        url = '/images/%s' % art1['id']
+        patch = [
+            {"op": "replace", "path": "/disk_format", "value": "iso"},
+            {"op": "replace", "path": "/container_format", "value": "bare"}]
         self.patch(url=url, data=patch)
         self.patch(url=url, data=self.make_active)
         self.patch(url=url, data=self.make_public)
