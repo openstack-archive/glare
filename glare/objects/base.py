@@ -430,9 +430,11 @@ Possible values:
             if default_filter not in filters:
                 filters.append(default_filter)
 
-        return [cls.init_artifact(context, af)
-                for af in cls.db_api.list(
-                context, filters, marker, limit, sort, latest)]
+        artifacts_data = cls.db_api.list(context, filters, marker, limit,
+                                         sort, latest)
+        artifacts_data["artifacts"] = [cls.init_artifact(context, af)
+                                       for af in artifacts_data["artifacts"]]
+        return artifacts_data
 
     @classmethod
     def delete(cls, context, af):

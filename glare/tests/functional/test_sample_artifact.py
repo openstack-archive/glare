@@ -45,6 +45,7 @@ class TestList(base.TestArtifact):
         marker = result['next']
         result = self.get(url=marker[10:])
         self.assertEqual([art_list[1]], result['artifacts'])
+        self.assertEqual(5, result['total_count'])
 
         # sort by custom marker
         url = '/sample_artifact?sort=int1:asc&marker=%s' % art_list[1]['id']
@@ -68,6 +69,7 @@ class TestList(base.TestArtifact):
         marker = result['next']
         result = self.get(url=marker[10:])
         self.assertEqual([art_list[0]], result['artifacts'])
+        self.assertEqual(5, result['total_count'])
 
     def test_list_base_filters(self):
         # Create artifact
@@ -660,7 +662,8 @@ class TestBlobs(base.TestArtifact):
         expected = {'first': '/artifacts/sample_artifact',
                     'artifacts': [],
                     'schema': '/schemas/sample_artifact',
-                    'type_name': 'sample_artifact'}
+                    'type_name': 'sample_artifact',
+                    'total_count': 0}
         self.assertEqual(expected, response)
 
         # Create a test artifact

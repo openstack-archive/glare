@@ -61,6 +61,7 @@ class TestArtifactList(base.BaseTestArtifactAPI):
         res = self.controller.list(self.req, 'sample_artifact')
         self.assertEqual(7, len(res['artifacts']))
         self.assertEqual('sample_artifact', res['type_name'])
+        self.assertEqual(7, res['total_count'])
 
         # List all artifacts as an anonymous. Only public artifacts are visible
         anon_req = self.get_fake_request(user=self.users['anonymous'])
@@ -192,6 +193,7 @@ class TestArtifactList(base.BaseTestArtifactAPI):
         result = self.controller.list(self.req, 'sample_artifact', filters=(),
                                       marker=marker, limit=1, sort=sort)
         self.assertEqual([art_list[1]], result['artifacts'])
+        self.assertEqual(5, result['total_count'])
 
         # sort by custom marker
         sort = [('int1', 'asc')]
@@ -215,11 +217,13 @@ class TestArtifactList(base.BaseTestArtifactAPI):
         result = self.controller.list(self.req, 'sample_artifact', filters=(),
                                       limit=2, sort=sort)
         self.assertEqual(art_list[4:2:-1], result['artifacts'])
+        self.assertEqual(5, result['total_count'])
 
         marker = result['next_marker']
         result = self.controller.list(self.req, 'sample_artifact', filters=(),
                                       marker=marker, limit=2, sort=sort)
         self.assertEqual(art_list[2:0:-1], result['artifacts'])
+        self.assertEqual(5, result['total_count'])
 
         marker = result['next_marker']
         result = self.controller.list(self.req, 'sample_artifact', filters=(),

@@ -196,7 +196,12 @@ def get_all(context, session, filters=None, marker=None, limit=None,
     """
     artifacts = _get_all(
         context, session, filters, marker, limit, sort, latest)
-    return [af.to_dict() for af in artifacts]
+    total_artifacts_count = get_artifact_count(context, session, filters,
+                                               latest)
+    return {
+        "artifacts": [af.to_dict() for af in artifacts],
+        "total_count": total_artifacts_count
+    }
 
 
 def _apply_latest_filter(context, session, query,
@@ -750,3 +755,27 @@ def delete_blob_data(context, uri, session):
         blob_data_id = uri[6:]
         session.query(
             models.ArtifactBlobData).filter_by(id=blob_data_id).delete()
+
+
+def get_artifact_count(context, session, filters=None, latest=False):
+
+    filters = filters or {}
+
+    query = _create_artifact_count_query(context, session)
+
+    basic_conds, tag_conds, prop_conds = _do_query_filters(filters)
+
+    query = _apply_user_filters(query, basic_conds, tag_conds, prop_conds)
+
+    if latest:
+        query = _apply_latest_filter(context, session, query,
+                                     basic_conds, tag_conds, prop_conds)
+
+    return query.all()[0].total_count
+
+
+def _create_artifact_count_query(context, session):
+
+    query = session.query(func.count(models.Artifact.id).label("total_count"))
+
+    return _apply_query_base_filters(query, context)

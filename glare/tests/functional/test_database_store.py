@@ -44,7 +44,8 @@ default_store = database
         expected = {'first': '/artifacts/sample_artifact',
                     'artifacts': [],
                     'schema': '/schemas/sample_artifact',
-                    'type_name': 'sample_artifact'}
+                    'type_name': 'sample_artifact',
+                    'total_count': 0}
         self.assertEqual(expected, response)
 
         # Create a test artifact
