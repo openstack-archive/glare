@@ -421,13 +421,7 @@ def _do_query_filters(filters):
             tags = utils.split_filter_value_for_quotes(value)
             tag_conds.append([models.ArtifactTag.value.in_(tags)])
         elif field_name in BASE_ARTIFACT_PROPERTIES:
-            if op != 'in':
-                fn = op_mappings[op]
-                if field_name == 'version':
-                    value = semver_db.parse(value)
-                basic_conds.append([fn(getattr(models.Artifact, field_name),
-                                       value)])
-            else:
+            if op == 'in':
                 if field_name == 'version':
                     value = [semver_db.parse(val) for val in value]
                     basic_conds.append(
@@ -436,6 +430,15 @@ def _do_query_filters(filters):
                 else:
                     basic_conds.append(
                         [getattr(models.Artifact, field_name).in_(value)])
+            elif op == 'like':
+                basic_conds.append(
+                    [getattr(models.Artifact, field_name).like(value)])
+            else:
+                fn = op_mappings[op]
+                if field_name == 'version':
+                    value = semver_db.parse(value)
+                basic_conds.append([fn(getattr(models.Artifact, field_name),
+                                       value)])
         else:
             conds = [models.ArtifactProperty.name == field_name]
             if key_name is not None:
@@ -446,13 +449,16 @@ def _do_query_filters(filters):
                     conds.extend(
                         [models.ArtifactProperty.key_name.in_(key_name)])
             if value is not None:
-                if op != 'in':
+                if op == 'in':
+                    conds.extend([getattr(models.ArtifactProperty,
+                                          field_type + '_value').in_(value)])
+                elif op == 'like':
+                    conds.extend(
+                        [models.ArtifactProperty.string_value.like(value)])
+                else:
                     fn = op_mappings[op]
                     conds.extend([fn(getattr(models.ArtifactProperty,
                                              field_type + '_value'), value)])
-                else:
-                    conds.extend([getattr(models.ArtifactProperty,
-                                          field_type + '_value').in_(value)])
 
             prop_conds.append(conds)
 

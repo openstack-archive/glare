@@ -584,3 +584,30 @@ class TestArtifactList(base.BaseTestArtifactAPI):
                         exc.BadRequest, self.controller.list,
                         self.req, 'sample_artifact',
                         [], sort=[(name, sort_dir)])
+
+    def test_list_like_filter(self):
+        val = {'name': '0', 'str1': 'banana'}
+        art0 = self.controller.create(self.req, 'sample_artifact', val)
+        val = {'name': '1', 'str1': 'nan'}
+        art1 = self.controller.create(self.req, 'sample_artifact', val)
+        val = {'name': '2', 'str1': 'anab'}
+        self.controller.create(self.req, 'sample_artifact', val)
+
+        filters = [('str1', 'like:%banana%')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(1, len(res['artifacts']))
+        self.assertIn(art0, res['artifacts'])
+
+        filters = [('str1', 'like:%nan%')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(2, len(res['artifacts']))
+        self.assertIn(art0, res['artifacts'])
+        self.assertIn(art1, res['artifacts'])
+
+        filters = [('str1', 'like:%na%')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(3, len(res['artifacts']))
+
+        filters = [('str1', 'like:%haha%')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(0, len(res['artifacts']))

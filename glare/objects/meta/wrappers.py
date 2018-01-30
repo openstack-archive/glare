@@ -22,7 +22,8 @@ from glare.objects.meta import validators as val_lib
 
 FILTERS = (
     FILTER_EQ, FILTER_NEQ, FILTER_IN, FILTER_GT, FILTER_GTE, FILTER_LT,
-    FILTER_LTE) = ('eq', 'neq', 'in', 'gt', 'gte', 'lt', 'lte')
+    FILTER_LTE, FILTER_LIKE) = ('eq', 'neq', 'in', 'gt', 'gte', 'lt', 'lte',
+                                'like')
 
 DEFAULT_MAX_BLOB_SIZE = 10485760  # 10 Megabytes
 DEFAULT_MAX_FOLDER_SIZE = 2673868800  # 2550 Megabytes
@@ -83,15 +84,17 @@ class Field(object):
         self.sortable = sortable
 
         try:
-            default_ops = self.get_allowed_filter_ops(self.element_type)
+            default_ops = self.get_default_filter_ops(self.element_type)
+            allowed_ops = self.get_allowed_filter_ops(self.element_type)
         except AttributeError:
-            default_ops = self.get_allowed_filter_ops(field_class)
+            default_ops = self.get_default_filter_ops(field_class)
+            allowed_ops = self.get_allowed_filter_ops(self.field_class)
 
         if filter_ops is None:
             self.filter_ops = default_ops
         else:
             for op in filter_ops:
-                if op not in default_ops:
+                if op not in allowed_ops:
                     raise exc.IncorrectArtifactType(
                         "Incorrect filter operator '%s'. "
                         "Only %s are allowed" % (op, ', '.join(default_ops)))
@@ -104,10 +107,26 @@ class Field(object):
     @staticmethod
     def get_allowed_filter_ops(field):
         if field in (fields.StringField, fields.String):
-            return [FILTER_EQ, FILTER_NEQ, FILTER_IN]
+            return [FILTER_EQ, FILTER_NEQ, FILTER_IN, FILTER_LIKE]
         elif field in (fields.IntegerField, fields.Integer, fields.FloatField,
                        fields.Float, glare_fields.VersionField):
             return FILTERS
+        elif field in (fields.FlexibleBooleanField, fields.FlexibleBoolean,
+                       glare_fields.Link, glare_fields.LinkFieldType):
+            return [FILTER_EQ, FILTER_NEQ]
+        elif field in (glare_fields.BlobField, glare_fields.BlobFieldType):
+            return []
+        elif field is fields.DateTimeField:
+            return [FILTER_LT, FILTER_GT]
+
+    @staticmethod
+    def get_default_filter_ops(field):
+        if field in (fields.StringField, fields.String):
+            return [FILTER_EQ, FILTER_NEQ, FILTER_IN]
+        elif field in (fields.IntegerField, fields.Integer, fields.FloatField,
+                       fields.Float, glare_fields.VersionField):
+            return [FILTER_EQ, FILTER_NEQ, FILTER_IN, FILTER_GT, FILTER_GTE,
+                    FILTER_LT, FILTER_LTE]
         elif field in (fields.FlexibleBooleanField, fields.FlexibleBoolean,
                        glare_fields.Link, glare_fields.LinkFieldType):
             return [FILTER_EQ, FILTER_NEQ]
