@@ -87,15 +87,16 @@ class ArtifactAPI(object):
 
     @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
            stop_max_attempt_number=20)
-    def get(self, context, artifact_id):
+    def get(self, context, type_name, artifact_id):
         """Return artifact values from database
 
         :param context: user context
+        :param type_name: artifact type name or None for metatypes
         :param artifact_id: id of the artifact
         :return: dict of artifact values
         """
         session = api.get_session()
-        return api.get(context, artifact_id, session)
+        return api.get(context, type_name, artifact_id, session)
 
     @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
            stop_max_attempt_number=20)

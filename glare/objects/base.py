@@ -284,7 +284,11 @@ Possible values:
         :param artifact_id: id of requested artifact
         :return: requested artifact object
         """
-        af = cls.db_api.get(context, artifact_id)
+        if cls.get_type_name() != 'all':
+            type_name = cls.get_type_name()
+        else:
+            type_name = None
+        af = cls.db_api.get(context, type_name, artifact_id)
         return cls.init_artifact(context, af)
 
     @classmethod
