@@ -99,7 +99,7 @@ class Engine(object):
         lock = self.lock_engine.acquire(context, scope_id)
 
         try:
-            if len(self.list(context, type_name, filters)) > 0:
+            if self.list(context, type_name, filters).get("total_count") > 0:
                 msg = _("Artifact with this name and version is already "
                         "exists for this scope.")
                 raise exception.Conflict(msg)
@@ -332,10 +332,11 @@ class Engine(object):
         policy.authorize("artifact:list", {}, context)
         artifact_type = registry.ArtifactRegistry.get_artifact_type(type_name)
         # return list to the user
-        af_list = [af.to_dict()
-                   for af in artifact_type.list(context, filters, marker,
-                                                limit, sort, latest)]
-        return af_list
+        artifacts_data = artifact_type.list(context, filters, marker,
+                                            limit, sort, latest)
+        artifacts_data["artifacts"] = [af.to_dict()
+                                       for af in artifacts_data["artifacts"]]
+        return artifacts_data
 
     @staticmethod
     def _delete_blobs(context, af, blobs):
