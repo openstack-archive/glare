@@ -343,32 +343,52 @@ def stash_conf_values():
 
 
 def split_filter_op(expression):
-    """Split operator from threshold in an expression.
-    Designed for use on a comparative-filtering query field.
-    When no operator is found, default to an equality comparison.
 
-    :param expression: the expression to parse
-    :return: a tuple (operator, threshold) parsed from expression
-    """
-    left, sep, right = expression.partition(':')
-    if sep:
-        # If the expression is a date of the format ISO 8601 like
-        # CCYY-MM-DDThh:mm:ss+hh:mm and has no operator, it should
-        # not be partitioned, and a default operator of eq should be
-        # assumed.
+    default_operator = "eq"
+    default_condition_combiner = "and"
+    combiner_options = ('and', 'or')
+
+    # all method return data in requence combiner, Operator, value
+    def one(expression):
+        return default_condition_combiner, default_operator, expression
+
+    def two(expression):
+        args = expression.split(":")
+        if args[0] in combiner_options:     # and:5, and:or, or:lte
+            return args[0], default_operator, args[1]
+        else:
+            return default_condition_combiner, args[0], args[1]
+
+    def multiple(expression):
+        args = expression.split(":")
+        combiner = default_condition_combiner
+        progress_index = 0
+
+        if args[0] in combiner_options:
+            combiner = args[0]
+            progress_index += 1
+
+        if _is_iso_date(":".join(args[progress_index:])):
+            expression = ":".join(args[progress_index:])
+            operator = default_operator
+        else:
+            operator = args[progress_index]
+            progress_index += 1
+            expression = ":".join(args[progress_index:])
+
+        return combiner, operator, expression
+
+    def _is_iso_date(arg):
         try:
-            timeutils.parse_isotime(expression)
-            op = 'eq'
-            threshold = expression
+            timeutils.parse_isotime(arg)
+            return True
         except ValueError:
-            op = left
-            threshold = right
-    else:
-        op = 'eq'  # default operator
-        threshold = left
+            return False
 
-    # NOTE stevelle decoding escaped values may be needed later
-    return op, threshold
+    switcher = {1: one, 2: two}
+    func = switcher.get(len(expression.split(":")), multiple)
+
+    return func(expression)
 
 
 def validate_quotes(value):

@@ -148,7 +148,7 @@ class Scrubber(object):
                 session=db_api.get_session(),
                 limit=CONF.scrubber.scrub_pool_size,
                 sort=[],
-                filters=[('status', None, 'eq', None, 'deleted')])
+                filters=[('status', None, 'eq', None, 'deleted', 'and')])
             if not artifacts:
                 break
             self.pool.imap(self._scrub_artifact, artifacts)

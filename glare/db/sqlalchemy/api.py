@@ -26,7 +26,7 @@ import osprofiler.sqlalchemy
 from retrying import retry
 import six
 import sqlalchemy
-from sqlalchemy import and_
+from sqlalchemy import and_, distinct
 import sqlalchemy.exc
 from sqlalchemy import exists
 from sqlalchemy import func
@@ -254,9 +254,13 @@ def _apply_latest_filter(context, session, query,
 
 def _apply_user_filters(query, basic_conds, tag_conds, prop_conds):
 
+    or_queries = []
     if basic_conds:
-        for basic_condition in basic_conds:
+        for basic_condition in basic_conds['and']:
             query = query.filter(and_(*basic_condition))
+        or_queries = []
+        for basic_condition in basic_conds['or']:
+            or_queries.append(*basic_condition)
 
     if tag_conds:
         for tag_condition in tag_conds:
@@ -264,9 +268,15 @@ def _apply_user_filters(query, basic_conds, tag_conds, prop_conds):
                 and_(*tag_condition))
 
     if prop_conds:
-        for prop_condition in prop_conds:
+        for prop_condition in prop_conds['and']:
             query = query.join(models.ArtifactProperty, aliased=True).filter(
                 and_(*prop_condition))
+        for prop_condition in prop_conds['or']:
+            or_queries.append(and_(*prop_condition))
+
+    if len(or_queries) != 0:
+        query = query.join(models.ArtifactProperty, aliased=True).filter(
+            or_(*or_queries))
 
     return query
 
@@ -423,10 +433,16 @@ op_mappings = {
 
 
 def _do_query_filters(filters):
-    basic_conds = []
+    basic_conds = {
+        "and": [],
+        "or": []
+    }
     tag_conds = []
-    prop_conds = []
-    for field_name, key_name, op, field_type, value in filters:
+    prop_conds = {
+        "and": [],
+        "or": []
+    }
+    for field_name, key_name, op, field_type, value, query_combiner in filters:
         if field_name == 'tags':
             tags = utils.split_filter_value_for_quotes(value)
             for tag in tags:
@@ -438,21 +454,21 @@ def _do_query_filters(filters):
             if op == 'in':
                 if field_name == 'version':
                     value = [semver_db.parse(val) for val in value]
-                    basic_conds.append(
+                    basic_conds[query_combiner].append(
                         [or_(*[
                             models.Artifact.version == ver for ver in value])])
                 else:
-                    basic_conds.append(
+                    basic_conds[query_combiner].append(
                         [getattr(models.Artifact, field_name).in_(value)])
             elif op == 'like':
-                basic_conds.append(
+                basic_conds[query_combiner].append(
                     [getattr(models.Artifact, field_name).like(value)])
             else:
                 fn = op_mappings[op]
                 if field_name == 'version':
                     value = semver_db.parse(value)
-                basic_conds.append([fn(getattr(models.Artifact, field_name),
-                                       value)])
+                basic_conds[query_combiner].append(
+                    [fn(getattr(models.Artifact, field_name), value)])
         else:
             conds = [models.ArtifactProperty.name == field_name]
             if key_name is not None:
@@ -474,7 +490,7 @@ def _do_query_filters(filters):
                     conds.extend([fn(getattr(models.ArtifactProperty,
                                              field_type + '_value'), value)])
 
-            prop_conds.append(conds)
+            prop_conds[query_combiner].append(conds)
 
     return basic_conds, tag_conds, prop_conds
 
@@ -772,11 +788,12 @@ def delete_blob_data(context, uri, session):
             models.ArtifactBlobData).filter_by(id=blob_data_id).delete()
 
 
-def get_artifact_count(context, session, filters=None, latest=False):
+def get_artifact_count(context, session, filters=None, latest=False,
+                       list_all_artifacts=False):
 
     filters = filters or {}
 
-    query = _create_artifact_count_query(context, session)
+    query = _create_artifact_count_query(context, session, list_all_artifacts)
 
     basic_conds, tag_conds, prop_conds = _do_query_filters(filters)
 
@@ -789,8 +806,9 @@ def get_artifact_count(context, session, filters=None, latest=False):
     return query.all()[0].total_count
 
 
-def _create_artifact_count_query(context, session):
+def _create_artifact_count_query(context, session, list_all_artifacts):
 
-    query = session.query(func.count(models.Artifact.id).label("total_count"))
+    query = session.query(func.count(distinct(models.Artifact.id))
+                          .label("total_count"))
 
-    return _apply_query_base_filters(query, context)
+    return _apply_query_base_filters(query, context, list_all_artifacts)

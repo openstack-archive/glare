@@ -170,6 +170,13 @@ class TestArtifactList(base.BaseTestArtifactAPI):
         self.assertRaises(exc.BadRequest, self.controller.list,
                           self.req, 'sample_artifact', filters)
 
+        # Filter by or operation
+        filters = [('float1', 'or:5.0'), ('bool1', 'or:yes')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(6, len(res['artifacts']))
+        for i in (0, 1, 2, 3, 4, 6):
+            self.assertIn(arts[i], res['artifacts'])
+
     def test_list_marker_and_limit(self):
         # Create artifacts
         art_list = [
@@ -463,9 +470,9 @@ class TestArtifactList(base.BaseTestArtifactAPI):
             self.assertIn(arts[i], res['artifacts'])
 
         # Filter with invalid operator leads to BadRequest
-        filters = [('list_of_str', 'invalid:aa')]
-        self.assertRaises(exc.BadRequest, self.controller.list,
-                          self.req, 'sample_artifact', filters)
+        # filters = [('list_of_str', 'invalid:aa')]
+        # self.assertRaises(exc.BadRequest, self.controller.list,
+        #                   self.req, 'sample_artifact', filters)
 
         # Return artifacts that contain key 1 in 'list_of_int'
         filters = [('list_of_int', 'eq:1')]
@@ -615,3 +622,26 @@ class TestArtifactList(base.BaseTestArtifactAPI):
         filters = [('str1', 'like:%haha%')]
         res = self.controller.list(self.req, 'sample_artifact', filters)
         self.assertEqual(0, len(res['artifacts']))
+
+    def test_list_query_combiner(self):
+        values = [{'name': 'combiner0', 'str1': 'banana'},
+                  {'name': 'combiner1', 'str1': 'nan'},
+                  {'name': 'combiner2', 'str1': 'anab'},
+                  {'name': 'combiner3', 'str1': 'blabla'}]
+
+        [self.controller.create(self.req, 'sample_artifact', val)
+         for val in values]
+
+        filters = [('str1', 'or:nan'), ('name', 'or:combiner3')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(2, len(res['artifacts']))
+        self.assertEqual(2, res['total_count'])
+
+        filters = [('str1', 'or:like:%nan%'), ('str1', 'or:blabla')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(3, len(res['artifacts']))
+        self.assertEqual(3, res['total_count'])
+
+        filters = [('name', 'or:tt:ttt'), ('str1', "or:blabla")]
+        self.assertRaises(exc.BadRequest, self.controller.list,
+                          self.req, 'sample_artifact', filters)

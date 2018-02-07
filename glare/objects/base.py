@@ -71,6 +71,8 @@ class BaseArtifact(base.VersionedObject):
 
     STATUS = ('drafted', 'active', 'deactivated', 'deleted')
 
+    DEFAULT_QUERY_COMBINER = "and"
+
     Field = wrappers.Field.init
     DictField = wrappers.DictField.init
     ListField = wrappers.ListField.init
@@ -356,7 +358,8 @@ Possible values:
                     msg = _("Tags are filtered without operator")
                     raise exception.BadRequest(msg)
                 new_filters.append(
-                    (filter_name, None, None, None, filter_value))
+                    (filter_name, None, None, None, filter_value,
+                     cls.DEFAULT_QUERY_COMBINER))
                 continue
 
             key_name = None
@@ -377,19 +380,25 @@ Possible values:
                 field_type = field_type.element_type
 
             try:
-                op, val = utils.split_filter_op(filter_value)
+                query_combiner, op, val = utils.split_filter_op(filter_value)
+
                 if isinstance(field_type, glare_fields.Dict):
                     if op not in ['eq', 'in']:
                         msg = (_("Unsupported filter type '%s'. The following "
                                  "filters are supported: eq, in") % op)
                         raise exception.BadRequest(message=msg)
+                    if query_combiner not in ["and", "or"]:
+                        msg = (_("Unsupported Query combiner type '%s'. Only "
+                                 "following combiner are allowed: and, or")
+                               % query_combiner)
+                        raise exception.BadRequest(message=msg)
                     if op == 'in':
                         new_filters.append((
                             filter_name, utils.split_filter_value_for_quotes(
-                                val), op, None, None))
+                                val), op, None, None, query_combiner))
                     else:
                         new_filters.append((
-                            filter_name, val, op, None, None))
+                            filter_name, val, op, None, None, query_combiner))
                 else:
                     cls._validate_filter_ops(filter_name, op)
                     if op == 'in':
@@ -400,7 +409,8 @@ Possible values:
                         value = field_type.coerce(cls(), filter_name, val)
                     new_filters.append(
                         (filter_name, key_name, op,
-                         cls._get_field_type(field_type), value))
+                         cls._get_field_type(field_type),
+                         value, query_combiner))
             except ValueError:
                 msg = _("Invalid filter value: %s") % str(val)
                 raise exception.BadRequest(msg)
@@ -440,10 +450,12 @@ Possible values:
                 sort.append(default_sort)
 
         default_filter_parameters = [
-            ('status', None, 'neq', None, 'deleted')]
+            ('status', None, 'neq', None, 'deleted',
+             cls.DEFAULT_QUERY_COMBINER)]
         if cls.get_type_name() != 'all':
             default_filter_parameters.append(
-                ('type_name', None, 'eq', None, cls.get_type_name()))
+                ('type_name', None, 'eq', None, cls.get_type_name(),
+                 cls.DEFAULT_QUERY_COMBINER))
         # Parse filter parameters and update them with defaults
         filters = [] if filters is None else cls._parse_filter_values(filters)
         for default_filter in default_filter_parameters:
