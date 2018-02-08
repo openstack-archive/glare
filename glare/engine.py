@@ -110,7 +110,8 @@ class Engine(object):
         return lock
 
     @staticmethod
-    def _show_artifact(ctx, type_name, artifact_id, read_only=False):
+    def _show_artifact(ctx, type_name, artifact_id,
+                       read_only=False, get_any_artifact=False):
         """Return artifact requested by user.
 
         Check access permissions and policies.
@@ -120,11 +121,13 @@ class Engine(object):
         :param artifact_id: id of the artifact to be updated
         :param read_only: flag, if set to True only read access is checked,
          if False then engine checks if artifact can be modified by the user
+        :param get_any_artifact: flag, if set to True will get artifact from
+        any realm
         """
         artifact_type = registry.ArtifactRegistry.get_artifact_type(type_name)
         # only artifact is available for class users
-        af = artifact_type.show(ctx, artifact_id)
-        if not read_only:
+        af = artifact_type.show(ctx, artifact_id, get_any_artifact)
+        if not read_only and not get_any_artifact:
             if not ctx.is_admin and ctx.tenant != af.owner or ctx.read_only:
                 raise exception.Forbidden()
             LOG.debug("Artifact %s acquired for read-write access",
@@ -307,9 +310,14 @@ class Engine(object):
         :param artifact_id: id of artifact to show
         :return: definition of requested artifact
         """
+        get_any_artifact = False
+        if policy.authorize("artifact:get_any_artifact", {},
+                            context, do_raise=False):
+            get_any_artifact = True
         policy.authorize("artifact:get", {}, context)
         af = self._show_artifact(context, type_name, artifact_id,
-                                 read_only=True)
+                                 read_only=True,
+                                 get_any_artifact=get_any_artifact)
         return af.to_dict()
 
     @staticmethod
@@ -329,11 +337,16 @@ class Engine(object):
          versions should be returned in output
         :return: list of artifact definitions
         """
+        list_all_artifacts = False
+        if policy.authorize("artifact:list_all_artifacts",
+                            {}, context, do_raise=False):
+            list_all_artifacts = True
         policy.authorize("artifact:list", {}, context)
         artifact_type = registry.ArtifactRegistry.get_artifact_type(type_name)
         # return list to the user
-        artifacts_data = artifact_type.list(context, filters, marker,
-                                            limit, sort, latest)
+
+        artifacts_data = artifact_type.list(
+            context, filters, marker, limit, sort, latest, list_all_artifacts)
         artifacts_data["artifacts"] = [af.to_dict()
                                        for af in artifacts_data["artifacts"]]
         return artifacts_data
@@ -631,9 +644,17 @@ class Engine(object):
          in this dict
         :return: file iterator for requested file
         """
+        download_from_any_artifact = False
+        if policy.authorize("artifact:download_from_any_artifact", {},
+                            context, do_raise=False):
+            download_from_any_artifact = True
+
         af = self._show_artifact(context, type_name, artifact_id,
-                                 read_only=True)
-        policy.authorize("artifact:download", af.to_dict(), context)
+                                 read_only=True,
+                                 get_any_artifact=download_from_any_artifact)
+
+        if not download_from_any_artifact:
+            policy.authorize("artifact:download", af.to_dict(), context)
 
         blob_name = self._generate_blob_name(field_name, blob_key)
 

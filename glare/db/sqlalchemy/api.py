@@ -164,10 +164,11 @@ def create_or_update(context, artifact_id, values, session):
         return artifact.to_dict()
 
 
-def _get(context, type_name, artifact_id, session):
+def _get(context, type_name, artifact_id, session, get_any_artifact=False):
     try:
-        query = _do_artifacts_query(context, session).filter_by(
-            id=artifact_id)
+        query = _do_artifacts_query(
+            context, session, list_all_artifacts=get_any_artifact).\
+            filter_by(id=artifact_id)
         if type_name is not None:
             query = query.filter_by(type_name=type_name)
         artifact = query.one()
@@ -178,12 +179,13 @@ def _get(context, type_name, artifact_id, session):
     return artifact
 
 
-def get(context, type_name, artifact_id, session):
-    return _get(context, type_name, artifact_id, session).to_dict()
+def get(context, type_name, artifact_id, session, get_any_artifact=False):
+    return _get(context, type_name, artifact_id,
+                session, get_any_artifact).to_dict()
 
 
 def get_all(context, session, filters=None, marker=None, limit=None,
-            sort=None, latest=False):
+            sort=None, latest=False, list_all_artifacts=False):
     """List all visible artifacts
 
     :param filters: dict of filter keys and values.
@@ -193,11 +195,15 @@ def get_all(context, session, filters=None, marker=None, limit=None,
      which results should be sorted, dir is a direction: 'asc' or 'desc',
      and type is type of the attribute: 'bool', 'string', 'numeric' or 'int' or
      None if attribute is base.
+     :param list_all_artifacts: flag that indicate, if the list should
+     return artifact from all realms (True),
+     or from the specific realm (False)
     :param latest: flag that indicates, that only artifacts with highest
      versions should be returned in output
     """
     artifacts = _get_all(
-        context, session, filters, marker, limit, sort, latest)
+        context, session, filters, marker,
+        limit, sort, latest, list_all_artifacts)
     total_artifacts_count = get_artifact_count(context, session, filters,
                                                latest)
     return {
@@ -265,11 +271,11 @@ def _apply_user_filters(query, basic_conds, tag_conds, prop_conds):
 
 
 def _get_all(context, session, filters=None, marker=None, limit=None,
-             sort=None, latest=False):
+             sort=None, latest=False, list_all_artifacts=False):
 
     filters = filters or {}
 
-    query = _do_artifacts_query(context, session)
+    query = _do_artifacts_query(context, session, list_all_artifacts)
 
     basic_conds, tag_conds, prop_conds = _do_query_filters(filters)
 
@@ -375,7 +381,7 @@ def _do_paginate_query(query, marker=None, limit=None, sort=None):
     return query
 
 
-def _do_artifacts_query(context, session):
+def _do_artifacts_query(context, session, list_all_artifacts=False):
     """Build the query to get all artifacts based on the context"""
 
     query = session.query(models.Artifact)
@@ -384,12 +390,12 @@ def _do_artifacts_query(context, session):
              options(joinedload(models.Artifact.tags)).
              options(joinedload(models.Artifact.blobs)))
 
-    return _apply_query_base_filters(query, context)
+    return _apply_query_base_filters(query, context, list_all_artifacts)
 
 
-def _apply_query_base_filters(query, context):
+def _apply_query_base_filters(query, context, list_all_artifacts=False):
     # If admin, return everything.
-    if context.is_admin:
+    if context.is_admin or list_all_artifacts:
         return query
 
     # If anonymous user, return only public artifacts.

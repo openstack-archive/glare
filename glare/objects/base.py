@@ -277,7 +277,7 @@ Possible values:
         return self.init_artifact(context, updated_af)
 
     @classmethod
-    def show(cls, context, artifact_id):
+    def show(cls, context, artifact_id, get_any_artifact=False):
         """Return Artifact from Glare repo
 
         :param context: user context
@@ -288,7 +288,7 @@ Possible values:
             type_name = cls.get_type_name()
         else:
             type_name = None
-        af = cls.db_api.get(context, type_name, artifact_id)
+        af = cls.db_api.get(context, type_name, artifact_id, get_any_artifact)
         return cls.init_artifact(context, af)
 
     @classmethod
@@ -396,7 +396,7 @@ Possible values:
 
     @classmethod
     def list(cls, context, filters=None, marker=None, limit=None,
-             sort=None, latest=False):
+             sort=None, latest=False, list_all_artifacts=False):
         """Return list of artifacts requested by user.
 
         :param context: user context
@@ -408,6 +408,9 @@ Possible values:
         :param sort: sorting options
         :param latest: flag that indicates, that only artifacts with highest
         versions should be returned in output
+        :param list_all_artifacts: flag that indicate, if the list should
+        return artifact from all tenants (True),
+        or from the specific tenant (False)
         :return: list of artifact objects
         """
 
@@ -435,7 +438,7 @@ Possible values:
                 filters.append(default_filter)
 
         artifacts_data = cls.db_api.list(context, filters, marker, limit,
-                                         sort, latest)
+                                         sort, latest, list_all_artifacts)
         artifacts_data["artifacts"] = [cls.init_artifact(context, af)
                                        for af in artifacts_data["artifacts"]]
         return artifacts_data
