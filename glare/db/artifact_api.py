@@ -87,20 +87,24 @@ class ArtifactAPI(object):
 
     @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
            stop_max_attempt_number=20)
-    def get(self, context, type_name, artifact_id):
+    def get(self, context, type_name, artifact_id, get_any_artifact=False):
         """Return artifact values from database
 
         :param context: user context
         :param type_name: artifact type name or None for metatypes
         :param artifact_id: id of the artifact
+        :param get_any_artifact: flag that indicate, if we want to enable
+        to get artifact from other realm as well.
         :return: dict of artifact values
         """
         session = api.get_session()
-        return api.get(context, type_name, artifact_id, session)
+        return api.get(context, type_name, artifact_id,
+                       session, get_any_artifact)
 
     @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
            stop_max_attempt_number=20)
-    def list(self, context, filters, marker, limit, sort, latest):
+    def list(self, context, filters, marker, limit, sort,
+             latest, list_all_artifacts=False):
         """List artifacts from db
 
         :param context: user request context
@@ -111,13 +115,17 @@ class ArtifactAPI(object):
         :param sort: sort conditions
         :param latest: flag that indicates, that only artifacts with highest
         versions should be returned in output
+        :param list_all_artifacts: flag that indicate, if the list should
+        return artifact from all realms (True),
+        or from the specific realm (False)
         :return: list of artifacts. Each artifact is represented as dict of
         values.
         """
         session = api.get_session()
         return api.get_all(context=context, session=session, filters=filters,
                            marker=marker, limit=limit, sort=sort,
-                           latest=latest)
+                           latest=latest,
+                           list_all_artifacts=list_all_artifacts)
 
     @retry(retry_on_exception=_retry_on_connection_error, wait_fixed=1000,
            stop_max_attempt_number=20)
