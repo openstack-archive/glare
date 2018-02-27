@@ -614,6 +614,7 @@ class Engine(object):
         except Exception:
             # if upload failed remove blob from db and storage
             with excutils.save_and_reraise_exception(logger=LOG):
+                LOG.error("Exception occured: %s", Exception)
                 self._save_blob_info(
                     context, af, field_name, blob_key, None)
 
