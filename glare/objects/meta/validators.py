@@ -158,7 +158,7 @@ class MinStrLen(SizeValidator):
         l = len(value)
         if l < self.size:
             raise ValueError(
-                _("String length must be less than  %(size)d. "
+                _("String length must be more than  %(size)d. "
                   "Current length: %(cur)d") % {'size': self.size,
                                                 'cur': l})
 
