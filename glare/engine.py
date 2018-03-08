@@ -565,9 +565,14 @@ class Engine(object):
             policy.authorize(action_name, af.to_dict(), context)
 
             # create an an empty blob instance in db with 'saving' status
-            if self._get_blob_info(af, field_name, blob_key):
-                msg = _("Blob %(blob)s already exists for artifact "
-                        "%(af)s") % {'blob': field_name, 'af': af.id}
+            existing_blob = self._get_blob_info(af, field_name, blob_key)
+            existing_blob_status = existing_blob.get("status")\
+                if existing_blob else None
+            if existing_blob_status == "saving":
+                msg = _("Blob %(blob)s already exists for artifact and it"
+                        "is in %(status) %(af)s") % {
+                    'blob': field_name, 'af': af.id,
+                    'status': existing_blob_status}
                 raise exception.Conflict(message=msg)
             utils.validate_change_allowed(af, field_name)
             blob_info['size'] = self._calculate_allowed_space(

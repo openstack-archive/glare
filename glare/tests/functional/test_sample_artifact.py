@@ -745,13 +745,13 @@ class TestBlobs(base.TestArtifact):
         self.assertEqual(exp_blob_url, art['blob']['url'])
 
         # reUpload file to artifact
-        self.put(url=url + '/blob', data=data, status=409,
+        self.put(url=url + '/blob', data=data, status=200,
                  headers=headers)
         # upload blob dict
         self.put(url + '/dict_of_blobs/test_key', data=data, headers=headers)
-        # test re-upload failed
+        # test re-upload for dict of blob.
         self.put(url + '/dict_of_blobs/test_key', data=data, headers=headers,
-                 status=409)
+                 status=200)
 
         # upload few other blobs to the dict
         for elem in ('aaa', 'bbb', 'ccc', 'ddd'):
