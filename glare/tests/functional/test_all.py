@@ -61,6 +61,30 @@ class TestAll(base.TestArtifact):
         self.assertEqual(54, len(res))
         self.assertEqual(sorted(res, key=lambda x: x['type_name']), res)
 
+        # get all artifacts Sorted in Asc order based on display_type_name
+        url = '/all?sort=display_type_name:asc&limit=100'
+        res = self.get(url=url, status=200)['artifacts']
+        self.assertEqual(54, len(res))
+        self.assertEqual(sorted(res, key=lambda x: x['display_type_name']),
+                         res)
+
+        # get all artifacts sorted in desc order based on display_type_name
+        url = '/all?sort=display_type_name:desc&limit=100'
+        res = self.get(url=url, status=200)['artifacts']
+        self.assertEqual(54, len(res))
+        self.assertEqual(sorted(res, key=lambda x: x['display_type_name'],
+                                reverse=True), res)
+
+        # get Heat Template like only
+        url = '/all?display_type_name=like:Heat%&sort=display_type_name:asc'
+        res = self.get(url=url, status=200)['artifacts']
+        self.assertEqual(18, len(res))
+        for art in res:
+            self.assertEqual('Heat', art['display_type_name'][:4])
+
+        # TODO(kushalagrawal): Need to Add test case for display_type_name with
+        # null once https://bugs.launchpad.net/glare/+bug/1741400 is resolved
+
     def test_all_readonlyness(self):
         self.create_artifact(data={'name': 'all'}, type_name='all', status=403)
         art = self.create_artifact(data={'name': 'image'}, type_name='images')

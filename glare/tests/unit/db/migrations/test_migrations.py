@@ -247,6 +247,33 @@ class GlareMigrationsCheckers(object):
         self.assert_table(engine, 'glare_quotas', quota_indices,
                           quota_columns)
 
+    def _check_005(self, engine, data):
+        artifacts_indices = [('ix_glare_artifact_name_and_version',
+                              ['name', 'version_prefix', 'version_suffix']),
+                             ('ix_glare_artifact_type',
+                              ['type_name']),
+                             ('ix_glare_artifact_status', ['status']),
+                             ('ix_glare_artifact_visibility', ['visibility']),
+                             ('ix_glare_artifact_owner', ['owner']),
+                             ('ix_glare_artifact_display_name',
+                              ['display_type_name'])]
+        artifacts_columns = ['id',
+                             'name',
+                             'type_name',
+                             'version_prefix',
+                             'version_suffix',
+                             'version_meta',
+                             'description',
+                             'visibility',
+                             'status',
+                             'owner',
+                             'created_at',
+                             'updated_at',
+                             'activated_at',
+                             'display_type_name']
+        self.assert_table(engine, 'glare_artifacts', artifacts_indices,
+                          artifacts_columns)
+
 
 class TestMigrationsMySQL(GlareMigrationsCheckers,
                           WalkVersionsMixin,

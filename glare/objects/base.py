@@ -245,6 +245,16 @@ Possible values:
         """
         raise NotImplementedError()
 
+    @classmethod
+    def get_display_type_name(cls):
+        """
+        Provides verbose Artifact type name which any external user can
+        understand easily.
+
+        :return: general purpose name for Artifact
+        """
+        return None
+
     def create(self, context):
         """Create new artifact in Glare repo.
 
@@ -253,6 +263,7 @@ Possible values:
         """
         values = self.obj_changes_to_primitive()
         values['type_name'] = self.get_type_name()
+        values['display_type_name'] = self.get_display_type_name()
 
         LOG.debug("Sending request to create artifact of type '%(type_name)s'."
                   " New values are %(values)s",
