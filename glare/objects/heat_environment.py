@@ -29,3 +29,7 @@ class HeatEnvironment(base.BaseArtifact):
     @classmethod
     def get_type_name(cls):
         return "heat_environments"
+
+    @classmethod
+    def get_display_type_name(cls):
+        return "Heat Environments"

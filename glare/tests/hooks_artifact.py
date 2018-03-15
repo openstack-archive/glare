@@ -75,6 +75,10 @@ class HookChecker(base.BaseArtifact):
         return "hooks_artifact"
 
     @classmethod
+    def get_display_type_name(cls):
+        return "Hooks Artifact"
+
+    @classmethod
     def pre_create_hook(cls, context, af):
         # create a temporary file and set the path to artifact field
         __, af.temp_file_path_create = tempfile.mkstemp(dir=af.temp_dir)

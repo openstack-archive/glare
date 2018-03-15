@@ -34,6 +34,10 @@ class Secret(base_artifact.BaseArtifact):
     def get_type_name(cls):
         return "secrets"
 
+    @classmethod
+    def get_display_type_name(cls):
+        return "Secrets"
+
     fields = {
         'payload': Blob(  # The encrypted secret data
             description="The secret's data to be stored"
