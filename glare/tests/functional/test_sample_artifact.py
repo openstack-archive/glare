@@ -273,6 +273,12 @@ class TestList(base.TestArtifact):
         result = sort_results(self.get(url=url)['artifacts'])
         self.assertEqual(art_list[5:], result)
 
+        # Like filter test cases for name, status
+        url = '/sample_artifact?name=like:name%'
+        artifacts = self.get(url=url)['artifacts']
+        for artifact in artifacts:
+            self.assertEqual("name", artifact.get("name")[:4])
+
     def test_artifact_list_dict_filters(self):
         lists_of_str = [
             ['aaa', 'bbb', 'ccc'],

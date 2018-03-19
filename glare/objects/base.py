@@ -83,7 +83,9 @@ class BaseArtifact(base.VersionedObject):
         'name': Field(fields.StringField, required_on_activate=False,
                       nullable=False, sortable=True,
                       validators=[validators.MinStrLen(1)],
-                      description="Artifact Name."),
+                      description="Artifact Name.",
+                      filter_ops=(wrappers.FILTER_LIKE, wrappers.FILTER_EQ,
+                                  wrappers.FILTER_NEQ, wrappers.FILTER_IN)),
         'owner': Field(fields.StringField, system=True,
                        required_on_activate=False, nullable=False,
                        sortable=True, description="ID of user/tenant who "
