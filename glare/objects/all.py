@@ -30,6 +30,14 @@ class All(base.BaseArtifact):
         'type_name': Field(fields.StringField,
                            description="Name of artifact type.",
                            sortable=True),
+        'display_type_name': Field(fields.StringField,
+                                   description="Display name of "
+                                               "artifact type.",
+                                   sortable=True,
+                                   filter_ops=(wrappers.FILTER_LIKE,
+                                               wrappers.FILTER_EQ,
+                                               wrappers.FILTER_NEQ,
+                                               wrappers.FILTER_IN))
     }
 
     @classmethod
@@ -50,6 +58,10 @@ class All(base.BaseArtifact):
     @classmethod
     def get_type_name(cls):
         return "all"
+
+    @classmethod
+    def get_display_type_name(cls):
+        return "All Artifacts"
 
     def to_dict(self):
         # Use specific method of artifact type to convert it to dict

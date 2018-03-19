@@ -99,6 +99,7 @@ class Artifact(BASE, ArtifactBase):
         Index('ix_glare_artifact_status', 'status'),
         Index('ix_glare_artifact_owner', 'owner'),
         Index('ix_glare_artifact_visibility', 'visibility'),
+        Index('ix_glare_artifact_display_name', 'display_type_name'),
         {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8'})
     __protected_attributes__ = set(["created_at", "updated_at"])
 
@@ -122,6 +123,7 @@ class Artifact(BASE, ArtifactBase):
     updated_at = Column(DateTime, default=lambda: timeutils.utcnow(),
                         nullable=False, onupdate=lambda: timeutils.utcnow())
     activated_at = Column(DateTime)
+    display_type_name = Column(String(255), nullable=True)
 
     def to_dict(self):
         d = super(Artifact, self).to_dict()

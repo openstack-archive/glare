@@ -58,3 +58,7 @@ class MuranoPackage(base.BaseArtifact):
     @classmethod
     def get_type_name(cls):
         return "murano_packages"
+
+    @classmethod
+    def get_display_type_name(cls):
+        return "Murano packages"

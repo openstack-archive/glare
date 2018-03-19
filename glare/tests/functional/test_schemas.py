@@ -932,6 +932,11 @@ fixtures = {
                            u'maxLength': 255,
                            u'sortable': True,
                            u'type': [u'string', u'null']},
+            u'display_type_name': {
+                u'description': u'Display name of artifact type.',
+                u'filter_ops': [u'like', u'eq', u'neq', u'in'],
+                u'glareType': u'String', u'maxLength': 255,
+                u'sortable': True, u'type': [u'string', u'null']}
 
         }),
         u'required': [u'name'],

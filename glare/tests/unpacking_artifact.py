@@ -38,6 +38,10 @@ class Unpacker(base.BaseArtifact):
         return "unpacking_artifact"
 
     @classmethod
+    def get_display_type_name(cls):
+        return "Unpacking Artifact"
+
+    @classmethod
     def pre_upload_hook(cls, context, af, field_name, blob_key, fd):
         flobj = io.BytesIO(fd.read(cls.MAX_BLOB_SIZE))
 

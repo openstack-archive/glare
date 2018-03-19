@@ -139,6 +139,10 @@ class SampleArtifact(base_artifact.BaseArtifact):
     def get_type_name(cls):
         return "sample_artifact"
 
+    @classmethod
+    def get_display_type_name(cls):
+        return "Sample Artifact"
+
     def to_dict(self):
         res = self.obj_to_primitive()['versioned_object.data']
         res['__some_meta_information__'] = res['name'].upper()

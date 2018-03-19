@@ -349,6 +349,9 @@ class Engine(object):
             context, filters, marker, limit, sort, latest, list_all_artifacts)
         artifacts_data["artifacts"] = [af.to_dict()
                                        for af in artifacts_data["artifacts"]]
+        artifacts_data['display_type_name'] = \
+            artifact_type.get_display_type_name()
+
         return artifacts_data
 
     @staticmethod
