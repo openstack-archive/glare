@@ -16,6 +16,7 @@
 import os
 import tempfile
 
+from datetime import datetime
 import mock
 from OpenSSL import crypto
 import six
@@ -64,6 +65,76 @@ class TestUtils(base.BaseTestCase):
                           **{bad_char: 'val1'})
         self.assertRaises(exc.BadRequest, test_func,
                           **{'param': bad_char})
+
+    def test_split_filter_op(self):
+
+        time = datetime.today().isoformat()
+
+        self.assertEqual(True, ("and", "eq", "5.0") ==
+                         (utils.split_filter_op("5.0")))
+
+        self.assertEqual(True, ("and", "eq", "or") ==
+                         utils.split_filter_op("or"))
+
+        self.assertEqual(True, ("and", "eq", time) ==
+                         utils.split_filter_op(time))
+
+        self.assertEqual(True, ("or", "eq", "5.0") ==
+                         utils.split_filter_op("or:5.0"))
+
+        self.assertEqual(True, ("or", "eq", "eq") ==
+                         utils.split_filter_op("or:eq"))
+
+        self.assertEqual(True, ("and", "lt", "or") ==
+                         utils.split_filter_op("lt:or"))
+
+        self.assertEqual(True, ("or", "eq", "art_name") ==
+                         utils.split_filter_op("or:art_name"))
+
+        self.assertEqual(True, ("and", "t", "tt") ==
+                         utils.split_filter_op("t:tt"))
+
+        self.assertEqual(True, ("or", "eq", time) ==
+                         utils.split_filter_op("or:" + time))
+
+        self.assertEqual(True, ("and", "lt", time) ==
+                         utils.split_filter_op("lt:" + time))
+
+        self.assertEqual(True, ("and", "eq", "tom and_jerry") ==
+                         utils.split_filter_op("eq:tom and_jerry"))
+
+        self.assertEqual(True, ("or", "eq", "5.0") ==
+                         utils.split_filter_op("or:eq:5.0"))
+
+        self.assertEqual(True, ("and", "invalid_combiner", "eq:5.0") ==
+                         utils.split_filter_op("invalid_combiner:eq:5.0"))
+
+        self.assertEqual(True, ("or", "eq", "and") ==
+                         utils.split_filter_op("or:eq:and"))
+
+        self.assertEqual(True, ("and", "eq", "or:and") ==
+                         utils.split_filter_op("eq:or:and"))
+
+        self.assertEqual(True, ("or", "lt", time) ==
+                         utils.split_filter_op("or:lt:" + time))
+
+        self.assertEqual(True, ("or", "in", "1,2,3") ==
+                         utils.split_filter_op("or:in:1,2,3"))
+
+        self.assertEqual(True, ("and", "tt", "t") ==
+                         utils.split_filter_op("tt:t"))
+
+        self.assertEqual(True, ("or", "tt", "t") ==
+                         utils.split_filter_op("or:tt:t"))
+
+        self.assertEqual(True, ("and", "eq", "rt:and") ==
+                         utils.split_filter_op("eq:rt:and"))
+
+        self.assertEqual(True, ("and", "tt", "tt:t") ==
+                         utils.split_filter_op("and:tt:tt:t"))
+
+        self.assertEqual(True, ("or", "lt", "tt:tt:tt:tt:tt:tt:tt") ==
+                         utils.split_filter_op("or:lt:tt:tt:tt:tt:tt:tt:tt"))
 
 
 class TestReaders(base.BaseTestCase):
