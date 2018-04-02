@@ -258,14 +258,15 @@ def _apply_user_filters(query, basic_conds, tag_conds, prop_conds):
     if basic_conds:
         for basic_condition in basic_conds['and']:
             query = query.filter(and_(*basic_condition))
-        or_queries = []
         for basic_condition in basic_conds['or']:
             or_queries.append(*basic_condition)
 
     if tag_conds:
-        for tag_condition in tag_conds:
+        for tag_condition in tag_conds['and']:
             query = query.join(models.ArtifactTag, aliased=True).filter(
                 and_(*tag_condition))
+        for tag_condition in tag_conds['or']:
+            or_queries.append(*tag_condition)
 
     if prop_conds:
         for prop_condition in prop_conds['and']:
@@ -437,7 +438,10 @@ def _do_query_filters(filters):
         "and": [],
         "or": []
     }
-    tag_conds = []
+    tag_conds = {
+        "and": [],
+        "or": []
+    }
     prop_conds = {
         "and": [],
         "or": []
@@ -446,10 +450,12 @@ def _do_query_filters(filters):
         if field_name == 'tags':
             tags = utils.split_filter_value_for_quotes(value)
             for tag in tags:
-                tag_conds.append([models.ArtifactTag.value == tag])
+                tag_conds[query_combiner].append(
+                    [models.ArtifactTag.value == tag])
         elif field_name == 'tags-any':
             tags = utils.split_filter_value_for_quotes(value)
-            tag_conds.append([models.ArtifactTag.value.in_(tags)])
+            tag_conds[query_combiner].append(
+                [models.ArtifactTag.value.in_(tags)])
         elif field_name in BASE_ARTIFACT_PROPERTIES:
             if op == 'in':
                 if field_name == 'version':
