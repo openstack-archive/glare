@@ -354,12 +354,17 @@ Possible values:
 
         for filter_name, filter_value in filters:
             if filter_name in ('tags-any', 'tags'):
-                if ':' in filter_value:
+                tag_values = filter_value
+                combiner = cls.DEFAULT_QUERY_COMBINER
+                if filter_value.startswith(("and:", "or:")):
+                    combiner = filter_value[:filter_value.index(":")]
+                    tag_values = filter_value[filter_value.index(":") + 1:]
+                if ':' in tag_values:
                     msg = _("Tags are filtered without operator")
                     raise exception.BadRequest(msg)
                 new_filters.append(
-                    (filter_name, None, None, None, filter_value,
-                     cls.DEFAULT_QUERY_COMBINER))
+                    (filter_name, None, None, None, tag_values,
+                     combiner))
                 continue
 
             key_name = None
