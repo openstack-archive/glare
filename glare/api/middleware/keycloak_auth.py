@@ -121,6 +121,10 @@ class KeycloakAuthMiddleware(base_middleware.Middleware):
             if resp.status_code == 400:
                 raise exception.BadRequest(message=resp.text)
             if resp.status_code == 401:
+                LOG.warning("HTTP response from OIDC provider:"
+                            " [%s] with WWW-Authenticate: [%s]",
+                            pprint.pformat(resp.text),
+                            resp.headers.get("WWW-Authenticate"))
                 raise exception.Unauthorized(message=resp.text)
             if resp.status_code == 403:
                 raise exception.Forbidden(message=resp.text)
@@ -147,8 +151,9 @@ class KeycloakAuthMiddleware(base_middleware.Middleware):
         try:
             decoded = jwt.decode(access_token, algorithms=['RS256'],
                                  verify=False)
-        except Exception:
-            msg = _("Token can't be decoded because of wrong format.")
+        except Exception as e:
+            msg = _("Token can't be decoded because of wrong format %s")\
+                % str(e)
             LOG.error(msg)
             raise exception.Unauthorized()
 
