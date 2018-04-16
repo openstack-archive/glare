@@ -208,6 +208,9 @@ class Engine(object):
 
                 old_val = getattr(af, field_name)
                 setattr(af, field_name, af_dict[field_name])
+                if operation.operation.get("op") == "move":
+                    source_field = operation.from_path
+                    setattr(af, source_field, af_dict[source_field])
                 new_val = getattr(af, field_name)
                 if new_val == old_val:
                     # No need to save value to db if it's not changed

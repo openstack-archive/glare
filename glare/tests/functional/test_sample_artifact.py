@@ -2181,6 +2181,68 @@ class TestUpdate(base.TestArtifact):
         url = '/sample_artifact/%s' % art1['id']
         self.patch(url=url, data=data, status=400)
 
+        # data add tags and metadata to artifact
+        data = [{'op': 'add',
+                 'path': '/tags/0',
+                 'value': 'tag1'},
+                {'op': 'add',
+                 'path': '/tags/1',
+                 'value': 'tag2'},
+                {'op': 'add',
+                 'path': '/metadata/meta1',
+                 'value': 'value1'}]
+        url = '/sample_artifact/%s' % art1['id']
+        result = self.patch(url=url, data=data)
+        self.assertEqual(['tag1', 'tag2'], result['tags'])
+        self.assertEqual({'meta1': 'value1'}, result['metadata'])
+
+        # move tag to metadata
+        data = [{"op": "move",
+                 "from": "/tags/0",
+                 "path": "/metadata/meta2"}]
+        url = '/sample_artifact/%s' % art1['id']
+        result = self.patch(url=url, data=data)
+        self.assertEqual(['tag2'], result['tags'])
+        self.assertEqual({'meta1': 'value1', 'meta2': 'tag1'},
+                         result['metadata'])
+
+        # move data from one dict to another one
+        data = [{"op": "move",
+                 "from": "/dict_of_str/wrong_type",
+                 "path": "/metadata/wrong_type"}]
+        url = '/sample_artifact/%s' % art1['id']
+        result = self.patch(url=url, data=data)
+        self.assertEqual({}, result['dict_of_str'])
+        self.assertEqual({'meta1': 'value1',
+                          'meta2': 'tag1',
+                          'wrong_type': '1'}, result['metadata'])
+
+        # move data from one data to another one having same key
+
+        data = [{"op": "add",
+                 "path": "/dict_of_str/new_key",
+                 "value": "new_value"},
+                {"op": "add",
+                 "path": "/metadata/new_key",
+                 "value": "new_value"}]
+        url = '/sample_artifact/%s' % art1['id']
+        result = self.patch(url=url, data=data)
+        self.assertEqual({"new_key": "new_value"}, result['dict_of_str'])
+        self.assertEqual({'meta1': 'value1',
+                          'meta2': 'tag1',
+                          'wrong_type': '1',
+                          "new_key": "new_value"}, result['metadata'])
+
+        data = [{"op": "move",
+                 "from": "/dict_of_str/new_key",
+                 "path": "/metadata/new_key"}]
+        result = self.patch(url=url, data=data)
+        self.assertEqual({}, result['dict_of_str'])
+        self.assertEqual({'meta1': 'value1',
+                          'meta2': 'tag1',
+                          'wrong_type': '1',
+                          "new_key": "new_value"}, result['metadata'])
+
     def test_update_field_list(self):
         art1 = self.create_artifact(data={"name": "art1"})
 
