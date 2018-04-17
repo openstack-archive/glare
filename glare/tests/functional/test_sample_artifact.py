@@ -2193,8 +2193,12 @@ class TestUpdate(base.TestArtifact):
                  'value': 'value1'}]
         url = '/sample_artifact/%s' % art1['id']
         result = self.patch(url=url, data=data)
-        self.assertEqual(['tag1', 'tag2'], result['tags'])
+        self.assertEqual(['tag1', 'tag2'], sorted(result['tags']))
         self.assertEqual({'meta1': 'value1'}, result['metadata'])
+
+        # Tags is set data structure so sequence of data is not fixed
+        first_tag = result['tags'][0]
+        second_tag = result['tags'][1]
 
         # move tag to metadata
         data = [{"op": "move",
@@ -2202,8 +2206,8 @@ class TestUpdate(base.TestArtifact):
                  "path": "/metadata/meta2"}]
         url = '/sample_artifact/%s' % art1['id']
         result = self.patch(url=url, data=data)
-        self.assertEqual(['tag2'], result['tags'])
-        self.assertEqual({'meta1': 'value1', 'meta2': 'tag1'},
+        self.assertEqual([second_tag], result['tags'])
+        self.assertEqual({'meta1': 'value1', 'meta2': first_tag},
                          result['metadata'])
 
         # move data from one dict to another one
@@ -2214,7 +2218,7 @@ class TestUpdate(base.TestArtifact):
         result = self.patch(url=url, data=data)
         self.assertEqual({}, result['dict_of_str'])
         self.assertEqual({'meta1': 'value1',
-                          'meta2': 'tag1',
+                          'meta2': first_tag,
                           'wrong_type': '1'}, result['metadata'])
 
         # move data from one data to another one having same key
@@ -2229,7 +2233,7 @@ class TestUpdate(base.TestArtifact):
         result = self.patch(url=url, data=data)
         self.assertEqual({"new_key": "new_value"}, result['dict_of_str'])
         self.assertEqual({'meta1': 'value1',
-                          'meta2': 'tag1',
+                          'meta2': first_tag,
                           'wrong_type': '1',
                           "new_key": "new_value"}, result['metadata'])
 
@@ -2239,7 +2243,7 @@ class TestUpdate(base.TestArtifact):
         result = self.patch(url=url, data=data)
         self.assertEqual({}, result['dict_of_str'])
         self.assertEqual({'meta1': 'value1',
-                          'meta2': 'tag1',
+                          'meta2': first_tag,
                           'wrong_type': '1',
                           "new_key": "new_value"}, result['metadata'])
 

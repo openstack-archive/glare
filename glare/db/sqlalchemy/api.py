@@ -276,8 +276,10 @@ def _apply_user_filters(query, basic_conds, tag_conds, prop_conds):
             or_queries.append(and_(*prop_condition))
 
     if len(or_queries) != 0:
-        query = query.join(models.ArtifactProperty, aliased=True).filter(
-            or_(*or_queries))
+        if len(prop_conds['or']) > 0:
+            query = query.join(models.ArtifactProperty, aliased=True)
+
+        query = query.filter(or_(*or_queries))
 
     return query
 

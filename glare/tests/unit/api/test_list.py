@@ -657,3 +657,13 @@ class TestArtifactList(base.BaseTestArtifactAPI):
         filters = [('name', 'or:tt:ttt'), ('str1', "or:blabla")]
         self.assertRaises(exc.BadRequest, self.controller.list,
                           self.req, 'sample_artifact', filters)
+
+        res = self.controller.create(self.req, 'heat_templates',
+                                     {'name': "artifact_without_properties"})
+
+        filters = [('name', 'or:eq:non_existant_name'),
+                   ('id', 'or:eq:' + res['id'])]
+        res = self.controller.list(self.req, 'heat_templates',
+                                   filters)['artifacts']
+        self.assertEqual(1, len(res))
+        self.assertEqual('artifact_without_properties', res[0]['name'])
