@@ -390,6 +390,7 @@ def _do_paginate_query(query, marker=None, limit=None, sort=None):
         query = query.filter(or_(*criteria_list))
 
     if limit is not None:
+        query = query.group_by(models.Artifact.id)
         query = query.limit(limit)
 
     return query
