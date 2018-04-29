@@ -715,6 +715,21 @@ class TestList(base.TestArtifact):
         result = self.get(url=url)['artifacts']
         self.assertEqual([], result)
 
+        url = '/sample_artifact?name=or:eq:name2&tags-any=or:tag1,tag4' \
+              '&sort=name:asc'
+        result = self.get(url=url)['artifacts']
+        self.assertEqual(4, len(result))
+        for i in (1, 2, 4):
+            self.assertIn(art_list[i], result)
+        self.assertEqual(public_art, result[3])
+
+        url = '/sample_artifact?name=or:eq:name2&&tags=or:tag4,tag5' \
+              '&sort=name:asc'
+        result = self.get(url=url)['artifacts']
+        self.assertEqual(2, len(result))
+        self.assertEqual(art_list[2], result[0])
+        self.assertEqual(public_art, result[1])
+
 
 class TestBlobs(base.TestArtifact):
     def test_blob_dicts(self):
