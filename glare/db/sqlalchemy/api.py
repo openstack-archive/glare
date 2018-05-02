@@ -743,12 +743,17 @@ def delete_lock(context, lock_id, session):
        stop_max_attempt_number=50)
 def save_blob_data(context, blob_data_id, data, session):
     """Save blob data to database."""
-    with session.begin():
-        blob_data = models.ArtifactBlobData()
-        blob_data.id = blob_data_id
-        blob_data.data = data.read()
-        blob_data.save(session=session)
-        return "sql://" + blob_data.id
+    LOG.debug("Starting Blob data upload in database for %s", blob_data_id)
+    try:
+        with session.begin():
+            blob_data = models.ArtifactBlobData()
+            blob_data.id = blob_data_id
+            blob_data.data = data.read()
+            blob_data.save(session=session)
+            return "sql://" + blob_data.id
+    except Exception as e:
+        LOG.error("Exception received during blob upload %s", e)
+        raise
 
 
 @retry(retry_on_exception=_retry_on_deadlock, wait_fixed=500,

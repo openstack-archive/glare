@@ -602,8 +602,10 @@ class Engine(object):
                     fd, path = tpool.execute(
                         af.validate_upload, context, af, field_name, fd)
                 else:
+                    LOG.debug("Initiating Pre_upload hook")
                     fd = tpool.execute(af.pre_upload_hook,
                                        context, af, field_name, blob_key, fd)
+                    LOG.debug("Pre_upload hook executed successfully")
             except exception.GlareException:
                 raise
             except Exception as e:
@@ -634,10 +636,17 @@ class Engine(object):
                  {'artifact': af.id, 'blob': blob_name})
 
         # Step 3. Change blob status to 'active'
-        with self.lock_engine.acquire(context, lock_key):
-            af = af.show(context, artifact_id)
-            af = self._save_blob_info(
-                context, af, field_name, blob_key, blob_info)
+        try:
+            with self.lock_engine.acquire(context, lock_key):
+                af = af.show(context, artifact_id)
+                af = self._save_blob_info(
+                    context, af, field_name, blob_key, blob_info)
+        except Exception as e:
+            msg = _("Exception occured while updating blob status to active"
+                    " for artifact Id : [%(artifact_id)s] , %(error_msg)s") %\
+                {"artifact_id": artifact_id, "error_msg": str(e)}
+            LOG.error(msg)
+            raise
 
         af.post_upload_hook(context, af, field_name, blob_key)
 
