@@ -539,10 +539,16 @@ class TestArtifactList(base.BaseTestArtifactAPI):
         for i in (3, 0):
             self.assertIn(arts[i], res['artifacts'])
 
-        filters = [('name', 'or:in:name4,name1'), ('tags-any', 'or:tag4')]
+        filters = [('name', 'or:in:name2,name1'), ('tags-any', 'or:tag2,tag5')]
         res = self.controller.list(self.req, 'sample_artifact', filters)
-        self.assertEqual(6, len(res['artifacts']))
-        for i in (5, 4, 3, 0):
+        self.assertEqual(4, len(res['artifacts']))
+        for i in (5, 3, 1, 0):
+            self.assertIn(arts[i], res['artifacts'])
+
+        filters = [('name', 'or:in:name4,name1'), ('tags', 'or:tag1,tag3')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(3, len(res['artifacts']))
+        for i in (3, 1, 0):
             self.assertIn(arts[i], res['artifacts'])
 
         # Filtering by tags with operators leads to BadRequest
