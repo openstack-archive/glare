@@ -33,15 +33,7 @@ class All(base.BaseArtifact):
                            filter_ops=(wrappers.FILTER_LIKE,
                                        wrappers.FILTER_EQ,
                                        wrappers.FILTER_NEQ,
-                                       wrappers.FILTER_IN)),
-        'display_type_name': Field(fields.StringField,
-                                   description="Display name of "
-                                               "artifact type.",
-                                   sortable=True,
-                                   filter_ops=(wrappers.FILTER_LIKE,
-                                               wrappers.FILTER_EQ,
-                                               wrappers.FILTER_NEQ,
-                                               wrappers.FILTER_IN))
+                                       wrappers.FILTER_IN))
     }
 
     @classmethod

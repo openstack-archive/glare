@@ -137,7 +137,15 @@ class BaseArtifact(base.VersionedObject):
         'version': Field(glare_fields.VersionField, required_on_activate=False,
                          default=DEFAULT_ARTIFACT_VERSION, nullable=False,
                          sortable=True, validators=[validators.Version()],
-                         description="Artifact version(semver).")
+                         description="Artifact version(semver)."),
+        'display_type_name': Field(fields.StringField, system=True,
+                                   description="Display name of "
+                                               "artifact type.",
+                                   sortable=True,
+                                   filter_ops=(wrappers.FILTER_LIKE,
+                                               wrappers.FILTER_EQ,
+                                               wrappers.FILTER_NEQ,
+                                               wrappers.FILTER_IN))
     }
 
     common_artifact_type_opts = [

@@ -667,7 +667,6 @@ class TestList(base.TestArtifact):
         url = '/sample_artifact'
         res = self.get(url=url, status=200)
         self.assertEqual(res['total_count'], 0)
-        self.assertEqual(res['display_type_name'], "Sample Artifact")
 
     def test_list_artifact_with_filter_query_combiner(self):
         # Create artifact
@@ -730,6 +729,28 @@ class TestList(base.TestArtifact):
         self.assertEqual(art_list[2], result[0])
         self.assertEqual(public_art, result[1])
 
+    def test_list_display_type_name_attribute(self):
+
+        [self.create_artifact({'name': 'name%s' % i,
+                               'version': '2.0',
+                               'tags': ['tag%s' % i],
+                               'int1': 1024,
+                               'float1': 123.456,
+                               'str1': 'bugaga',
+                               'bool1': True})
+         for i in range(5)]
+
+        url = '/sample_artifact'
+        result = self.get(url)['artifacts']
+        self.assertEqual(True, len(result) > 0)
+        for artifact in result:
+            self.assertEqual('Sample Artifact', artifact['display_type_name'])
+
+        # validate for show artifact API
+        url = '/sample_artifact/%s' % result[0]['id']
+        result = self.get(url)
+        self.assertEqual('Sample Artifact', result['display_type_name'])
+
 
 class TestBlobs(base.TestArtifact):
     def test_blob_dicts(self):
@@ -740,8 +761,7 @@ class TestBlobs(base.TestArtifact):
                     'artifacts': [],
                     'schema': '/schemas/sample_artifact',
                     'type_name': 'sample_artifact',
-                    'total_count': 0,
-                    'display_type_name': 'Sample Artifact'}
+                    'total_count': 0}
         self.assertEqual(expected, response)
 
         # Create a test artifact
