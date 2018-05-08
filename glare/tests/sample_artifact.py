@@ -13,9 +13,12 @@
 # under the License.
 
 """Sample artifact object for testing purposes"""
+import io
 
+from glare.common.utils import CooperativeReader
 from oslo_versionedobjects import fields
 
+from glare.common.exception import GlareException
 from glare.objects import base as base_artifact
 from glare.objects.meta import fields as glare_fields
 from glare.objects.meta import validators
@@ -142,6 +145,21 @@ class SampleArtifact(base_artifact.BaseArtifact):
     @classmethod
     def get_display_type_name(cls):
         return "Sample Artifact"
+
+    @classmethod
+    def pre_upload_hook(cls, context, af, field_name, blob_key, fd):
+        flobj = io.BytesIO(CooperativeReader(fd).read())
+        data = flobj.read()
+        print("Data in pre_upload_hook: %s" % data)
+        if data == b'invalid_data':
+            raise GlareException("Invalid Data found")
+        # Try to seek same fd to 0.
+        try:
+            fd.seek(0)
+        except Exception:  # catch Exception in case fd is non-seekable.
+            flobj.seek(0)
+            return flobj
+        return fd
 
     def to_dict(self):
         res = self.obj_to_primitive()['versioned_object.data']
