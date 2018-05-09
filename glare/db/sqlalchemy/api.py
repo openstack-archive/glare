@@ -268,10 +268,11 @@ def _apply_user_filters(query, basic_conds, tag_conds, prop_conds):
         tag_or_queries = []
         for tag_condition in tag_conds['or']:
             artifact_tag_alias = aliased(models.ArtifactTag)
-            query = query.join(artifact_tag_alias)
+            query = query.outerjoin(artifact_tag_alias)
             for tag_cond in tag_condition:
                 tag_cond.left = artifact_tag_alias.value
             tag_or_queries.append(and_(*tag_condition))
+        # If tag_or_queries is blank, there will not be any effect on query
         or_queries.append(and_(*tag_or_queries))
 
     if prop_conds:
