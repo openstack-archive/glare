@@ -578,6 +578,11 @@ class Engine(object):
                     'status': existing_blob_status}
                 raise exception.Conflict(message=msg)
             utils.validate_change_allowed(af, field_name)
+
+            if existing_blob is not None:
+                blob_info = deepcopy(existing_blob)
+                blob_info['status'] = 'saving'
+
             blob_info['size'] = self._calculate_allowed_space(
                 context, af, field_name, content_length, blob_key)
 
@@ -625,8 +630,16 @@ class Engine(object):
             # if upload failed remove blob from db and storage
             with excutils.save_and_reraise_exception(logger=LOG):
                 LOG.error("Exception occured: %s", Exception)
+                # delete created blob_info in case of blob_data upload fails.
+                if existing_blob is None:
+                    blob_info = None
+                else:
+                    # Update size of blob_data to previous blob and
+                    # Mark existing blob status to active.
+                    blob_info['size'] = existing_blob['size']
+                    blob_info['status'] = 'active'
                 self._save_blob_info(
-                    context, af, field_name, blob_key, None)
+                    context, af, field_name, blob_key, blob_info)
 
         LOG.info("Successfully finished blob uploading for artifact "
                  "%(artifact)s blob field %(blob)s.",

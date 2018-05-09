@@ -66,6 +66,16 @@ class TestArtifactUpload(base.BaseTestArtifactAPI):
         self.assertEqual(5, artifact['blob']['size'])
         self.assertEqual('active', artifact['blob']['status'])
 
+        # failed in pre_upload_hook validation and retain the existing data
+        self.assertRaises(exc.GlareException, self.controller.upload_blob,
+                          self.req, 'sample_artifact',
+                          self.sample_artifact['id'], 'blob',
+                          BytesIO(b'invalid_data'), 'application/octet-stream')
+        artifact = self.controller.show(self.req, 'sample_artifact',
+                                        self.sample_artifact['id'])
+        self.assertEqual(5, artifact['blob']['size'])
+        self.assertEqual('active', artifact['blob']['status'])
+
     def test_upload_saving_blob(self):
         self.controller.upload_blob(
             self.req, 'sample_artifact', self.sample_artifact['id'], 'blob',
