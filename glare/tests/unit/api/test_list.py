@@ -496,6 +496,7 @@ class TestArtifactList(base.BaseTestArtifactAPI):
             {'name': 'name4', 'tags': ['tag2']},
             {'name': 'name5', 'tags': ['tag4']},
             {'name': 'name6', 'tags': ['tag4', 'tag5']},
+            {'name': 'name7'},
         ]
         arts = [self.controller.create(self.req, 'sample_artifact', val)
                 for val in values]
@@ -551,12 +552,73 @@ class TestArtifactList(base.BaseTestArtifactAPI):
         for i in (3, 1, 0):
             self.assertIn(arts[i], res['artifacts'])
 
+        filters = [('name', 'or:like:name%'), ('tags-any', 'or:tag_nox_exist')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(7, len(res['artifacts']))
+
         # Filtering by tags with operators leads to BadRequest
         for f in ('tags', 'tags-any'):
             filters = [(f, 'eq:tag1')]
             self.assertRaises(
                 exc.BadRequest, self.controller.list,
                 self.req, 'sample_artifact', filters)
+
+    def test_list_tags_base_and_additional_properties_with_sort(self):
+        values = [
+            {'name': 'name1', 'int1': 12, 'float1': 12.35,
+             'str1': 'string_value', 'tags': ['tag1', 'tag2']},
+            {'name': 'name2', 'int1': 15, 'float1': 14.38, 'str1': 'new_value',
+             'list_of_str': ['str1', 'str2'], 'tags': ['tag1', 'tag3']},
+            {'name': 'name3', 'int1': 15, 'float1': 14.38, 'str1': 'new_value',
+             'list_of_str': ['str11', 'str2'], 'tags': ['tag1'],
+             'dict_of_str': {'key1': 'value1', 'key2': 'value2'}},
+            {'name': 'name4', 'int1': 15, 'float1': 14.38, 'tags': ['tag2']},
+            {'name': 'name5', 'list_of_str': ['str1', 'str2'],
+             'tags': ['tag4']},
+            {'name': 'name6', 'tags': ['tag4', 'tag5']},
+            {'name': 'name7', 'list_of_str': ['str21', 'str12']},
+            {'name': 'name8', 'int1': 12,
+             'dict_of_str': {'key11': 'value1', 'key12': 'value2'}},
+            {'name': 'name9'}
+        ]
+        arts = [self.controller.create(self.req, 'sample_artifact', val)
+                for val in values]
+
+        filters = [('name', 'or:like:name%'), ('tags-any', 'or:tag_nox_exist')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(9, len(res['artifacts']))
+
+        filters = [('name', 'or:in:name1,name9'), ('tags-any', 'or:tag2,tag4')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(5, len(res['artifacts']))
+        for i in (0, 3, 4, 5, 8):
+            self.assertIn(arts[i], res['artifacts'])
+
+        filters = [('name', 'or:in:name1,name5,name9'), ('int1', 'or:lte:13')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(4, len(res['artifacts']))
+        for i in (0, 4, 7, 8):
+            self.assertIn(arts[i], res['artifacts'])
+
+        filters = [('list_of_str', 'or:in:str11'),
+                   ('tags-any', 'or:tag4,tag5')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(3, len(res['artifacts']))
+        for i in (2, 4, 5):
+            self.assertIn(arts[i], res['artifacts'])
+
+        filters = [('list_of_str', 'or:in:str11'), ('tags', 'or:tag4,tag5')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(2, len(res['artifacts']))
+        for i in (2, 5):
+            self.assertIn(arts[i], res['artifacts'])
+
+        filters = [('name', 'or:name7'), ('dict_of_str', 'or:in:key1'),
+                   ('tags', 'or:tag4,tag5')]
+        res = self.controller.list(self.req, 'sample_artifact', filters)
+        self.assertEqual(3, len(res['artifacts']))
+        for i in (2, 5, 6):
+            self.assertIn(arts[i], res['artifacts'])
 
     def test_list_and_sort_fields(self):
         amount = 7
