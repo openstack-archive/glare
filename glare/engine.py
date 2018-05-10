@@ -573,7 +573,7 @@ class Engine(object):
                 if existing_blob else None
             if existing_blob_status == "saving":
                 msg = _("Blob %(blob)s already exists for artifact and it"
-                        "is in %(status) %(af)s") % {
+                        "is in %(status)s %(af)s") % {
                     'blob': field_name, 'af': af.id,
                     'status': existing_blob_status}
                 raise exception.Conflict(message=msg)
