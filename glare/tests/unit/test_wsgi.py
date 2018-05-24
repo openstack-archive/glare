@@ -79,7 +79,8 @@ class RequestTest(base.BaseTestCase):
                 '/', headers={'Accept-Language': 'Klingon'})
         self.assertIsNone(req.best_match_language())
 
-    @mock.patch.object(webob.acceptparse.AcceptLanguage, 'best_match')
+    @mock.patch.object(webob.acceptparse.AcceptLanguageValidHeader,
+                       'best_match')
     def test_best_match_language_unknown(self, mock_best_match):
         # Test that we are actually invoking language negotiation by webop
         request = wsgi.Request.blank('/')
@@ -250,7 +251,8 @@ class ResourceTest(base.BaseTestCase):
                               resource, request)
         self.assertEqual(message_es, str(e))
 
-    @mock.patch.object(webob.acceptparse.AcceptLanguage, 'best_match')
+    @mock.patch.object(webob.acceptparse.AcceptLanguageValidHeader,
+                       'best_match')
     @mock.patch.object(i18n, 'translate')
     def test_translate_exception(self, mock_translate, mock_best_match):
 
