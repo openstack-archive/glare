@@ -80,10 +80,12 @@ class BaseTestCase(testtools.TestCase):
             custom_artifact_types_modules=[
                 'glare.tests.sample_artifact',
                 'glare.tests.hooks_artifact',
-                'glare.tests.unpacking_artifact'
+                'glare.tests.unpacking_artifact',
+                'glare.tests.non_nullable_fields_artifact'
             ],
             enabled_artifact_types=[
-                'unpacking_artifact', 'hooks_artifact', 'sample_artifact',
+                'non_nullable_fields_artifact', 'unpacking_artifact',
+                'hooks_artifact', 'sample_artifact',
                 'images', 'heat_templates', 'heat_environments',
                 'murano_packages', 'tosca_templates']
         )

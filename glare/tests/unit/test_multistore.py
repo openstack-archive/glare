@@ -27,7 +27,8 @@ class TestMultistore(base.BaseTestCase):
                  'murano_packages': 'vsphere',
                  'sample_artifact': 'database',
                  'hooks_artifact': 'database',
-                 'unpacking_artifact': 'database'}
+                 'unpacking_artifact': 'database',
+                 'non_nullable_fields_artifact': 'database'}
 
         # create engine and register new artifact types
         engine.Engine()

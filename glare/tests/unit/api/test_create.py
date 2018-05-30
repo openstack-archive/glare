@@ -150,6 +150,18 @@ class TestArtifactCreate(base.BaseTestArtifactAPI):
         self.assertRaises(exc.BadRequest, self.controller.create,
                           self.req, 'sample_artifact', values)
 
+    def test_create_artifact_with_nullable_false_field(self):
+        values = {'name': 'art1', 'int_not_nullable_without_default': 1}
+
+        res = self.controller.create(self.req,
+                                     'non_nullable_fields_artifact', values)
+        self.assertEqual(1, res['int_not_nullable_without_default'])
+        self.assertEqual(0, res['int_not_nullable_with_default'])
+
+        values = {'name': 'art2'}
+        self.assertRaises(exc.BadRequest, self.controller.create,
+                          self.req, 'non_nullable_fields_artifact', values)
+
     def test_create_artifact_blob(self):
         values = {'name': 'test', 'blob': 'DATA'}
         self.assertRaises(exc.BadRequest, self.controller.create,
