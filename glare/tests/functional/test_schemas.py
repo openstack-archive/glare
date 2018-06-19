@@ -166,6 +166,7 @@ def generate_type_props(props):
 fixtures = {
     u'sample_artifact': {
         u'name': u'sample_artifact',
+        u'display_name': u'Sample Artifact',
         u'properties': generate_type_props({
             u'blob': {u'additionalProperties': False,
                       u'description': u'I am Blob',
@@ -490,6 +491,7 @@ fixtures = {
         u'type': u'object'},
     u'tosca_templates': {
         u'name': u'tosca_templates',
+        u'display_name': u'TOSCA Templates',
         u'properties': generate_type_props({
             u'template': {
                 u'additionalProperties': False,
@@ -530,6 +532,7 @@ fixtures = {
         u'type': u'object'},
     u'murano_packages': {
         u'name': u'murano_packages',
+        u'display_name': u'Murano packages',
         u'properties': generate_type_props({
             u'categories': {
                 u'default': [],
@@ -645,6 +648,7 @@ fixtures = {
         u'type': u'object'},
     u'images': {
         u'name': u'images',
+        u'display_name': u'Images',
         u'properties': generate_type_props({
             u'architecture': {
                 u'description': u'Operating system architecture as specified '
@@ -808,6 +812,7 @@ fixtures = {
         u'type': u'object'},
     u'heat_templates': {
         u'name': u'heat_templates',
+        u'display_name': u'Heat Templates',
         u'properties': generate_type_props({
             u'default_envs': {
                 u'additionalProperties': {u'maxLength': 255,
@@ -900,6 +905,7 @@ fixtures = {
         u'type': u'object'},
     u'heat_environments': {
         u'name': u'heat_environments',
+        u'display_name': u'Heat Environments',
         u'properties': generate_type_props({
             u'environment': {
                 u'additionalProperties': False,
@@ -931,6 +937,7 @@ fixtures = {
         u'type': u'object'},
     u'all': {
         u'name': u'all',
+        u'display_name': u'All Artifacts',
         u'properties': generate_type_props({
             u'type_name': {u'description': u'Name of artifact type.',
                            u'filter_ops': [u'like', u'eq', u'neq', u'in'],

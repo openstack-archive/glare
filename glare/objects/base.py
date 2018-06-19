@@ -762,6 +762,7 @@ Possible values:
                    'title': 'Artifact type %s of version %s' %
                             (cls.get_type_name(), cls.VERSION),
                    'type': 'object',
+                   'display_name': cls.get_display_type_name(),
                    'required': ['name']}
 
         return schemas
