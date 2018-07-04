@@ -744,6 +744,8 @@ Possible values:
             schema['required_on_activate'] = False
         if field._default is not None:
             schema['default'] = field._default
+        if field.metadata is not None:
+            schema['metadata'] = field.metadata
 
         schema['filter_ops'] = field.filter_ops
 

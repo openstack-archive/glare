@@ -483,7 +483,15 @@ fixtures = {
                                   u'readOnly': True,
                                   u'sortable': True,
                                   u'type': [u'string',
-                                            u'null']}
+                                            u'null']},
+            u'metadata_attribute': {u'default': u'default',
+                                    u'filter_ops': [u'eq', u'neq', u'in'],
+                                    u'glareType': u'String',
+                                    u'maxLength': 255,
+                                    u'metadata': {
+                                        u'metadata1': u'value1',
+                                        u'metadata2': u'blahblahblah'},
+                                    u'type': [u'string', u'null']},
         }),
         u'required': [u'name'],
         u'title': u'Artifact type sample_artifact of version 1.0',

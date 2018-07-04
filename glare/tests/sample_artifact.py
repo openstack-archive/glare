@@ -135,7 +135,10 @@ class SampleArtifact(base_artifact.BaseArtifact):
                                 max_size=3),
         'system_attribute': Field(fields.StringField,
                                   system=True, sortable=True,
-                                  default="default")
+                                  default="default"),
+        'metadata_attribute': Field(fields.StringField, default="default",
+                                    metadata={"metadata1": "value1",
+                                              "metadata2": "blahblahblah"})
     }
 
     @classmethod

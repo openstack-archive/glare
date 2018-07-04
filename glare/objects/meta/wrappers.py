@@ -32,7 +32,8 @@ DEFAULT_MAX_FOLDER_SIZE = 2673868800  # 2550 Megabytes
 class Field(object):
     def __init__(self, field_class, mutable=False, required_on_activate=True,
                  system=False, validators=None, nullable=True, default=None,
-                 sortable=False, filter_ops=None, description=""):
+                 sortable=False, filter_ops=None, description="",
+                 metadata=None):
         """Init and validate field.
         Each artifact field has several common properties:
 
@@ -82,6 +83,7 @@ class Field(object):
         self.required_on_activate = required_on_activate
         self.system = system
         self.sortable = sortable
+        self.metadata = metadata
 
         try:
             default_ops = self.get_default_filter_ops(self.element_type)
@@ -101,7 +103,8 @@ class Field(object):
             self.filter_ops = filter_ops
 
         self.field_props = ['mutable', 'required_on_activate', 'system',
-                            'sortable', 'filter_ops', 'description']
+                            'sortable', 'filter_ops', 'description',
+                            'metadata']
         self.description = description
 
     @staticmethod
