@@ -1,0 +1,18 @@
+- job:
+    name: glare-devstack
+    parent: legacy-dsvm-base
+    run: playbooks/glare-devstack/run.yaml
+    post-run: playbooks/glare-devstack/post.yaml
+    timeout: 7800
+    required-projects:
+      - openstack-infra/devstack-gate
+      - openstack/glare
+      - openstack/python-glareclient
+
+- project:
+    check:
+      jobs:
+        - glare-devstack
+    gate:
+      jobs:
+        - glare-devstack
