@@ -86,17 +86,20 @@ class KeycloakAuthMiddleware(base_middleware.Middleware):
         self.keyfile = CONF.keycloak_oidc.keyfile
         self.cafile = CONF.keycloak_oidc.cafile or utils.get_system_ca_file()
         self.insecure = CONF.keycloak_oidc.insecure
-        self.url_template = CONF.keycloak_oidc.auth_url + \
-            CONF.keycloak_oidc.user_info_endpoint_url
 
     def authenticate(self, access_token, realm_name):
         info = None
         if self.mcclient:
             info = self.mcclient.get(access_token)
 
-        if info is None and CONF.keycloak_oidc.user_info_endpoint_url:
-
-            url = self.url_template % realm_name
+        user_info_endpoint_url = CONF.keycloak_oidc.user_info_endpoint_url
+        if info is None and user_info_endpoint_url:
+            if user_info_endpoint_url.startswith(('http://', 'https://')):
+                url = user_info_endpoint_url
+            else:
+                url_template = CONF.keycloak_oidc.auth_url + \
+                    CONF.keycloak_oidc.user_info_endpoint_url
+                url = url_template % realm_name
 
             verify = None
             if urllib.parse.urlparse(url).scheme == "https":
