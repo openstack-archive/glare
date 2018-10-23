@@ -83,6 +83,7 @@ def unpack_zip_archive_to_artifact_folder(context, af, zip_ref, folder_name):
             file_dict[name] = blob
             blobs.append((blob_id, utils.BlobIterator(zip_ref.read(name))))
 
+    setattr(af, folder_name, file_dict)
     af = af.update_blob(context, af.id, folder_name, file_dict)
 
     default_store = getattr(
