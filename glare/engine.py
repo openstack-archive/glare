@@ -15,7 +15,6 @@
 
 from copy import deepcopy
 
-from eventlet import tpool
 import jsonpatch
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -604,12 +603,11 @@ class Engine(object):
                 if hasattr(af, 'validate_upload'):
                     LOG.warning("Method 'validate_upload' was deprecated. "
                                 "Please use 'pre_upload_hook' instead.")
-                    fd, path = tpool.execute(
-                        af.validate_upload, context, af, field_name, fd)
+                    fd, path = af.validate_upload(context, af, field_name, fd)
                 else:
                     LOG.debug("Initiating Pre_upload hook")
-                    fd = tpool.execute(af.pre_upload_hook,
-                                       context, af, field_name, blob_key, fd)
+                    fd = af.pre_upload_hook(context, af, field_name,
+                                            blob_key, fd)
                     LOG.debug("Pre_upload hook executed successfully")
             except exception.GlareException:
                 raise
