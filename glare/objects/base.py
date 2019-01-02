@@ -550,6 +550,10 @@ Possible values:
         pass
 
     @classmethod
+    def pre_update_hook_with_patch(cls, context, af, json_patch):
+        cls.pre_update_hook(context, af)
+
+    @classmethod
     def post_update_hook(cls, context, af):
         pass
 

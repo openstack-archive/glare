@@ -151,7 +151,7 @@ class Engine(object):
         action_names = ['update']
         af_dict = af.to_dict()
         policy.authorize('artifact:update', af_dict, context)
-        af.pre_update_hook(context, af)
+        af.pre_update_hook_with_patch(context, af, patch)
         try:
             for operation in patch._ops:
                 # apply the change to make sure that it's correct
