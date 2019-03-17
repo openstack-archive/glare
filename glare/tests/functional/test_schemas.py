@@ -69,7 +69,8 @@ fixture_base_props = {
                   u'type': [u'object',
                             u'null']},
     u'name': {u'description': u'Artifact Name.',
-              u'filter_ops': [u'eq',
+              u'filter_ops': [u'like',
+                              u'eq',
                               u'neq',
                               u'in'],
               u'glareType': u'String',
@@ -927,7 +928,7 @@ fixtures = {
         u'name': u'all',
         u'properties': generate_type_props({
             u'type_name': {u'description': u'Name of artifact type.',
-                           u'filter_ops': [u'eq', u'neq', u'in'],
+                           u'filter_ops': [u'like', u'eq', u'neq', u'in'],
                            u'glareType': u'String',
                            u'maxLength': 255,
                            u'sortable': True,

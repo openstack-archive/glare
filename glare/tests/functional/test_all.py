@@ -82,6 +82,13 @@ class TestAll(base.TestArtifact):
         for art in res:
             self.assertEqual('Heat', art['display_type_name'][:4])
 
+        # search artifact using like for heat_templates and heat_environments
+        url = '/all?type_name=like:heat%'
+        res = self.get(url=url, status=200)['artifacts']
+        self.assertEqual(18, len(res))
+        for art in res:
+            self.assertEqual('heat', art['type_name'][:4])
+
         # TODO(kushalagrawal): Need to Add test case for display_type_name with
         # null once https://bugs.launchpad.net/glare/+bug/1741400 is resolved
 
