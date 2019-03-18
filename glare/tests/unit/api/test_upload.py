@@ -57,14 +57,11 @@ class TestArtifactUpload(base.BaseTestArtifactAPI):
         self.assertEqual(3, artifact['blob']['size'])
         self.assertEqual('active', artifact['blob']['status'])
 
-        # Re-uploading blob
-        self.controller.upload_blob(
+        # Re-uploading blob leads to Conflict error
+        self.assertRaises(
+            exc.Conflict, self.controller.upload_blob,
             self.req, 'sample_artifact', self.sample_artifact['id'], 'blob',
-            BytesIO(b'aaabb'), 'application/octet-stream')
-        artifact = self.controller.show(self.req, 'sample_artifact',
-                                        self.sample_artifact['id'])
-        self.assertEqual(5, artifact['blob']['size'])
-        self.assertEqual('active', artifact['blob']['status'])
+            BytesIO(b'aaa'), 'application/octet-stream')
 
     def test_upload_saving_blob(self):
         self.controller.upload_blob(
@@ -235,15 +232,11 @@ class TestArtifactUpload(base.BaseTestArtifactAPI):
         self.assertEqual(3, artifact['dict_of_blobs']['blb']['size'])
         self.assertEqual('active', artifact['dict_of_blobs']['blb']['status'])
 
-        # Validate re-uploaded of blob content.
-        self.controller.upload_blob(
+        # If blob key already exists Glare return Conflict error
+        self.assertRaises(
+            exc.Conflict, self.controller.upload_blob,
             self.req, 'sample_artifact', self.sample_artifact['id'],
-            'dict_of_blobs/blb', BytesIO(b'aaabb'),
-            'application/octet-stream')
-
-        artifact = self.controller.show(self.req, 'sample_artifact',
-                                        self.sample_artifact['id'])
-        self.assertEqual(5, artifact['dict_of_blobs']['blb']['size'])
+            'dict_of_blobs/blb', BytesIO(b'aaa'), 'application/octet-stream')
 
     def test_blob_dict_storage_error(self):
         self.config(default_store='filesystem',
