@@ -29,11 +29,7 @@ class All(base.BaseArtifact):
     fields = {
         'type_name': Field(fields.StringField,
                            description="Name of artifact type.",
-                           sortable=True,
-                           filter_ops=(wrappers.FILTER_LIKE,
-                                       wrappers.FILTER_EQ,
-                                       wrappers.FILTER_NEQ,
-                                       wrappers.FILTER_IN)),
+                           sortable=True),
         'display_type_name': Field(fields.StringField,
                                    description="Display name of "
                                                "artifact type.",
