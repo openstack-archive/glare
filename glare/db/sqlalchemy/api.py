@@ -775,7 +775,13 @@ def save_blob_data_batch(context, blobs, session):
         for blob_data_id, data in blobs:
             blob_data = models.ArtifactBlobData()
             blob_data.id = blob_data_id
-            blob_data.data = data.read()
+            blob_data.data = b''
+            while True:
+                chunk = data.read()
+                if chunk:
+                    blob_data.data += chunk
+                else:
+                    break
             session.add(blob_data)
             locations.append("sql://" + blob_data.id)
 
