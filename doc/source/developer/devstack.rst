@@ -1,4 +1,0 @@
-Glare Devstack Installation
-===========================
-
-TBD

@@ -1,4 +1,0 @@
-Glare Installation Guide
-========================
-
-TBD

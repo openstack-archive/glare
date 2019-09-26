@@ -1,4 +1,0 @@
-Glare Features
-==============
-
-TBD
